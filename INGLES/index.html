@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>En Construcción - Web del Cole</title>
+    <style>
+        :root {
+            --mar-profundo: #1e3c72;
+            --arena: #fdfbf7;
+            --amarillo-obra: #fbc02d;
+            --rojo-aviso: #e91e63;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--arena);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(30, 60, 114, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(233, 30, 99, 0.05) 0%, transparent 20%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .contenedor-central {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            max-width: 800px;
+            width: 90%;
+            border: 8px solid white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Cinta de "Precaución" decorativa */
+        .cinta-obra {
+            background: repeating-linear-gradient(
+                45deg,
+                var(--amarillo-obra),
+                var(--amarillo-obra) 20px,
+                #333 20px,
+                #333 40px
+            );
+            height: 20px;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .imagen-construccion {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 15px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        h1 {
+            color: var(--mar-profundo);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        p {
+            color: #666;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .boton-volver {
+            display: inline-block;
+            background-color: var(--mar-profundo);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.3s, background-color 0.3s;
+            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
+        }
+
+        .boton-volver:hover {
+            transform: scale(1.05);
+            background-color: var(--rojo-aviso);
+        }
+
+        /* Iconos animados */
+        .iconos-flotantes {
+            font-size: 2rem;
+            position: absolute;
+            opacity: 0.2;
+            animation: spin 10s linear infinite;
+        }
+        .i1 { top: 10%; left: 5%; animation-duration: 15s; }
+        .i2 { bottom: 10%; right: 5%; animation-duration: 20s; animation-direction: reverse; }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="contenedor-central">
+        <div class="cinta-obra"></div>
+        
+        <!-- Iconos decorativos de fondo -->
+        <span class="iconos-flotantes i1">⚙️</span>
+        <span class="iconos-flotantes i2">🧱</span>
+
+        <img src="http://googleusercontent.com/image_generation_content/2" alt="Poeta construyendo la web" class="imagen-construccion">
+
+        <h1>¡Estamos trabajando en ello!</h1>
+        <p>
+            El Poeta Antón está construyendo nuevos rincones de aprendizaje para nuestra web.<br>
+            Muy pronto podrás disfrutar de todo el contenido.
+        </p>
+
+        <!-- Enlace opcional para volver al inicio si esto es una subsección -->
+        <a href="index.html" class="boton-volver">Volver al Inicio</a>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gran Reto Vertebrados - 50 Preguntas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Tween.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { 
+            margin: 0; 
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #111; 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            transition: background-image 1s ease-in-out;
+        }
+        
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        
+        /* UI Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Etiqueta 3D Nombre */
+        #player-label {
+            position: absolute;
+            top: 0; 
+            left: 0;
+            background: rgba(0, 0, 0, 0.85); /* Fondo más oscuro para legibilidad */
+            color: #fbbf24; /* Texto amarillo brillante */
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 800; /* Extra bold */
+            pointer-events: none;
+            z-index: 50; 
+            white-space: nowrap;
+            display: none; /* Se activa con JS */
+            text-shadow: 2px 2px 0 #000;
+            border: 2px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: opacity 0.2s;
+        }
+        /* Triángulo indicador abajo */
+        #player-label::after {
+            content: ''; position: absolute; top: 100%; left: 50%; margin-left: -8px;
+            border-width: 8px 8px 0; border-style: solid; border-color: rgba(0,0,0,0.85) transparent;
+        }
+
+        .fade-in { animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Daño Flotante */
+        .float-damage {
+            position: absolute;
+            color: #dc2626;
+            font-family: 'Arial Black', sans-serif;
+            font-weight: 900;
+            font-size: 5rem;
+            animation: floatDamage 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 2px 2px 0 white;
+        }
+        @keyframes floatDamage { 
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -150px) scale(1); } 
+        }
+
+        /* Bocadillo */
+        .comic-bubble {
+            position: absolute;
+            background: white;
+            border: 4px solid #166534;
+            padding: 20px 30px;
+            border-radius: 40px;
+            font-family: 'Comic Sans MS', sans-serif;
+            font-weight: bold;
+            text-align: center;
+            z-index: 90;
+            display: none;
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.2);
+            color: #166534;
+            font-size: 1.2rem;
+            max-width: 350px;
+            line-height: 1.2;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .comic-bubble::after {
+            content: ''; position: absolute; bottom: -16px; left: 50%; margin-left: -12px;
+            border-width: 16px 16px 0; border-style: solid; border-color: #166534 transparent;
+        }
+
+        .animated-input:focus {
+            box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.5);
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    
+    <!-- ETIQUETA DEL JUGADOR (Siempre visible en el DOM, movida por JS) -->
+    <div id="player-label">Jugador</div>
+
+    <!-- PANTALLA INICIO -->
+    <div id="start-screen" class="absolute inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-md p-4">
+        <div class="glass-card p-10 md:p-12 rounded-[2.5rem] max-w-lg w-full text-center border-t-[10px] border-green-500 fade-in shadow-2xl">
+            <h1 class="text-5xl font-extrabold text-green-800 mb-2 tracking-tighter">RETO VERTEBRADOS</h1>
+            <h2 class="text-xl text-gray-500 mb-8 font-bold uppercase tracking-widest">Misión: Recuperar el Planeta</h2>
+            
+            <div class="mb-6 text-left">
+                <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Tu Nombre</label>
+                <input type="text" id="input-name" class="w-full bg-gray-100 border-2 border-gray-300 p-4 rounded-2xl focus:border-green-500 outline-none text-xl font-bold text-gray-800 transition-all placeholder-gray-400" placeholder="Escribe tu nombre...">
+            </div>
+
+            <div class="mb-8">
+                <label class="block text-left text-xs font-black text-gray-500 uppercase mb-3 ml-1">Elige tu Avatar</label>
+                <div class="grid grid-cols-4 gap-4">
+                    <button onclick="selectAvatar(0)" class="avatar-btn p-3 rounded-2xl border-2 border-gray-200 hover:border-green-500 transition flex flex-col items-center gap-2 group selected-avatar bg-white" data-idx="0">
+                        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl shadow-md"><i class="fas fa-user-astronaut"></i></div>
+                    </button>
+                    <button onclick="selectAvatar(1)" class="avatar-btn p-3 rounded-2xl border-2 border-gray-200 hover:border-green-500 transition flex flex-col items-center gap-2 group bg-white" data-idx="1">
+                        <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white text-xl shadow-md"><i class="fas fa-robot"></i></div>
+                    </button>
+                    <button onclick="selectAvatar(2)" class="avatar-btn p-3 rounded-2xl border-2 border-gray-200 hover:border-green-500 transition flex flex-col items-center gap-2 group bg-white" data-idx="2">
+                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white text-xl shadow-md"><i class="fas fa-frog"></i></div>
+                    </button>
+                    <button onclick="selectAvatar(3)" class="avatar-btn p-3 rounded-2xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition flex flex-col items-center gap-2 group bg-white" data-idx="3">
+                        <div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl shadow-md"><i class="fas fa-cat"></i></div>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl text-2xl shadow-xl transform transition hover:scale-[1.02]">
+                ¡EMPEZAR!
+            </button>
+        </div>
+    </div>
+
+    <!-- UI JUEGO (Esquina Inferior Izquierda) -->
+    <div id="game-ui" class="absolute inset-0 pointer-events-none hidden z-40 flex items-end justify-start p-6 md:p-8">
+        <div class="glass-card rounded-[2rem] w-full max-w-[450px] pointer-events-auto border-l-[10px] border-green-500 transition-all duration-300 relative flex flex-col shadow-2xl overflow-hidden" id="question-card">
+            
+            <div class="bg-gray-100/90 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <span id="q-counter" class="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">PREGUNTA 1 / 50</span>
+            </div>
+
+            <div class="p-6 md:p-8">
+                <div id="mode-badge" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-800 mb-6 border border-green-200 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span> Camino Principal
+                </div>
+
+                <h2 id="q-text" class="text-xl md:text-2xl font-bold text-gray-800 mb-8 leading-snug min-h-[70px] flex items-center">
+                    Cargando...
+                </h2>
+
+                <div id="interaction-area" class="space-y-3">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bocadillo -->
+    <div id="comic-message" class="comic-bubble">
+        <p id="comic-text">Texto</p>
+    </div>
+
+    <!-- PANTALLA FINAL -->
+    <div id="end-screen" class="absolute inset-0 flex items-center justify-center z-50 bg-white/95 hidden p-4">
+        <div class="bg-white p-10 rounded-[3rem] shadow-2xl max-w-2xl w-full text-center border-t-[16px] border-green-500 fade-in relative overflow-hidden">
+            
+            <h2 class="text-5xl font-black text-gray-800 mb-2 tracking-tight">¡FIN DEL JUEGO!</h2>
+            <p class="text-xl text-gray-500 mb-10 font-medium">Resultados de <span id="end-name" class="font-bold text-green-600">Jugador</span></p>
+
+            <div class="flex justify-center gap-12 mb-10">
+                <div class="text-center group cursor-default">
+                    <div class="text-6xl font-black text-green-600 mb-1" id="stat-correct">0</div>
+                    <div class="text-xs font-black text-gray-300 uppercase tracking-widest">Aciertos</div>
+                </div>
+                <div class="w-px bg-gray-200 h-20 self-center"></div>
+                <div class="text-center group cursor-default">
+                    <div class="text-6xl font-black text-red-500 mb-1" id="stat-wrong">0</div>
+                    <div class="text-xs font-black text-gray-400 uppercase tracking-widest">Fallos</div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-[2rem] p-8 mb-8 border border-gray-200 relative overflow-hidden shadow-inner">
+                <p class="text-gray-400 text-xs uppercase font-black tracking-[0.3em] mb-4">NOTA FINAL</p>
+                <div id="final-score" class="text-8xl font-black text-gray-800 tracking-tighter mb-6">0,0</div>
+                
+                <div id="final-feedback" class="text-2xl font-black uppercase px-6 py-3 rounded-xl inline-block shadow-sm">
+                    MENSAJE
+                </div>
+                
+                <p class="text-[10px] text-gray-400 mt-6 font-mono opacity-60">Fórmula: (Aciertos × 0,2) - (Fallos × 0,05)</p>
+            </div>
+            
+            <button onclick="location.reload()" class="w-full bg-gray-900 hover:bg-green-600 text-white font-bold py-5 rounded-2xl text-xl transition-all hover:shadow-2xl hover:-translate-y-1">
+                Jugar otra vez
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DE IMÁGENES ---
+        // Debes tener estas imágenes en la misma carpeta que el archivo .html
+        const PLANET_IMAGES = [
+            "planeta0.jpg", // Inicio (Contaminado)
+            "planeta1.jpg", 
+            "planeta2.jpg", 
+            "planeta3.jpg", 
+            "planeta4.jpg", 
+            "planeta5.jpg"  // Final (Recuperado)
+        ];
+
+        // --- BASE DE DATOS PREGUNTAS ---
+        const MAIN_QUESTIONS = [
+            // NIVEL 1
+            { id:1, q: "¿Qué caracteriza a los vertebrados?", options: ["Tienen esqueleto interno", "Tienen caparazón", "Son invertebrados"], correct: 0 },
+            { id:2, q: "¿Cuál NO es un vertebrado?", options: ["Perro", "Araña", "Pez"], correct: 1 },
+            { id:3, q: "¿Qué cubre a las aves?", options: ["Pelo", "Plumas", "Escamas"], correct: 1 },
+            { id:4, q: "¿Dónde viven los peces?", options: ["Tierra", "Agua", "Aire"], correct: 1 },
+            { id:5, q: "Escribe el nombre del grupo que tiene mamas y pelo.", type: 'text', correct: "mamiferos" },
+
+            // NIVEL 2
+            { id:6, q: "¿Cómo nacen los vivíparos?", options: ["De huevos", "Del vientre materno", "Semillas"], correct: 1 },
+            { id:7, q: "¿Qué piel tienen los reptiles?", options: ["Plumas", "Pelo", "Escamas duras"], correct: 2 },
+            { id:8, q: "¿Los peces nadan con...", options: ["Patas", "Aletas", "Alas"], correct: 1 },
+            { id:9, q: "¿Piel desnuda y húmeda?", options: ["Anfibios", "Reptiles", "Aves"], correct: 0 },
+            { id:10, q: "Escribe cómo nacen los animales de huevos.", type: 'text', correct: "oviparos" },
+
+            // NIVEL 3
+            { id:11, q: "¿Respiración de peces?", options: ["Pulmones", "Branquias", "Piel"], correct: 1 },
+            { id:12, q: "¿Extremidades de aves?", options: ["4 patas", "2 alas y 2 patas", "Aletas"], correct: 1 },
+            { id:13, q: "¿El humano es un...", options: ["Mamífero", "Reptil", "Ave"], correct: 0 },
+            { id:14, q: "¿Cómo nacen los anfibios?", options: ["Adultos", "Larvas (renacuajos)", "Pájaros"], correct: 1 },
+            { id:15, q: "Escribe el órgano que usamos para respirar aire.", type: 'text', correct: "pulmones" },
+
+            // NIVEL 4
+            { id:16, q: "¿Mamífero que vuela?", options: ["Murciélago", "Águila", "Avestruz"], correct: 0 },
+            { id:17, q: "¿El delfín es un...", options: ["Pez", "Mamífero", "Reptil"], correct: 1 },
+            { id:18, q: "¿Cambio de los anfibios?", options: ["Metamorfosis", "Crecimiento", "Evolución"], correct: 0 },
+            { id:19, q: "¿Renacuajos pierden...", options: ["Ojos", "Cola y branquias", "Boca"], correct: 1 },
+            { id:20, q: "Escribe el grupo animal de la rana.", type: 'text', correct: "anfibios" },
+
+            // NIVEL 5
+            { id:21, q: "¿Doble vida (agua/tierra)?", options: ["Anfibios", "Peces", "Reptiles"], correct: 0 },
+            { id:22, q: "¿La tortuga es...", options: ["Anfibio", "Reptil", "Mamífero"], correct: 1 },
+            { id:23, q: "¿Quién respira por pulmones?", options: ["Solo mamíferos", "Adultos menos peces", "Solo aves"], correct: 1 },
+            { id:24, q: "¿Parientes de aves?", options: ["Reptiles", "Peces", "Anfibios"], correct: 0 },
+            { id:25, q: "Escribe qué cubre a los peces.", type: 'text', correct: "escamas" },
+
+            // NIVEL 6
+            { id:26, q: "¿Pez, gato y loro son...", options: ["Vertebrados", "Invertebrados", "Peluches"], correct: 0 },
+            { id:27, q: "¿Mamíferos acuáticos respiran por...", options: ["Branquias", "Pulmones", "Piel"], correct: 1 },
+            { id:28, q: "¿Qué comen los mamíferos al nacer?", options: ["Hierba", "Leche", "Insectos"], correct: 1 },
+            { id:29, q: "¿El pingüino es un...", options: ["Pez", "Ave", "Mamífero"], correct: 1 },
+            { id:30, q: "Escribe el nombre del grupo de animales con plumas.", type: 'text', correct: "aves" },
+
+            // NIVEL 7
+            { id:31, q: "¿La serpiente se desplaza...", options: ["Reptando", "Volando", "Nadando"], correct: 0 },
+            { id:32, q: "¿El esqueleto sirve para...", options: ["Adornar", "Sostener y proteger", "Nada"], correct: 1 },
+            { id:33, q: "¿Los huesos son...", options: ["Blandos", "Duros", "Líquidos"], correct: 1 },
+            { id:34, q: "¿Animal que tiene aletas pero mama leche?", options: ["Tiburón", "Ballena", "Pez Espada"], correct: 1 },
+            { id:35, q: "Escribe el grupo de la serpiente.", type: 'text', correct: "reptiles" },
+
+            // NIVEL 8
+            { id:36, q: "¿El ornitorrinco es raro porque...", options: ["Es mamífero y pone huevos", "Tiene escamas", "Vuela"], correct: 0 },
+            { id:37, q: "¿Anfibios adultos respiran por...", options: ["Solo pulmones", "Pulmones y piel", "Solo branquias"], correct: 1 },
+            { id:38, q: "¿Las aves tienen pico...", options: ["Con dientes", "Sin dientes", "De goma"], correct: 1 },
+            { id:39, q: "¿Temperatura de reptiles?", options: ["Sangre fría", "Constante", "Caliente"], correct: 0 },
+            { id:40, q: "Escribe: nacen del vientre.", type: 'text', correct: "viviparos" },
+
+            // NIVEL 9
+            { id:41, q: "¿Patas de los tetrápodos?", options: ["Dos", "Cuatro", "Seis"], correct: 1 },
+            { id:42, q: "¿Huesos del tiburón?", options: ["Calcio", "Cartílago flexible", "Madera"], correct: 1 },
+            { id:43, q: "¿La salamandra es...", options: ["Reptil", "Anfibio", "Pez"], correct: 1 },
+            { id:44, q: "¿El camaleón cambia de...", options: ["Color", "Forma", "Tamaño"], correct: 0 },
+            { id:45, q: "Escribe el único mamífero volador.", type: 'text', correct: "murcielago" },
+
+            // NIVEL 10
+            { id:46, q: "¿Ave que corre mucho y no vuela?", options: ["Águila", "Avestruz", "Gorrión"], correct: 1 },
+            { id:47, q: "¿El caballito de mar es...", options: ["Caballo", "Pez", "Reptil"], correct: 1 },
+            { id:48, q: "¿Los dinosaurios eran...", options: ["Reptiles", "Anfibios", "Mamíferos"], correct: 0 },
+            { id:49, q: "¿Renacuajos nadan con...", options: ["Patas", "Cola", "Aletas"], correct: 1 },
+            { id:50, q: "Escribe: animales con esqueleto.", type: 'text', correct: "vertebrados" },
+        ];
+
+        // POOL REFUERZO
+        const REINFORCEMENT_POOL = [
+            { q: "REPASO: ¿Tienen huesos los vertebrados?", options: ["Sí", "No"], correct: 0 },
+            { q: "REPASO: ¿Ovíparo nace de...", options: ["Huevo", "Barriga"], correct: 0 },
+            { q: "REPASO: ¿Vivíparo nace de...", options: ["Huevo", "Vientre"], correct: 1 },
+            { q: "REPASO: ¿Mamíferos toman...", options: ["Agua", "Leche"], correct: 1 },
+            { q: "REPASO: ¿Peces respiran por...", options: ["Pulmones", "Branquias"], correct: 1 },
+            { q: "REPASO: ¿Aves tienen...", options: ["Pelo", "Plumas"], correct: 1 },
+            { q: "REPASO: ¿Ranas son...", options: ["Reptiles", "Anfibios"], correct: 1 },
+            { q: "REPASO: ¿Serpientes son...", options: ["Reptiles", "Anfibios"], correct: 0 },
+            { q: "REPASO: ¿Humanos somos...", options: ["Mamíferos", "Aves"], correct: 0 },
+            { q: "REPASO: ¿Escamas en...", options: ["Peces/Reptiles", "Mamíferos"], correct: 0 },
+        ];
+
+        // --- ESTADO ---
+        let gameState = {
+            playerName: "Jugador",
+            avatarIdx: 0,
+            scoreVisual: 0, 
+            correctCount: 0,
+            wrongCount: 0,
+            mainIndex: 0,
+            mistakesInRow: 0,
+            isReinforcement: false,
+            reinforceQueue: [],
+            reinforceIndex: 0,
+            pointsSinceJump: 0,
+            isFinished: false
+        };
+
+        // --- GAMEPLAY ---
+
+        function selectAvatar(idx) {
+            gameState.avatarIdx = idx;
+            document.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('border-green-500', 'bg-green-50', 'ring-4', 'ring-green-200'));
+            const btn = document.querySelector(`.avatar-btn[data-idx="${idx}"]`);
+            if(btn) btn.classList.add('border-green-500', 'bg-green-50', 'ring-4', 'ring-green-200');
+        }
+
+        function startGame() {
+            const name = document.getElementById('input-name').value.trim();
+            if(!name) { alert("¡Por favor escribe tu nombre!"); return; }
+            gameState.playerName = name;
+            
+            // CORRECCIÓN: Actualizar y mostrar la etiqueta aquí
+            const label = document.getElementById('player-label');
+            label.innerText = name;
+            label.style.display = 'block'; 
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+
+            if(!scene) init3D();
+            updateAvatarColor();
+            updateBackground();
+            loadQuestion();
+        }
+
+        function normalizeString(str) {
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        }
+
+        function loadQuestion() {
+            if(gameState.isFinished) return;
+
+            const card = document.getElementById('question-card');
+            const badge = document.getElementById('mode-badge');
+            const container = document.getElementById('interaction-area');
+            const qCounter = document.getElementById('q-counter');
+            
+            container.innerHTML = '';
+            let data;
+
+            if(gameState.isReinforcement) {
+                // REPASO
+                data = gameState.reinforceQueue[gameState.reinforceIndex];
+                card.classList.replace('border-green-500', 'border-red-500');
+                badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-800 mb-6 border border-red-200 shadow-sm";
+                badge.innerHTML = "⚠️ PREGUNTAS DE REPASO";
+                qCounter.innerText = `REPASO ${gameState.reinforceIndex + 1} / 3`;
+                
+                document.getElementById('q-text').innerText = data.q;
+                
+                data.options.forEach((opt, idx) => {
+                    const btn = createOptionButton(opt, idx, () => handleAnswer(idx));
+                    container.appendChild(btn);
+                });
+
+            } else {
+                // PRINCIPAL
+                data = MAIN_QUESTIONS[gameState.mainIndex];
+                card.classList.replace('border-red-500', 'border-green-500');
+                badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-800 mb-6 border border-green-200 shadow-sm";
+                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span> Camino Principal';
+                qCounter.innerText = `PREGUNTA ${gameState.mainIndex + 1} / 50`;
+                
+                document.getElementById('q-text').innerText = data.q;
+
+                if(data.type === 'text') {
+                    // TEXTO
+                    const input = document.createElement('input');
+                    input.type = "text";
+                    input.placeholder = "Escribe tu respuesta...";
+                    input.className = "animated-input w-full p-4 border-2 border-gray-300 rounded-xl text-lg font-bold text-gray-700 outline-none transition-all mb-3";
+                    
+                    const submitBtn = document.createElement('button');
+                    submitBtn.innerText = "Enviar Respuesta";
+                    submitBtn.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg transition-transform hover:scale-[1.02]";
+                    submitBtn.onclick = () => {
+                        const val = input.value;
+                        if(!val) return;
+                        handleTextAnswer(val, data.correct);
+                    };
+
+                    container.appendChild(input);
+                    container.appendChild(submitBtn);
+                    input.focus();
+                } else {
+                    // SELECCIÓN
+                    data.options.forEach((opt, idx) => {
+                        const btn = createOptionButton(opt, idx, () => handleAnswer(idx));
+                        container.appendChild(btn);
+                    });
+                }
+            }
+        }
+
+        function createOptionButton(text, idx, onClick) {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left p-4 md:p-5 rounded-2xl border-2 border-transparent bg-white/80 hover:bg-white hover:border-green-400 hover:shadow-lg transition-all duration-200 font-bold text-gray-700 text-sm md:text-base flex items-center group shadow-sm";
+            btn.innerHTML = `<span class="w-8 h-8 rounded-lg bg-gray-100 text-gray-400 text-xs font-black flex items-center justify-center mr-4 shadow-sm group-hover:bg-green-500 group-hover:text-white transition-colors">${String.fromCharCode(65+idx)}</span> ${text}`;
+            btn.onclick = onClick;
+            return btn;
+        }
+
+        function handleTextAnswer(userText, correctText) {
+            const userNorm = normalizeString(userText);
+            const correctNorm = normalizeString(correctText);
+            if(userNorm === correctNorm || userNorm.includes(correctNorm)) {
+                processCorrectMain();
+            } else {
+                processWrongMain();
+            }
+        }
+
+        function handleAnswer(idx) {
+            if(gameState.isReinforcement) {
+                const q = gameState.reinforceQueue[gameState.reinforceIndex];
+                if(idx === q.correct) {
+                    gameState.reinforceIndex++;
+                    moveAvatarReinforce();
+                } else {
+                    applyPenalty(); // -0.05
+                    alert("¡Incorrecto!");
+                }
+                
+                if(gameState.reinforceIndex >= 3) { 
+                    setTimeout(() => {
+                        gameState.isReinforcement = false;
+                        gameState.mistakesInRow = 0;
+                        gameState.reinforceIndex = 0;
+                        returnToMainPath();
+                        loadQuestion();
+                    }, 1000);
+                } else {
+                    if(idx === q.correct) loadQuestion();
+                }
+            } else {
+                const q = MAIN_QUESTIONS[gameState.mainIndex];
+                if(idx === q.correct) {
+                    processCorrectMain();
+                } else {
+                    processWrongMain();
+                }
+            }
+        }
+
+        function processCorrectMain() {
+            gameState.scoreVisual++;
+            gameState.correctCount++;
+            gameState.pointsSinceJump++;
+            updateBackground();
+            moveAvatarMain();
+
+            if(gameState.pointsSinceJump >= 2) {
+                performCelebration();
+                gameState.pointsSinceJump = 0;
+            }
+            gameState.mainIndex++;
+            checkFinish();
+        }
+
+        function processWrongMain() {
+            applyPenalty();
+            gameState.wrongCount++;
+            gameState.mistakesInRow++;
+
+            if(gameState.mistakesInRow >= 5) {
+                triggerReinforcementMode();
+            } else {
+                gameState.mainIndex++;
+                checkFinish();
+            }
+        }
+
+        function applyPenalty() {
+            const float = document.createElement('div');
+            float.innerText = "-0,05";
+            float.className = "float-damage";
+            float.style.left = "50%";
+            float.style.top = "50%";
+            document.body.appendChild(float);
+            setTimeout(() => float.remove(), 2000);
+        }
+
+        function triggerReinforcementMode() {
+            const bubble = document.getElementById('comic-message');
+            bubble.style.display = 'block';
+            bubble.style.top = '30%';
+            bubble.style.right = '20%';
+            bubble.style.left = 'auto';
+            document.getElementById('comic-text').innerText = "¡¡¡¡Ohhh tienes que estudiar más!!! Vamos a las preguntas de repaso";
+            
+            playSound(150);
+
+            setTimeout(() => {
+                bubble.style.display = 'none';
+                gameState.isReinforcement = true;
+                gameState.reinforceIndex = 0;
+                gameState.reinforceQueue = [...REINFORCEMENT_POOL].sort(() => Math.random() - 0.5).slice(0, 3);
+                moveToReinforcementZone();
+                loadQuestion();
+            }, 3000);
+        }
+
+        function performCelebration() {
+            playSound(600);
+            const bubble = document.getElementById('comic-message');
+            bubble.style.display = 'block';
+            bubble.style.top = '20%';
+            bubble.style.right = '25%';
+            bubble.style.left = 'auto';
+            document.getElementById('comic-text').innerText = "bien. El objetivo es el verde";
+            
+            if(playerMesh) {
+                const originalY = playerMesh.position.y;
+                new TWEEN.Tween(playerMesh.position).to({ y: originalY + 3.5 }, 150).yoyo(true).repeat(1)
+                .chain(new TWEEN.Tween(playerMesh.position).to({ y: originalY + 3.5 }, 150).yoyo(true).repeat(1)
+                .chain(new TWEEN.Tween(playerMesh.position).to({ y: originalY + 3.5 }, 150).yoyo(true).repeat(1)
+                .onComplete(() => bubble.style.display = 'none'))).start();
+            }
+        }
+
+        function checkFinish() {
+            if(gameState.mainIndex >= MAIN_QUESTIONS.length) {
+                setTimeout(showEndScreen, 1500);
+            } else {
+                setTimeout(loadQuestion, 500);
+            }
+        }
+
+        function showEndScreen() {
+            gameState.isFinished = true;
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('end-screen').classList.remove('hidden');
+            document.getElementById('end-name').innerText = gameState.playerName;
+            
+            document.getElementById('stat-correct').innerText = gameState.correctCount;
+            document.getElementById('stat-wrong').innerText = gameState.wrongCount;
+            
+            let finalScore = (gameState.correctCount * 0.2) - (gameState.wrongCount * 0.05);
+            document.getElementById('final-score').innerText = finalScore.toFixed(2).replace('.', ',');
+            
+            const fb = document.getElementById('final-feedback');
+            if(finalScore > 8) {
+                fb.innerText = "bien estudiado";
+                fb.className = "text-2xl font-black uppercase px-6 py-3 rounded-xl bg-green-100 text-green-700 border-2 border-green-200 inline-block shadow-md";
+            } else if(finalScore >= 6) {
+                fb.innerText = "hay que estudiar más";
+                fb.className = "text-2xl font-black uppercase px-6 py-3 rounded-xl bg-orange-100 text-orange-700 border-2 border-orange-200 inline-block shadow-md";
+            } else {
+                fb.innerText = "Así no vas bien ¡ESTUDIA!";
+                fb.className = "text-2xl font-black uppercase px-6 py-3 rounded-xl bg-red-100 text-red-700 border-2 border-red-200 inline-block shadow-md";
+            }
+        }
+
+        function updateBackground() {
+            // Cambiar fondo cada ~8 puntos (50 preguntas / 6 imágenes)
+            const idx = Math.min(Math.floor(gameState.scoreVisual / 8), PLANET_IMAGES.length - 1);
+            const imageUrl = PLANET_IMAGES[idx];
+            document.body.style.backgroundImage = `url('${imageUrl}')`;
+        }
+
+        function playSound(freq) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            } catch(e){}
+        }
+
+        // --- THREE.JS (CORREGIDO PARA ETIQUETA) ---
+        let scene, camera, renderer;
+        let snakeCurve, playerMesh, reinforcementGroup;
+        let snakeSegments = [];
+        let time = 0;
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            // Fondo transparente
+            
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 90); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambient);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+            dir.position.set(50, 50, 50);
+            dir.castShadow = true;
+            scene.add(dir);
+
+            createMainSnake();
+            createReinforcementLoop();
+            createPlayer();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            animate();
+        }
+
+        function createMainSnake() {
+            const points = [];
+            const offsetX = 20; 
+            const offsetY = 10; 
+            
+            for(let i=0; i<=300; i++) {
+                const t = (i/300) * Math.PI * 4;
+                const x = (Math.sin(t) + 2 * Math.sin(2 * t)) * 14 + offsetX;
+                const y = (Math.cos(t) - 2 * Math.cos(2 * t)) * 12 + offsetY + (i*0.1); 
+                const z = (-Math.sin(3 * t)) * 12;
+                points.push(new THREE.Vector3(x, y, z));
+            }
+            snakeCurve = new THREE.CatmullRomCurve3(points);
+
+            const geo = new THREE.SphereGeometry(1.5, 16, 16);
+            const matA = new THREE.MeshLambertMaterial({ color: 0x4ade80 });
+            const matB = new THREE.MeshLambertMaterial({ color: 0x22c55e });
+            
+            for(let i=0; i<600; i++) {
+                const t = i/600;
+                const pos = snakeCurve.getPointAt(t);
+                const mesh = new THREE.Mesh(geo, i%2===0 ? matA : matB);
+                mesh.position.copy(pos);
+                mesh.userData = { t: t, init: pos.clone(), offset: i*0.05 };
+                const s = 1.2 + Math.sin(t*Math.PI)*0.5;
+                mesh.scale.set(s,s,s);
+                scene.add(mesh);
+                snakeSegments.push(mesh);
+            }
+            
+            const headPos = snakeCurve.getPointAt(1);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(4,4,4), new THREE.MeshLambertMaterial({color:0x15803d}));
+            head.position.copy(headPos);
+            scene.add(head);
+            snakeSegments.push(head);
+            head.userData = { t:1, init:headPos.clone(), offset:50 };
+        }
+
+        function createReinforcementLoop() {
+            reinforcementGroup = new THREE.Group();
+            const pts = [];
+            const cx = 60, cy = 25;
+            for(let i=0; i<=60; i++) {
+                const a = (i/60)*Math.PI*2;
+                pts.push(new THREE.Vector3(cx + Math.cos(a)*10, cy + Math.sin(a)*10, -30));
+            }
+            const geo = new THREE.SphereGeometry(1, 16, 16);
+            const mat = new THREE.MeshLambertMaterial({ color: 0xdc2626 });
+            pts.forEach(p => {
+                const m = new THREE.Mesh(geo, mat);
+                m.position.copy(p);
+                reinforcementGroup.add(m);
+            });
+            scene.add(reinforcementGroup);
+            reinforcementGroup.visible = false;
+            const curve = new THREE.CatmullRomCurve3(pts);
+            curve.closed = true;
+            reinforcementGroup.userData = { curve };
+        }
+
+        function createPlayer() {
+            const geo = new THREE.SphereGeometry(2, 32, 32);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+            playerMesh = new THREE.Mesh(geo, mat);
+            playerMesh.position.copy(snakeCurve.getPointAt(0));
+            scene.add(playerMesh);
+        }
+
+        function updateAvatarColor() {
+            const colors = [0x3b82f6, 0xa855f7, 0x22c55e, 0xf97316];
+            if(playerMesh) playerMesh.material.color.setHex(colors[gameState.avatarIdx]);
+        }
+
+        function moveAvatarMain() {
+            const step = 1 / MAIN_QUESTIONS.length;
+            const start = gameState.mainIndex * step;
+            const end = (gameState.mainIndex + 1) * step;
+            const obj = { t: start };
+            new TWEEN.Tween(obj).to({ t: end }, 1000).easing(TWEEN.Easing.Quadratic.Out).onUpdate(() => {
+                const pos = snakeCurve.getPointAt(obj.t);
+                playerMesh.position.x = pos.x; playerMesh.position.z = pos.z;
+                if(!TWEEN.getAll().some(t => t._object === playerMesh.position && t._valuesEnd.y)) playerMesh.position.y = pos.y;
+            }).start();
+        }
+
+        function moveToReinforcementZone() {
+            reinforcementGroup.visible = true;
+            const start = playerMesh.position.clone();
+            const end = reinforcementGroup.userData.curve.getPointAt(0);
+            new TWEEN.Tween(start).to({ x: end.x, y: end.y, z: end.z }, 2000).easing(TWEEN.Easing.Cubic.InOut).onUpdate(() => playerMesh.position.copy(start)).start();
+        }
+
+        function moveAvatarReinforce() {
+            const step = 1/3;
+            const start = (gameState.reinforceIndex - 1) * step;
+            const end = gameState.reinforceIndex * step;
+            const obj = { t: start };
+            new TWEEN.Tween(obj).to({ t: end }, 800).onUpdate(() => {
+                const pos = reinforcementGroup.userData.curve.getPointAt(obj.t % 1);
+                playerMesh.position.copy(pos);
+            }).start();
+        }
+
+        function returnToMainPath() {
+            const t = gameState.mainIndex / MAIN_QUESTIONS.length;
+            const target = snakeCurve.getPointAt(t);
+            const start = playerMesh.position.clone();
+            new TWEEN.Tween(start).to({ x: target.x, y: target.y, z: target.z }, 1500).easing(TWEEN.Easing.Cubic.InOut).onUpdate(() => playerMesh.position.copy(start)).onComplete(() => reinforcementGroup.visible = false).start();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.05;
+            TWEEN.update();
+
+            snakeSegments.forEach(seg => {
+                const wave = Math.sin(time + seg.userData.offset) * 0.4;
+                seg.position.x = seg.userData.init.x + wave;
+                seg.position.y = seg.userData.init.y + wave * 0.5;
+            });
+
+            // CORRECCIÓN: Actualización de la etiqueta del nombre
+            if(playerMesh) {
+                const v = playerMesh.position.clone();
+                v.y += 3.5; // Offset más alto para no tapar avatar
+                v.project(camera); // Proyección a coordenadas de pantalla
+
+                const x = (v.x * .5 + .5) * window.innerWidth;
+                const y = -(v.y * .5 - .5) * window.innerHeight;
+
+                const el = document.getElementById('player-label');
+                
+                // Solo actualizar si está dentro del frustum de la cámara (visible)
+                if (v.z < 1 && v.z > -1) {
+                    el.style.display = 'block';
+                    el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
