@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contenidos: Vertebrados GORE</title>
+    <style>
+        :root {
+            --primary: #c0392b; /* Rojo temático */
+            --secondary: #2c3e50;
+            --bg: #fdf2f2; /* Fondo muy suave rojizo */
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Cabecera */
+        header {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 8px solid var(--primary);
+        }
+
+        h1 { margin: 0; color: var(--secondary); font-size: 1.8rem; text-transform: uppercase; }
+        .subtitle { color: #7f8c8d; margin: 5px 0 0 0; font-size: 1rem; }
+
+        /* Botón Volver (Sube un nivel) */
+        .btn-back {
+            text-decoration: none;
+            background-color: var(--secondary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-back:hover { background-color: #34495e; }
+
+        /* Lista de Recursos */
+        .resource-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            gap: 15px;
+        }
+
+        .resource-item {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .resource-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(192, 57, 43, 0.1);
+            border-color: var(--primary);
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .icon {
+            font-size: 2rem;
+            color: var(--primary);
+            background: #fff5f5;
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .content h3 { margin: 0 0 4px 0; font-size: 1.1rem; color: var(--secondary); }
+        .content p { margin: 0; color: #7f8c8d; font-size: 0.9rem; }
+
+        /* Botones de acción */
+        .btn-action {
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn-open { background-color: var(--primary); color: white; }
+        .btn-open:hover { background-color: #a93226; }
+
+        .btn-download { background-color: #ecf0f1; color: var(--secondary); margin-left: 5px;}
+        .btn-download:hover { background-color: #bdc3c7; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>Vertebrados GORE</h1>
+                <p class="subtitle">Materiales y Recursos de la Unidad</p>
+            </div>
+            <!-- Botón para subir un nivel (a la portada que creamos antes) -->
+            <a href="../index.html" class="btn-back">⬅ Volver</a>
+        </header>
+
+        <!-- LISTA DE FICHEROS -->
+        <ul class="resource-list">
+            
+            <!-- EJEMPLO 1: VERTEBRADOS -->
+            <li class="resource-item">
+                <div class="item-info">
+                    <span class="icon">📄</span>
+                    <div class="content">
+                        
+                    </div>
+                </div>
+                <Cambia 'INDEX.HTML' por el nombre real de tu archivo -->
+                <a href="" class="btn-action btn-open" target="_blank">Abrir PDF</a>
+            </li>
+
+            
+        </ul>
+    </div>
+
+</body>
+</html>
