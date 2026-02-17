@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUEBLOS Y CIUDADES</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--primary);
+        }
+
+        /* Cabecera con Imagen */
+        header {
+            background-color: white;
+            width: 100%;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 50px;
+            gap: 20px; /* Espacio entre foto y texto */
+        }
+
+        .header-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover; /* Ajusta la imagen sin deformarla */
+            border: 3px solid var(--accent);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 2rem;
+        }
+
+        /* Contenedor de Tarjetas */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            width: 90%;
+            max-width: 1000px;
+            padding: 20px;
+        }
+
+        /* Estilo de la Tarjeta */
+        .card {
+            background: white;
+            padding: 40px 20px;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            text-decoration: none;
+            color: var(--primary);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            border-top: 5px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+
+        .icon {
+            font-size: 3.5rem; /* Ajustado para que quepan bien los dos iconos */
+            margin-bottom: 20px;
+            background: #eef2f7;
+            padding: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: transform 0.3s;
+            line-height: 1;
+        }
+
+        .card:hover .icon {
+            transform: scale(1.1) rotate(5deg);
+            background: #e3f2fd;
+        }
+
+        .card h2 {
+            margin: 10px 0 5px 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .card p {
+            font-size: 1rem;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+
+        /* Botón falso dentro de la tarjeta */
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .card:hover .btn {
+            background-color: #2980b9;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <!-- Imagen del Poeta -->
+        <img src="poeta.jpg" alt="Poeta Antón" class="header-img">
+        <h1>PUEBLOS Y CIUDADES</h1>
+    </header>
+
+    <div class="container">
+        <!-- Tarjeta Principal -->
+        <a href="PUEBLOS Y CIUDADES/index.html" class="card">
+            <!-- Iconos de Edificio (Ciudad) y Pueblo -->
+            <span class="icon">🏙️🏘️</span>
+            <h2>Actividad Interactiva</h2>
+            <p>Aprende sobre la organización municipal</p>
+            <div class="btn">Entrar</div>
+        </a>
+        
+        <!-- Puedes añadir más tarjetas aquí si es necesario -->
+    </div>
+
+</body>
+</html>
