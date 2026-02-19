@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reloj Interactivo Avanzado</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Importamos la fuente 'Caveat' para el estilo rasgado/manuscrito de la marca */
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+            overflow-x: hidden; /* Evitar scroll horizontal al animar */
+        }
+
+        /* --- EFECTO MARCO PLATEADO 3D PARA LAS CAJAS --- */
+        .silver-3d-box {
+            border: 14px solid transparent !important; /* Grosor del marco */
+            background: 
+                /* Interior blanco */
+                linear-gradient(#ffffff, #ffffff) padding-box, 
+                /* Gradiente metálico plateado con brillos para el borde */
+                linear-gradient(145deg, #f0f0f0 0%, #ffffff 15%, #999999 45%, #e6e6e6 60%, #ffffff 80%, #b3b3b3 100%) border-box !important;
+            box-shadow: 
+                0 30px 60px -15px rgba(0, 0, 0, 0.4), /* Gran sombra exterior */
+                0 0 0 1px rgba(100, 100, 100, 0.15), /* Finísima línea oscura exterior para definir borde */
+                inset 0 10px 20px rgba(0, 0, 0, 0.05), /* Sombra interior superior (hundimiento) */
+                inset 0 -10px 20px rgba(255, 255, 255, 0.9) !important; /* Brillo interior inferior */
+        }
+
+        /* --- RELOJ ANALÓGICO --- */
+        .clock-face {
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            border: 20px solid #1f2937;
+            position: relative;
+            box-shadow: 
+                0 35px 60px -15px rgba(0,0,0,0.5), /* Sombra exterior pronunciada */
+                inset 0 15px 30px rgba(0,0,0,0.2), /* Sombra interior (arriba) */
+                inset 0 -15px 30px rgba(255,255,255,0.6); /* Reflejo interior (abajo) */
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            flex-shrink: 0;
+            margin-bottom: 2.5rem;
+        }
+
+        /* CONFIGURACIÓN DE LAS RAYAS (TICKS) */
+        .tick {
+            position: absolute;
+            left: 50%;
+            bottom: 50%;
+            transform-origin: bottom center;
+            background: #9ca3af;
+            width: 2px;
+            margin-left: -1px;
+            height: 44%;
+            z-index: 1;
+            pointer-events: none;
+            transition: background-color 0.3s;
+        }
+        
+        .tick.major {
+            width: 8px;
+            margin-left: -4px;
+            height: 49%;
+            background: #111827;
+        }
+
+        .number {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #374151;
+            padding-top: 35px;
+            pointer-events: none;
+            z-index: 5;
+            transition: color 0.3s;
+            text-shadow: 1px 2px 4px rgba(0,0,0,0.15); /* Efecto 3D ligero para los números */
+        }
+
+        /* LOGO DE MARCA EN CURVA (SVG) */
+        .brand-text-svg {
+            position: absolute;
+            top: 34%; /* Ajustado un poco más hacia arriba */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 260px;
+            height: 100px;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .brand-text-svg text {
+            font-family: 'Caveat', cursive; /* Letra manuscrita/rasgada */
+            font-size: 1.6rem; /* Letra más pequeña y delicada */
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: fill 0.3s;
+            text-shadow: 1px 2px 3px rgba(0,0,0,0.15);
+        }
+
+        /* NÚMEROS EXTERNOS */
+        .outer-number {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            left: 50%;
+            top: 50%;
+            margin-left: -20px;
+            margin-top: -20px;
+            text-align: center;
+            line-height: 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #6b7280;
+            pointer-events: none;
+            transition: opacity 0.3s, color 0.3s;
+        }
+
+        /* Agujas */
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 8px;
+            z-index: 10;
+            transition: transform 0.1s cubic-bezier(0.4, 2.08, 0.55, 0.44), background-color 0.3s;
+            /* Gradiente overlay para efecto metálico/cilíndrico */
+            background-image: linear-gradient(to right, rgba(255,255,255,0.5) 0%, transparent 40%, rgba(0,0,0,0.4) 100%);
+            /* Sombra proyectada que acompaña la rotación */
+            filter: drop-shadow(4px 6px 4px rgba(0,0,0,0.4));
+        }
+
+        .hand.hour {
+            width: 14px;
+            height: 130px;
+            background-color: #111827; /* Cambiado a background-color para no borrar el gradiente superior */
+            margin-left: -7px;
+        }
+
+        .hand.minute {
+            width: 10px;
+            height: 190px;
+            background-color: #4b5563; /* Cambiado a background-color */
+            margin-left: -5px;
+        }
+
+        .hand.second {
+            width: 4px;
+            height: 220px;
+            background-color: #ef4444; /* Cambiado a background-color */
+            margin-left: -2px;
+            z-index: 11;
+            transition: transform 0.05s linear;
+        }
+
+        .center-dot {
+            width: 28px;
+            height: 28px;
+            background-color: #ef4444;
+            /* Reflejo esférico */
+            background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 60%);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 12;
+            border: 5px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Sombra 3D */
+        }
+
+        /* --- RELOJ DIGITAL --- */
+        .digital-display {
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+        }
+
+        /* Estilos para el panel de Capitales */
+        .world-clock-item {
+            border-bottom: 1px solid #f3f4f6;
+            padding: 12px 4px;
+        }
+        .world-clock-item:last-child {
+            border-bottom: none;
+        }
+        .city-time {
+            font-family: 'Orbitron', monospace;
+            color: #ef4444;
+            font-size: 1rem;
+        }
+        
+        /* Scrollbar personalizado para la lista de ciudades */
+        #citiesContainer::-webkit-scrollbar {
+            width: 6px;
+        }
+        #citiesContainer::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        #citiesContainer::-webkit-scrollbar-thumb {
+            background: #d1d5db; 
+            border-radius: 4px;
+        }
+        #citiesContainer::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af; 
+        }
+
+        .btn-control:active {
+            transform: scale(0.95);
+        }
+        
+        .clock-face-bg-layer {
+            position: absolute;
+            top: 35px; left: 35px; right: 35px; bottom: 35px; 
+            border-radius: 50%;
+            background-color: inherit;
+            z-index: 2;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.08); /* Sutil profundidad del cristal */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-6 gap-6 flex-wrap bg-gray-200 transition-all duration-500">
+
+    <!-- CAJA 0: CAPITALES DEL MUNDO (Izquierda) -->
+    <div id="worldClockPanel" class="hidden silver-3d-box py-12 px-6 rounded-[100px] flex-col w-72 self-stretch transition-all duration-500 ease-in-out transform origin-left">
+        <h2 class="text-xl font-bold text-gray-700 text-center mb-4 uppercase tracking-wider border-b-2 border-gray-200 pb-2 flex items-center justify-center gap-2">
+            <span>🌍</span> Mundo
+        </h2>
+        
+        <!-- Contenedor con scroll -->
+        <div id="citiesContainer" class="flex flex-col justify-start h-full overflow-y-auto pr-2 gap-1">
+            <!-- Se llenará con JS -->
+        </div>
+    </div>
+
+    <!-- CAJA 1: VISUALIZACIÓN (Relojes) -->
+    <div class="silver-3d-box py-20 px-16 rounded-[150px] flex flex-col items-center justify-center min-w-[600px] self-stretch">
+        
+        <!-- Reloj Analógico -->
+        <div id="clockFace" class="clock-face bg-white border-gray-800">
+            <div id="clockBgLayer" class="clock-face-bg-layer bg-white"></div>
+            <div id="ticksContainer"></div>
+            <!-- Contenedor para números externos -->
+            <div id="outerNumbersContainer" class="hidden opacity-0 transition-opacity duration-300"></div>
+
+            <!-- Logo de la marca con curva SVG -->
+            <svg class="brand-text-svg" viewBox="0 0 260 100">
+                <!-- Trazado de curva invisible -->
+                <path id="text-curve" d="M 10,90 Q 130,10 250,90" fill="transparent" />
+                <text id="brandText" fill="#374151">
+                    <textPath href="#text-curve" startOffset="50%" text-anchor="middle">
+                        Poeta Antón
+                    </textPath>
+                </text>
+            </svg>
+
+            <div class="hand hour" id="hourHand"></div>
+            <div class="hand minute" id="minuteHand"></div>
+            <div class="hand second" id="secondHand"></div>
+            <div class="center-dot"></div>
+        </div>
+
+        <!-- Reloj Digital con Botón 12/24 -->
+        <div class="relative w-full">
+            <div class="bg-black text-red-500 text-5xl px-8 py-8 rounded-2xl digital-display text-center border-4 border-gray-800 shadow-lg mt-6 flex justify-center items-center relative">
+                
+                <!-- Botón flotante para Opciones (Izquierda) -->
+                <button onclick="toggleControls()" id="optionsBtn" class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gray-800 text-gray-300 text-xs font-sans font-bold py-1 px-3 rounded border border-gray-600 hover:bg-gray-700 transition">
+                    OPC
+                </button>
+
+                <span id="digitalTime">00:00:00</span>
+                
+                <!-- Display del Temporizador -->
+                <div id="timerDisplay" class="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-yellow-400 text-sm tracking-widest hidden transition-all">⏳ 00:00</div>
+                
+                <!-- Botón flotante para cambiar formato -->
+                <button onclick="toggleFormat()" id="formatBtn" class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-800 text-gray-300 text-xs font-sans font-bold py-1 px-3 rounded border border-gray-600 hover:bg-gray-700 transition">
+                    24H
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAJA 2: CONTROLES -->
+    <div id="controlPanel" class="silver-3d-box py-14 px-8 rounded-[100px] flex flex-col items-center w-full max-w-lg space-y-6 h-auto self-stretch justify-center transition-all duration-500 transform origin-right">
+
+        <!-- Fila 1: Color ESFERA -->
+        <div class="w-full">
+            <span class="block text-center font-bold text-gray-400 text-xs tracking-wider uppercase mb-3">Color de Esfera</span>
+            <div class="flex justify-center gap-3 flex-wrap">
+                <button onclick="setClockColor('#ffffff', false)" class="w-10 h-10 rounded-full border border-gray-300 bg-white hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#000000', true)" class="w-10 h-10 rounded-full border border-gray-600 bg-black hover:scale-110 transition shadow-sm ring-2 ring-offset-1 ring-gray-200" title="Negro (Invierte números)"></button>
+                <button onclick="setClockColor('#dbeafe', false)" class="w-10 h-10 rounded-full border border-blue-200 bg-blue-100 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#dcfce7', false)" class="w-10 h-10 rounded-full border border-green-200 bg-green-100 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#fef3c7', false)" class="w-10 h-10 rounded-full border border-yellow-200 bg-yellow-100 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#e5e7eb', false)" class="w-10 h-10 rounded-full border border-gray-400 bg-gray-200 hover:scale-110 transition shadow-sm"></button>
+            </div>
+        </div>
+
+        <!-- Fila 2: Color MARCO -->
+        <div class="w-full">
+            <span class="block text-center font-bold text-gray-400 text-xs tracking-wider uppercase mb-3">Color del Marco</span>
+            <div class="flex justify-center gap-3 flex-wrap">
+                <button onclick="setFrameColor('#1f2937')" class="w-10 h-10 rounded-full border-4 border-gray-800 bg-transparent hover:scale-110 transition shadow-sm" title="Original"></button>
+                <button onclick="setFrameColor('#ef4444')" class="w-10 h-10 rounded-full border-4 border-red-500 bg-transparent hover:scale-110 transition shadow-sm" title="Rojo"></button>
+                <button onclick="setFrameColor('#3b82f6')" class="w-10 h-10 rounded-full border-4 border-blue-500 bg-transparent hover:scale-110 transition shadow-sm" title="Azul"></button>
+                <button onclick="setFrameColor('#22c55e')" class="w-10 h-10 rounded-full border-4 border-green-500 bg-transparent hover:scale-110 transition shadow-sm" title="Verde"></button>
+                <button onclick="setFrameColor('#eab308')" class="w-10 h-10 rounded-full border-4 border-yellow-500 bg-transparent hover:scale-110 transition shadow-sm" title="Amarillo"></button>
+                <button onclick="setFrameColor('#a855f7')" class="w-10 h-10 rounded-full border-4 border-purple-500 bg-transparent hover:scale-110 transition shadow-sm" title="Morado"></button>
+            </div>
+        </div>
+
+        <!-- Fila 3: Color AGUJAS -->
+        <div class="w-full">
+            <span class="block text-center font-bold text-gray-400 text-xs tracking-wider uppercase mb-3">Color de Agujas</span>
+            <div class="flex justify-center gap-3 flex-wrap">
+                <button onclick="setHandColor('#111827')" class="w-10 h-10 rounded-full border border-gray-300 bg-gray-900 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#2563eb')" class="w-10 h-10 rounded-full border border-blue-200 bg-blue-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#16a34a')" class="w-10 h-10 rounded-full border border-green-200 bg-green-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#db2777')" class="w-10 h-10 rounded-full border border-pink-200 bg-pink-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#ca8a04')" class="w-10 h-10 rounded-full border border-yellow-200 bg-yellow-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#7c3aed')" class="w-10 h-10 rounded-full border border-purple-200 bg-purple-600 hover:scale-110 transition shadow-sm"></button>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-200 w-full"></div>
+
+        <!-- Botones Toggle: Minutos Externos, Relojes Mundo, Romanos y Temporizador -->
+        <div class="w-full grid grid-cols-2 gap-2">
+            <button id="outerNumbersBtn" onclick="toggleOuterNumbers()" class="py-2 rounded-lg font-bold text-gray-700 bg-blue-100 hover:bg-blue-200 transition shadow-sm border border-blue-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Min. Ext.</span>
+                <span id="outerStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+            
+            <button id="worldClockBtn" onclick="toggleWorldClock()" class="py-2 rounded-lg font-bold text-gray-700 bg-indigo-100 hover:bg-indigo-200 transition shadow-sm border border-indigo-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Mundo</span>
+                <span id="worldStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+
+            <button id="romanBtn" onclick="toggleRoman()" class="py-2 rounded-lg font-bold text-gray-700 bg-pink-100 hover:bg-pink-200 transition shadow-sm border border-pink-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Romanos</span>
+                <span id="romanStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+            
+            <!-- NUEVO BOTÓN: Temporizador -->
+            <button id="timerToggleBtn" onclick="toggleTimerPanel()" class="py-2 rounded-lg font-bold text-gray-700 bg-yellow-100 hover:bg-yellow-200 transition shadow-sm border border-yellow-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Temporizador</span>
+                <span id="timerStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+        </div>
+
+        <!-- Panel de Temporizadores (Oculto por defecto) -->
+        <div id="timerPresetsPanel" class="w-full hidden flex-col items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Iniciar Temporizador</span>
+            <div class="flex flex-wrap justify-center gap-2">
+                <button onclick="startTimer(1)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">1'</button>
+                <button onclick="startTimer(2)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">2'</button>
+                <button onclick="startTimer(5)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">5'</button>
+                <button onclick="startTimer(10)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">10'</button>
+                <button onclick="startTimer(30)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">30'</button>
+                <button onclick="startTimer(45)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">45'</button>
+                <button onclick="startTimer(60)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">60'</button>
+                <button onclick="stopTimer()" class="w-10 h-10 rounded-full bg-white border border-red-400 text-red-500 font-bold hover:bg-red-500 hover:text-white transition shadow-sm" title="Cancelar">⏹</button>
+            </div>
+        </div>
+
+        <!-- Botones de Estado -->
+        <div class="w-full grid grid-cols-2 gap-4">
+            <div class="flex flex-col items-center">
+                <button id="modeBtn" onclick="toggleMode()" class="w-full py-3 rounded-xl font-bold text-white transition bg-green-500 shadow-md hover:shadow-lg uppercase tracking-wide text-sm">
+                    Automático
+                </button>
+            </div>
+            <div class="flex flex-col items-center">
+                <button id="stepBtn" onclick="toggleStep()" class="w-full py-3 rounded-xl font-bold bg-gray-200 text-gray-600 transition shadow-md hover:bg-gray-300 uppercase tracking-wide text-sm">
+                    1x Normal
+                </button>
+            </div>
+        </div>
+
+        <!-- Flechas de Control -->
+        <div id="manualControls" class="grid grid-cols-3 gap-4 w-full opacity-50 pointer-events-none transition-all duration-300">
+            <!-- Horas -->
+            <div class="flex flex-col items-center group">
+                <button onclick="adjustTime('h', 1)" class="btn-control w-14 h-14 bg-gray-800 text-white rounded-2xl flex items-center justify-center shadow-lg mb-2 hover:bg-gray-700">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+                <span class="font-bold text-gray-500 text-sm tracking-widest mb-2">HORA</span>
+                <button onclick="adjustTime('h', -1)" class="btn-control w-14 h-14 bg-gray-800 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-gray-700">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+            </div>
+
+            <!-- Minutos -->
+            <div class="flex flex-col items-center">
+                <button onclick="adjustTime('m', 1)" class="btn-control w-14 h-14 bg-gray-600 text-white rounded-2xl flex items-center justify-center shadow-lg mb-2 hover:bg-gray-500">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+                <span class="font-bold text-gray-500 text-sm tracking-widest mb-2">MIN</span>
+                <button onclick="adjustTime('m', -1)" class="btn-control w-14 h-14 bg-gray-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-gray-500">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+            </div>
+
+            <!-- Segundos -->
+            <div class="flex flex-col items-center">
+                <button onclick="adjustTime('s', 1)" class="btn-control w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg mb-2 hover:bg-red-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+                <span class="font-bold text-gray-500 text-sm tracking-widest mb-2">SEG</span>
+                <button onclick="adjustTime('s', -1)" class="btn-control w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-red-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+            </div>
+        </div>
+        
+        <p id="modeStatus" class="text-sm text-gray-400 italic font-medium h-4">Controles desactivados en modo Automático</p>
+    </div>
+
+    <script>
+        // Estado del Reloj
+        let currentTime = new Date();
+        let isAutomatic = true;
+        let isStepByFive = false;
+        let is24Hour = true;
+        let showOuterNumbers = false;
+        let showWorldClock = false; // Estado del panel de capitales
+        let showControls = true; // Estado del panel de controles
+        let isRoman = false; // Estado de números romanos
+
+        // Variables Temporizador
+        let showTimerPanel = false;
+        let timerInterval = null;
+        let timerSecondsRemaining = 0;
+        let isTimerActive = false;
+        let audioCtx = null;
+
+        // Mapa de números romanos
+        const romanMap = {1:'I', 2:'II', 3:'III', 4:'IV', 5:'V', 6:'VI', 7:'VII', 8:'VIII', 9:'IX', 10:'X', 11:'XI', 12:'XII'};
+
+        // Lista de Ciudades AMPLIADA
+        const cities = [
+            { name: "Nueva York", zone: "America/New_York" },
+            { name: "Londres", zone: "Europe/London" },
+            { name: "París", zone: "Europe/Paris" },
+            { name: "Moscú", zone: "Europe/Moscow" },
+            { name: "Estambul", zone: "Europe/Istanbul" },
+            { name: "El Cairo", zone: "Africa/Cairo" },
+            { name: "Tokio", zone: "Asia/Tokyo" },
+            { name: "Pekín", zone: "Asia/Shanghai" },
+            { name: "Sídney", zone: "Australia/Sydney" },
+            { name: "Oslo", zone: "Europe/Oslo" },
+            { name: "Montreal", zone: "America/Toronto" }
+        ];
+
+        // Referencias al DOM
+        const hourHand = document.getElementById('hourHand');
+        const minuteHand = document.getElementById('minuteHand');
+        const secondHand = document.getElementById('secondHand');
+        const digitalTime = document.getElementById('digitalTime');
+        const formatBtn = document.getElementById('formatBtn');
+        const manualControls = document.getElementById('manualControls');
+        const modeBtn = document.getElementById('modeBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const modeStatus = document.getElementById('modeStatus');
+        const clockFace = document.getElementById('clockFace');
+        const clockBgLayer = document.getElementById('clockBgLayer');
+        const ticksContainer = document.getElementById('ticksContainer');
+        const outerNumbersContainer = document.getElementById('outerNumbersContainer');
+        const outerNumbersBtn = document.getElementById('outerNumbersBtn');
+        const outerStatusIcon = document.getElementById('outerStatusIcon');
+        
+        // Nuevas Referencias
+        const worldClockPanel = document.getElementById('worldClockPanel');
+        const worldClockBtn = document.getElementById('worldClockBtn');
+        const worldStatusIcon = document.getElementById('worldStatusIcon');
+        const citiesContainer = document.getElementById('citiesContainer');
+        const controlPanel = document.getElementById('controlPanel');
+        const optionsBtn = document.getElementById('optionsBtn');
+        const romanBtn = document.getElementById('romanBtn');
+        const romanStatusIcon = document.getElementById('romanStatusIcon');
+        
+        // Referencias Temporizador
+        const timerPresetsPanel = document.getElementById('timerPresetsPanel');
+        const timerStatusIcon = document.getElementById('timerStatusIcon');
+        const timerDisplay = document.getElementById('timerDisplay');
+
+        function init() {
+            generateNumbers();
+            generateTicks();
+            generateOuterNumbers();
+            generateCities(); // Inicializar ciudades
+            updateClock();
+            setInterval(tick, 1000);
+        }
+
+        function generateNumbers() {
+            for (let i = 1; i <= 12; i++) {
+                const numberDiv = document.createElement('div');
+                numberDiv.classList.add('number');
+                numberDiv.innerText = i;
+                const angle = i * 30;
+                numberDiv.style.transform = `rotate(${angle}deg)`;
+                
+                const innerSpan = document.createElement('span');
+                innerSpan.innerText = i;
+                innerSpan.style.display = 'block';
+                innerSpan.style.transform = `rotate(-${angle}deg)`;
+                
+                numberDiv.innerText = '';
+                numberDiv.appendChild(innerSpan);
+                clockFace.appendChild(numberDiv);
+            }
+        }
+
+        function generateTicks() {
+            for (let i = 0; i < 60; i++) {
+                const tick = document.createElement('div');
+                tick.classList.add('tick');
+                
+                if (i % 5 === 0) {
+                    tick.classList.add('major');
+                }
+
+                const angle = i * 6;
+                tick.style.transform = `rotate(${angle}deg)`;
+                
+                ticksContainer.appendChild(tick);
+            }
+        }
+
+        function generateOuterNumbers() {
+            for (let i = 5; i <= 60; i += 5) {
+                // Número exterior normal
+                const numDiv = document.createElement('div');
+                numDiv.classList.add('outer-number');
+                numDiv.innerText = i;
+                
+                const angle = (i / 5) * 30;
+                const radius = 285; // Más cerca del marco
+                
+                numDiv.style.transform = `rotate(${angle}deg) translate(0, -${radius}px) rotate(-${angle}deg)`;
+                outerNumbersContainer.appendChild(numDiv);
+
+                // Agregar números negativos (-25 a -5) en la mitad izquierda
+                if (i >= 35 && i <= 55) {
+                    const negDiv = document.createElement('div');
+                    negDiv.classList.add('outer-number');
+                    negDiv.innerText = i - 60; // Calcula matemáticamente: 35-60=-25, 40-60=-20, etc.
+                    
+                    // Estilos para distinguirlos
+                    negDiv.style.color = '#ef4444'; // Color rojo
+                    negDiv.style.fontSize = '0.9rem'; // Un poquito más pequeños para que quepan bien
+                    
+                    const negRadius = 260; // Pegados al marco, por dentro de los positivos
+                    negDiv.style.transform = `rotate(${angle}deg) translate(0, -${negRadius}px) rotate(-${angle}deg)`;
+                    outerNumbersContainer.appendChild(negDiv);
+                }
+            }
+        }
+
+        // Generar estructura de ciudades (FUNCIÓN RESTAURADA)
+        function generateCities() {
+            citiesContainer.innerHTML = '';
+            cities.forEach(city => {
+                const div = document.createElement('div');
+                div.className = 'world-clock-item';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center px-1">
+                        <span class="font-bold text-gray-600 text-sm">${city.name}</span>
+                        <span id="time-${city.name.replace(/\s/g,'-')}" class="city-time font-bold">--:--</span>
+                    </div>
+                `;
+                citiesContainer.appendChild(div);
+            });
+        }
+
+        function tick() {
+            if (isAutomatic) {
+                currentTime = new Date();
+                updateDisplay();
+            } else {
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            const h = currentTime.getHours();
+            const m = currentTime.getMinutes();
+            const s = currentTime.getSeconds();
+
+            // Lógica Reloj Digital Local
+            let displayH = h;
+            let ampm = '';
+
+            if (!is24Hour) {
+                ampm = h >= 12 ? ' PM' : ' AM';
+                displayH = h % 12;
+                displayH = displayH ? displayH : 12;
+            }
+
+            const hStr = displayH.toString().padStart(2, '0');
+            const mStr = m.toString().padStart(2, '0');
+            const sStr = s.toString().padStart(2, '0');
+            
+            digitalTime.innerHTML = `${hStr}:${mStr}:${sStr}<span class="text-2xl ml-2">${ampm}</span>`;
+
+            // Lógica Reloj Analógico
+            const sDeg = s * 6;
+            const mDeg = m * 6 + s * 0.1;
+            const hDeg = (h % 12) * 30 + m * 0.5;
+
+            secondHand.style.transform = `rotate(${sDeg}deg)`;
+            minuteHand.style.transform = `rotate(${mDeg}deg)`;
+            hourHand.style.transform = `rotate(${hDeg}deg)`;
+            
+            // Actualizar relojes del mundo (solo si está visible)
+            if (showWorldClock) {
+                updateWorldClocks();
+            }
+        }
+
+        function updateWorldClocks() {
+            const baseDate = new Date(); 
+            
+            cities.forEach(city => {
+                // Reemplazamos espacios por guiones para el ID
+                const el = document.getElementById(`time-${city.name.replace(/\s/g,'-')}`);
+                if (el) {
+                    const options = { 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        hour12: !is24Hour, 
+                        timeZone: city.zone 
+                    };
+                    try {
+                        el.innerText = baseDate.toLocaleTimeString('es-ES', options);
+                    } catch (e) {
+                        el.innerText = "--:--";
+                    }
+                }
+            });
+        }
+
+        // --- Funciones de Control ---
+
+        function toggleControls() {
+            showControls = !showControls;
+            if (showControls) {
+                controlPanel.classList.remove('hidden');
+                controlPanel.classList.add('flex');
+            } else {
+                controlPanel.classList.add('hidden');
+                controlPanel.classList.remove('flex');
+            }
+        }
+
+        function toggleWorldClock() {
+            showWorldClock = !showWorldClock;
+            if (showWorldClock) {
+                worldClockPanel.classList.remove('hidden');
+                worldClockPanel.classList.add('flex'); // Es flex
+                worldStatusIcon.innerText = "ON";
+                worldStatusIcon.classList.remove('bg-gray-400');
+                worldStatusIcon.classList.add('bg-indigo-500');
+                updateWorldClocks(); // Actualizar inmediatamente
+            } else {
+                worldClockPanel.classList.add('hidden');
+                worldClockPanel.classList.remove('flex');
+                worldStatusIcon.innerText = "OFF";
+                worldStatusIcon.classList.remove('bg-indigo-500');
+                worldStatusIcon.classList.add('bg-gray-400');
+            }
+        }
+
+        function toggleRoman() {
+            isRoman = !isRoman;
+            if (isRoman) {
+                romanStatusIcon.innerText = "ON";
+                romanStatusIcon.classList.remove('bg-gray-400');
+                romanStatusIcon.classList.add('bg-pink-500');
+            } else {
+                romanStatusIcon.innerText = "OFF";
+                romanStatusIcon.classList.remove('bg-pink-500');
+                romanStatusIcon.classList.add('bg-gray-400');
+            }
+            
+            // Actualizar números en la esfera
+            const numbers = document.querySelectorAll('.number span');
+            numbers.forEach((span, index) => {
+                const num = index + 1;
+                span.innerText = isRoman ? romanMap[num] : num;
+            });
+        }
+
+        function toggleOuterNumbers() {
+            showOuterNumbers = !showOuterNumbers;
+            if (showOuterNumbers) {
+                outerNumbersContainer.classList.remove('hidden');
+                setTimeout(() => outerNumbersContainer.classList.remove('opacity-0'), 10);
+                outerStatusIcon.innerText = "ON";
+                outerStatusIcon.classList.remove('bg-gray-400');
+                outerStatusIcon.classList.add('bg-blue-500');
+            } else {
+                outerNumbersContainer.classList.add('opacity-0');
+                setTimeout(() => outerNumbersContainer.classList.add('hidden'), 300);
+                outerStatusIcon.innerText = "OFF";
+                outerStatusIcon.classList.remove('bg-blue-500');
+                outerStatusIcon.classList.add('bg-gray-400');
+            }
+        }
+
+        function toggleFormat() {
+            is24Hour = !is24Hour;
+            formatBtn.innerText = is24Hour ? "24H" : "12H";
+            updateDisplay();
+        }
+
+        function toggleMode() {
+            isAutomatic = !isAutomatic;
+            if (isAutomatic) {
+                modeBtn.innerText = "AUTOMÁTICO";
+                modeBtn.classList.remove('bg-orange-500');
+                modeBtn.classList.add('bg-green-500');
+                manualControls.classList.add('opacity-50', 'pointer-events-none');
+                manualControls.classList.remove('scale-105');
+                modeStatus.classList.remove('text-orange-500');
+                modeStatus.innerText = "Controles desactivados en modo Automático";
+                currentTime = new Date();
+                updateDisplay();
+            } else {
+                modeBtn.innerText = "MANUAL";
+                modeBtn.classList.remove('bg-green-500');
+                modeBtn.classList.add('bg-orange-500');
+                manualControls.classList.remove('opacity-50', 'pointer-events-none');
+                manualControls.classList.add('scale-105');
+                modeStatus.classList.add('text-orange-500');
+                modeStatus.innerText = "MODO MANUAL: Usa las flechas para ajustar";
+            }
+        }
+
+        function toggleStep() {
+            isStepByFive = !isStepByFive;
+            if (isStepByFive) {
+                stepBtn.innerText = "5x RÁPIDO";
+                stepBtn.classList.remove('bg-gray-200', 'text-gray-600');
+                stepBtn.classList.add('bg-purple-600', 'text-white');
+            } else {
+                stepBtn.innerText = "1x NORMAL";
+                stepBtn.classList.remove('bg-purple-600', 'text-white');
+                stepBtn.classList.add('bg-gray-200', 'text-gray-600');
+            }
+        }
+
+        function setClockColor(color, isDark) {
+            clockFace.style.backgroundColor = color;
+            clockBgLayer.style.backgroundColor = color;
+            
+            const numbers = document.querySelectorAll('.number');
+            const majors = document.querySelectorAll('.tick.major');
+            
+            // Actualizar color al SVG de la marca usando "fill"
+            const brandText = document.getElementById('brandText');
+            
+            numbers.forEach(n => n.style.color = isDark ? '#ffffff' : '#374151');
+            majors.forEach(t => t.style.backgroundColor = isDark ? '#ffffff' : '#111827');
+            if (brandText) brandText.style.fill = isDark ? '#ffffff' : '#374151';
+        }
+
+        function setFrameColor(color) {
+            clockFace.style.borderColor = color;
+        }
+
+        function setHandColor(color) {
+            hourHand.style.backgroundColor = color;
+            minuteHand.style.backgroundColor = color;
+        }
+
+        function adjustTime(unit, direction) {
+            let amount = 1;
+            if (isStepByFive && (unit === 'm' || unit === 's')) {
+                amount = 5;
+            }
+            amount = amount * direction;
+
+            if (unit === 'h') {
+                currentTime.setHours(currentTime.getHours() + amount);
+            } else if (unit === 'm') {
+                currentTime.setMinutes(currentTime.getMinutes() + amount);
+            } else if (unit === 's') {
+                currentTime.setSeconds(currentTime.getSeconds() + amount);
+            }
+            updateDisplay();
+        }
+
+        function updateClock() {
+            updateDisplay();
+        }
+
+        // --- Funciones del Temporizador ---
+        
+        function toggleTimerPanel() {
+            showTimerPanel = !showTimerPanel;
+            if (showTimerPanel) {
+                timerPresetsPanel.classList.remove('hidden');
+                timerPresetsPanel.classList.add('flex');
+                timerStatusIcon.innerText = "ON";
+                timerStatusIcon.classList.remove('bg-gray-400');
+                timerStatusIcon.classList.add('bg-yellow-500');
+            } else {
+                timerPresetsPanel.classList.add('hidden');
+                timerPresetsPanel.classList.remove('flex');
+                timerStatusIcon.innerText = "OFF";
+                timerStatusIcon.classList.remove('bg-yellow-500');
+                timerStatusIcon.classList.add('bg-gray-400');
+            }
+        }
+
+        function startTimer(minutes) {
+            // Iniciar o reanudar el contexto de audio tras la interacción del usuario
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            stopTimer(); // Detener temporizador previo si existe
+            timerSecondsRemaining = minutes * 60;
+            isTimerActive = true;
+            
+            // Mostrar texto amarillo de forma visible
+            timerDisplay.classList.remove('hidden', 'text-red-500', 'animate-pulse');
+            timerDisplay.classList.add('text-yellow-400');
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timerSecondsRemaining--;
+                if (timerSecondsRemaining <= 0) {
+                    timerFinished();
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            isTimerActive = false;
+            timerDisplay.classList.add('hidden');
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timerSecondsRemaining / 60).toString().padStart(2, '0');
+            const s = (timerSecondsRemaining % 60).toString().padStart(2, '0');
+            timerDisplay.innerText = `⏳ ${m}:${s}`;
+        }
+
+        function timerFinished() {
+            stopTimer();
+            playBeepSequence();
+            
+            // Alerta visual
+            timerDisplay.classList.remove('hidden', 'text-yellow-400');
+            timerDisplay.innerText = "¡TIEMPO!";
+            timerDisplay.classList.add('text-red-500', 'animate-pulse');
+            
+            setTimeout(() => {
+                timerDisplay.classList.add('hidden');
+                timerDisplay.classList.remove('text-red-500', 'animate-pulse');
+            }, 5000);
+        }
+
+        function playBeepSequence() {
+            if (!audioCtx) return;
+            for (let i = 0; i < 4; i++) {
+                // Doble pitido clásico
+                beep(audioCtx, i * 0.6); 
+                beep(audioCtx, i * 0.6 + 0.15); 
+            }
+        }
+
+        function beep(ctx, time) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.frequency.value = 1000; // Tono agudo (1kHz)
+            
+            // Configurar el volumen para que sea un pitido corto y nítido
+            gain.gain.setValueAtTime(0, ctx.currentTime + time);
+            gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + time + 0.02);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + 0.1);
+            
+            osc.start(ctx.currentTime + time);
+            osc.stop(ctx.currentTime + time + 0.1);
+        }
+
+        init();
+    </script>
+</body>
+</html>
