@@ -21,6 +21,7 @@
         .game-card:hover {
             transform: translateY(-10px) scale(1.02);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 10;
         }
 
         .floating {
@@ -36,7 +37,7 @@
 </head>
 <body class="flex items-center justify-center p-4">
 
-    <div class="max-w-6xl w-full"> <!-- Cambiado a max-w-6xl para que quepan 3 tarjetas mejor -->
+    <div class="max-w-7xl w-full"> 
         <!-- Encabezado Principal -->
         <header class="text-center mb-12">
             <h1 class="text-5xl md:text-7xl font-black text-indigo-700 mb-4 drop-shadow-sm">
@@ -48,53 +49,68 @@
         </header>
 
         <!-- Contenedor de Juegos -->
-        <!-- Ajustado grid para soportar 3 columnas en pantallas grandes -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6 align-stretch">
             
-            <!-- Juego 1: Ordenar Oraciones -->
-            <a href="concienciafonologica1/index.html" class="group">
+            <!-- Juego 4 (Ahora 1º): Conciencia Fonológica -->
+            <a href="concienciafonologica/index.html" class="group h-full">
+                <div class="game-card bg-white rounded-3xl p-6 border-4 border-green-400 shadow-xl h-full flex flex-col items-center text-center">
+                    <div class="w-28 h-28 bg-green-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-green-200 transition-colors">
+                        <!-- Sin delay para el primero -->
+                        <span class="text-6xl floating">🦜</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-green-600 mb-4">Conciencia Fonológica</h2>
+                    <p class="text-gray-600 text-lg flex-grow">
+                        Descubre rimas, sonidos iniciales y juegos de fonemas en esta aventura sonora.
+                    </p>
+                    <div class="mt-8 bg-green-500 text-white px-8 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-green-600 transition-colors w-full">
+                        ¡Jugar ahora!
+                    </div>
+                </div>
+            </a>
+
+            <!-- Juego 1 (Ahora 2º): Ordenar Oraciones -->
+            <a href="concienciafonologica1/index.html" class="group h-full">
                 <div class="game-card bg-white rounded-3xl p-6 border-4 border-yellow-400 shadow-xl h-full flex flex-col items-center text-center">
                     <div class="w-28 h-28 bg-yellow-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-yellow-200 transition-colors">
-                        <span class="text-6xl floating">🧩</span>
+                        <span class="text-6xl floating" style="animation-delay: 0.5s;">🧩</span>
                     </div>
                     <h2 class="text-2xl font-black text-yellow-600 mb-4">Ordenar Oraciones</h2>
                     <p class="text-gray-600 text-lg flex-grow">
                         Arrastra las palabras de colores para formar una frase correcta. ¡Cuidado con el orden!
                     </p>
-                    <div class="mt-8 bg-yellow-400 text-white px-8 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-yellow-500 transition-colors">
+                    <div class="mt-8 bg-yellow-400 text-white px-8 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-yellow-500 transition-colors w-full">
                         ¡Jugar ahora!
                     </div>
                 </div>
             </a>
 
-            <!-- Juego 2: Separar Palabras -->
-            <a href="concienciafonologica2/index.html" class="group">
+            <!-- Juego 2 (Ahora 3º): Separar Palabras -->
+            <a href="concienciafonologica2/index.html" class="group h-full">
                 <div class="game-card bg-white rounded-3xl p-6 border-4 border-indigo-400 shadow-xl h-full flex flex-col items-center text-center">
                     <div class="w-28 h-28 bg-indigo-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-indigo-200 transition-colors">
-                        <span class="text-6xl floating" style="animation-delay: 0.5s;">✂️</span>
+                        <span class="text-6xl floating" style="animation-delay: 1s;">✂️</span>
                     </div>
                     <h2 class="text-2xl font-black text-indigo-600 mb-4">Separar Palabras</h2>
                     <p class="text-gray-600 text-lg flex-grow">
                         Usa las tijeras mágicas para separar las palabras que están pegadas. ¡No cortes por donde no es!
                     </p>
-                    <div class="mt-8 bg-indigo-500 text-white px-8 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-indigo-600 transition-colors">
+                    <div class="mt-8 bg-indigo-500 text-white px-8 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-indigo-600 transition-colors w-full">
                         ¡Jugar ahora!
                     </div>
                 </div>
             </a>
 
-            <!-- Juego 3: Conciencia Silábica (NUEVO) -->
-            <!-- Asegúrate de que la ruta 'concienciasilabica/index.html' coincida con donde guardes el archivo anterior -->
-            <a href="concienciasilabica/index.html" class="group">
+            <!-- Juego 3 (Ahora 4º): Taller de Sílabas -->
+            <a href="concienciasilabica/index.html" class="group h-full">
                 <div class="game-card bg-white rounded-3xl p-6 border-4 border-pink-400 shadow-xl h-full flex flex-col items-center text-center">
                     <div class="w-28 h-28 bg-pink-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-pink-200 transition-colors">
-                        <span class="text-6xl floating" style="animation-delay: 1s;">🥁</span>
+                        <span class="text-6xl floating" style="animation-delay: 1.5s;">🥁</span>
                     </div>
                     <h2 class="text-2xl font-black text-pink-600 mb-4">Taller de Sílabas</h2>
                     <p class="text-gray-600 text-lg flex-grow">
                         Separa sílabas, encuentra la tónica y clasifica palabras. ¡Sigue el ritmo!
                     </p>
-                    <div class="mt-8 bg-pink-500 text-white px-8 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-pink-600 transition-colors">
+                    <div class="mt-8 bg-pink-500 text-white px-8 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-pink-600 transition-colors w-full">
                         ¡Jugar ahora!
                     </div>
                 </div>
@@ -103,7 +119,7 @@
         </div>
 
         <!-- Footer / Info -->
-        <footer class="mt-16 text-center">
+        <footer class="mt-16 text-center mb-8">
             <div class="flex justify-center gap-6 opacity-60 grayscale hover:grayscale-0 transition-all">
                 <span class="text-4xl">📚</span>
                 <span class="text-4xl">✏️</span>
