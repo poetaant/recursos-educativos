@@ -3,209 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Niveles - CP Poeta Antón de Marirreguera</title>
+    <title>Portal de Juegos - Conciencia Fonológica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* --- Configuración General --- */
-        :root {
-            --mar-profundo: #1e3c72;
-            --mar-claro: #2a5298;
-            --flor-rosa: #e91e63;
-            --flor-amarilla: #fbc02d;
-            --hoja-verde: #4caf50;
-            --arena: #fdfbf7;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Georgia', 'Times New Roman', serif;
-            background-color: var(--arena);
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(30, 60, 114, 0.05) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(233, 30, 99, 0.05) 0%, transparent 20%);
+            font-family: 'Comic Neue', cursive;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
         }
 
-        /* --- Perfil Pequeño (Superior Izquierda) --- */
-        .perfil-poeta {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            z-index: 100;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 12px;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .game-card {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .foto-marco {
-            width: 50px;
-            height: 50px;
-            overflow: hidden;
-            border-radius: 50%;
-            border: 2px solid var(--mar-profundo);
-            background-color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 10px;
-        }
-
-        .foto-poeta { width: 80%; height: 80%; object-fit: contain; }
-
-        .nombre-poeta {
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: var(--mar-profundo);
-            text-transform: uppercase;
-        }
-
-        /* --- Botón Volver --- */
-        .boton-volver {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--flor-rosa);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-            z-index: 100;
-        }
-        .boton-volver:hover { transform: scale(1.05); background: #c2185b; }
-
-        /* --- Rejilla del Menú --- */
-        .contenedor-menu {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            padding: 100px 20px 40px; 
-            max-width: 1000px;
-            width: 90%;
-        }
-
-        /* --- Estilo de los Botones --- */
-        .boton-poetico {
-            position: relative;
-            height: 180px;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            overflow: hidden;
-            text-decoration: none;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            background: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .fondo-animado {
-            position: absolute;
-            top: 0; left: 0; width: 200%; height: 200%;
-            /* Estilo específico para esta sección (tonos verdes/tecnológicos/mates) */
-            background: linear-gradient(45deg, #009688, #4caf50, #8bc34a, #cddc39); 
-            background-size: 200% 200%;
-            z-index: 1;
-            animation: oleaje 8s ease infinite;
-            opacity: 0.9;
-        }
-
-        .texto-nivel {
-            position: relative;
-            z-index: 3;
-            font-size: 2rem;
-            font-weight: bold;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            font-family: 'Segoe UI', sans-serif;
-            text-align: center;
-        }
-
-        .boton-poetico:hover {
+        .game-card:hover {
             transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 20px 30px rgba(0,0,0,0.25);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 10;
         }
 
-        @keyframes oleaje {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(-25%, -25%); }
-            100% { transform: translate(0, 0); }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
         }
 
-        @media (max-width: 768px) {
-            .contenedor-menu { grid-template-columns: repeat(2, 1fr); padding-top: 120px; }
-        }
-        @media (max-width: 480px) {
-            .contenedor-menu { grid-template-columns: 1fr; }
+        @keyframes floating {
+            0% { transform: translate(0, 0px); }
+            50% { transform: translate(0, 15px); }
+            100% { transform: translate(0, 0px); }
         }
     </style>
 </head>
-<body>
+<body class="flex items-center justify-center p-4 min-h-screen">
 
-    <!-- Header Pequeño -->
-    <div class="perfil-poeta">
-        <div class="foto-marco">
-            <img src="https://cdn-icons-png.flaticon.com/512/2232/2232688.png" alt="Logo" class="foto-poeta">
+    <div class="max-w-7xl w-full"> 
+        <!-- Encabezado Principal -->
+        <header class="text-center mb-10 md:mb-16">
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-indigo-700 mb-4 drop-shadow-sm">
+                ¡Jugamos con las Palabras!
+            </h1>
+            <p class="text-lg md:text-2xl text-indigo-500 font-bold bg-white/60 inline-block px-8 py-3 rounded-full shadow-sm backdrop-blur-sm">
+                Elige un juego para empezar la aventura
+            </p>
+        </header>
+
+        <!-- Contenedor de Juegos -->
+        <!-- Cambiado de Grid a Flex para centrar el único elemento -->
+        <div class="flex justify-center w-full">
+            
+            <!-- JUEGO 1: Conciencia Fonológica -->
+            <a href="/concienciafonologica/index.html" class="group w-full max-w-md">
+                <div class="game-card bg-white rounded-3xl p-8 border-4 border-green-400 shadow-xl h-full flex flex-col items-center text-center relative overflow-hidden">
+                    <!-- Decoración de fondo sutil -->
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-full -z-0"></div>
+                    
+                    <div class="w-32 h-32 bg-green-100 rounded-full flex items-center justify-center mb-8 group-hover:bg-green-200 transition-colors z-10">
+                        <span class="text-7xl floating">🦜</span>
+                    </div>
+                    <h2 class="text-3xl font-black text-green-600 mb-4 z-10">Conciencia Fonológica</h2>
+                    <p class="text-gray-600 text-xl flex-grow z-10 leading-relaxed mb-6">
+                        Explora rimas, sonidos y fonemas en esta aventura sonora.
+                    </p>
+                    <div class="mt-auto bg-green-500 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-md group-hover:bg-green-600 transition-colors w-full z-10">
+                        ¡Jugar!
+                    </div>
+                </div>
+            </a>
+
         </div>
-        <div class="nombre-poeta">CP Poeta Antón</div>
+
+        <!-- Footer / Info -->
+        <footer class="mt-16 text-center mb-8">
+            <div class="flex justify-center gap-6 opacity-60 grayscale hover:grayscale-0 transition-all">
+                <span class="text-4xl hover:scale-110 transition-transform cursor-default">📚</span>
+                <span class="text-4xl hover:scale-110 transition-transform cursor-default">✏️</span>
+                <span class="text-4xl hover:scale-110 transition-transform cursor-default">🎨</span>
+            </div>
+            <p class="mt-6 text-indigo-400 font-bold uppercase tracking-widest text-sm">
+                Recursos Educativos - 3º de Primaria
+            </p>
+        </footer>
     </div>
-
-    <!-- Botón Volver -->
-    <a href="../index.html" class="boton-volver">↩ Volver al inicio</a>
-
-    <!-- Menú de Niveles (1º a 6º) -->
-    <main class="contenedor-menu">
-        
-        <!-- Botón 1º Primaria -->
-        <a href="1º/index.html" class="boton-poetico">
-            <div class="fondo-animado"></div>
-            <span class="texto-nivel">1º PRIMARIA</span>
-        </a>
-
-        <!-- Botón 2º Primaria -->
-        <a href="2º/index.html" class="boton-poetico">
-            <div class="fondo-animado"></div>
-            <span class="texto-nivel">2º PRIMARIA</span>
-        </a>
-
-        <!-- Botón 3º Primaria -->
-        <a href="3º/index.html" class="boton-poetico">
-            <div class="fondo-animado"></div>
-            <span class="texto-nivel">3º PRIMARIA</span>
-        </a>
-
-        <!-- Botón 4º Primaria -->
-        <a href="4º/index.html" class="boton-poetico">
-            <div class="fondo-animado"></div>
-            <span class="texto-nivel">4º PRIMARIA</span>
-        </a>
-
-        <!-- Botón 5º Primaria -->
-        <a href="5º/index.html" class="boton-poetico">
-            <div class="fondo-animado"></div>
-            <span class="texto-nivel">5º PRIMARIA</span>
-        </a>
-
-        <!-- Botón 6º Primaria -->
-        <a href="6º/index.html" class="boton-poetico">
-            <div class="fondo-animado"></div>
-            <span class="texto-nivel">6º PRIMARIA</span>
-        </a>
-
-    </main>
 
 </body>
 </html>
