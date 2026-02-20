@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lanzador Premium Aged Silver</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at center, #475569, #1e293b);
+            position: relative;
+        }
+
+        /* Capa de textura envejecida (grano/ruido) */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 50;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Marco Plateado con efecto de pátina */
+        .silver-frame {
+            position: relative;
+            background: linear-gradient(135deg, 
+                #e2e8f0 0%, 
+                #94a3b8 20%, 
+                #f1f5f9 45%, 
+                #cbd5e1 55%, 
+                #475569 80%, 
+                #94a3b8 100%);
+            padding: 12px;
+            box-shadow: 
+                0 40px 80px -15px rgba(0, 0, 0, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.8),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Pantalla interior menos oscura y con tinte envejecido */
+        .inner-screen {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            box-shadow: inset 0 10px 40px rgba(0, 0, 0, 0.7);
+            position: relative;
+        }
+
+        /* Bisel Plateado Envejecido */
+        .button-bezel {
+            position: relative;
+            padding: 5px;
+            background: linear-gradient(135deg, 
+                #f1f5f9 0%, 
+                #94a3b8 30%, 
+                #cbd5e1 50%, 
+                #334155 80%, 
+                #94a3b8 100%);
+            border-radius: 2.8rem;
+            box-shadow: 
+                0 10px 20px rgba(0,0,0,0.4),
+                inset 0 1px 2px rgba(255,255,255,0.7),
+                inset 0 -1px 3px rgba(0,0,0,0.4);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Iconos con colores más apagados */
+        .icon-surface {
+            position: relative;
+            transform-style: preserve-3d;
+            box-shadow: inset 0 4px 10px rgba(255,255,255,0.15);
+        }
+
+        .icon-3d:hover .button-bezel {
+            transform: translateY(-8px) rotateX(8deg) rotateY(8deg);
+            background: linear-gradient(135deg, #f8fafc, #cbd5e1, #f8fafc, #64748b);
+            box-shadow: 
+                0 20px 40px rgba(0,0,0,0.5),
+                inset 0 1px 3px rgba(255,255,255,0.8);
+        }
+
+        /* Orbes de luz cálidos */
+        .light-orb {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(217, 119, 6, 0.1) 0%, transparent 70%);
+            z-index: -1;
+            filter: blur(80px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6 overflow-hidden">
+
+    <!-- Iluminación ambiental cálida -->
+    <div class="light-orb top-[-15%] left-[-15%]"></div>
+    <div class="light-orb bottom-[-15%] right-[-15%]" style="background: radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 70%);"></div>
+
+    <!-- Chasis Plateado -->
+    <div class="silver-frame w-full max-w-4xl rounded-[5rem]">
+        
+        <!-- Pantalla de Sistema -->
+        <div class="inner-screen rounded-[4.4rem] p-10 md:p-20 flex flex-col items-center overflow-hidden">
+            
+            <!-- Reloj con acabado "Acero" -->
+            <header class="text-center mb-16">
+                <div id="clock" class="text-8xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-slate-300 to-slate-600 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)]">
+                    00:00
+                </div>
+                <div id="date" class="mt-4 text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] opacity-70">
+                    -- --- --
+                </div>
+            </header>
+
+            <!-- Grid de Aplicaciones -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-12 w-full max-w-3xl">
+                
+                <!-- App: Reloj y + -->
+                <a href="reloj/index.html" class="icon-3d group flex flex-col items-center gap-5">
+                    <div class="button-bezel">
+                        <div class="icon-surface w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center overflow-hidden">
+                            <i data-lucide="clock" class="w-12 h-12 text-slate-200 drop-shadow-lg"></i>
+                            <div class="absolute inset-0 bg-amber-500/5 mix-blend-overlay"></div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-extrabold tracking-[0.2em] text-slate-400 group-hover:text-slate-200 transition-all uppercase">Reloj y + </span>
+                </a>
+
+                <!-- App: Calculadora y + -->
+                <a href="calculadora/index.html" class="icon-3d group flex flex-col items-center gap-5">
+                    <div class="button-bezel">
+                        <div class="icon-surface w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center overflow-hidden">
+                            <i data-lucide="calculator" class="w-12 h-12 text-slate-300 drop-shadow-lg"></i>
+                            <div class="absolute inset-0 bg-amber-500/5 mix-blend-overlay"></div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-extrabold tracking-[0.2em] text-slate-400 group-hover:text-slate-200 transition-all uppercase">Calculadora y + </span>
+                </a>
+
+                <!-- App: Ajustes -->
+                <button onclick="showPop()" class="icon-3d group flex flex-col items-center gap-5">
+                    <div class="button-bezel">
+                        <div class="icon-surface w-24 h-24 rounded-[2.5rem] bg-slate-900 flex items-center justify-center border border-white/5 overflow-hidden">
+                            <i data-lucide="settings" class="w-10 h-10 text-slate-600 group-hover:text-amber-500 transition-colors"></i>
+                            <div class="absolute inset-0 bg-black/40"></div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-extrabold tracking-[0.2em] text-slate-600 group-hover:text-slate-400 transition-all uppercase">Ajustes</span>
+                </button>
+
+            </div>
+
+            <!-- Indicador Inferior -->
+            <div class="mt-20 flex items-center gap-4">
+                <div class="w-2 h-2 rounded-full bg-amber-600 shadow-[0_0_10px_rgba(217,119,6,0.5)]"></div>
+                <div class="flex gap-1">
+                    <div class="w-8 h-1 bg-slate-800 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-12 bg-slate-100/90 backdrop-blur-md text-slate-800 px-8 py-3 rounded-xl font-bold shadow-2xl translate-y-[-200%] transition-transform duration-500 border border-slate-300">
+        <div class="flex items-center gap-3">
+            <i data-lucide="info" class="w-4 h-4 text-amber-700"></i>
+            <span class="text-xs tracking-wider uppercase">Acceso Denegado</span>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const options = { weekday: 'long', day: 'numeric', month: 'short' };
+            document.getElementById('date').textContent = now.toLocaleDateString('es-ES', options);
+        }
+
+        function showPop() {
+            const t = document.getElementById('toast');
+            t.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                t.style.transform = 'translateY(-200%)';
+            }, 3000);
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
