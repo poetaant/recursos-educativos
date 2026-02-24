@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capibara Chroma - Zapatos Finos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --capy-beige: #d2b48c;
+            --capy-dark: #8b7355;
+            --shoe-color: #3e2723;
+            --speed: 0.35s; 
+        }
+
+        body {
+            /* Fondo verde croma puro */
+            background-color: #00ff00;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .stage {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        /* Contenedor principal del Capibara */
+        .capybara {
+            position: relative;
+            width: 160px;
+            height: 340px;
+            transform-origin: bottom center;
+            transition: transform 0.5s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Animación normal: Swish Swish */
+        .capybara.dancing {
+            animation: swish-body var(--speed) cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+        }
+
+        @keyframes swish-body {
+            0% { transform: translateX(-60px) rotate(-10deg); }
+            100% { transform: translateX(60px) rotate(10deg); }
+        }
+
+        /* Animación Especial: Media vuelta e inclinación */
+        .capybara.special-move {
+            animation: shake-butt-anim 1.8s ease-in-out forwards;
+        }
+
+        @keyframes shake-butt-anim {
+            0% { transform: scaleX(1) rotate(0); }
+            15% { transform: scaleX(-1) rotateX(55deg) translateY(35px); } 
+            25%, 45%, 65%, 85% { transform: scaleX(-1) rotateX(55deg) translateY(35px) translateX(-25px) rotateZ(-12deg); } 
+            35%, 55%, 75% { transform: scaleX(-1) rotateX(55deg) translateY(35px) translateX(25px) rotateZ(12deg); }
+            100% { transform: scaleX(1) rotate(0); }
+        }
+
+        /* Brazos extra largos */
+        .arm {
+            position: absolute;
+            width: 26px;
+            height: 140px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 13px;
+            top: 100px;
+            z-index: 25;
+            transition: opacity 0.2s;
+        }
+
+        /* Eliminar brazos en el giro */
+        .special-move .arm {
+            opacity: 0;
+        }
+
+        .dancing .arm-left {
+            left: -15px;
+            transform-origin: top center;
+            animation: swish-arm-left var(--speed) cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+        }
+
+        .dancing .arm-right {
+            right: -15px;
+            transform-origin: top center;
+            animation: swish-arm-right var(--speed) cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+        }
+
+        @keyframes swish-arm-left {
+            0% { transform: rotate(115deg) translateX(20px); z-index: 40; }
+            100% { transform: rotate(-115deg) translateX(-20px); z-index: 5; }
+        }
+
+        @keyframes swish-arm-right {
+            0% { transform: rotate(115deg) translateX(20px); z-index: 5; }
+            100% { transform: rotate(-115deg) translateX(-20px); z-index: 40; }
+        }
+
+        /* Cabeza */
+        .head {
+            position: absolute;
+            top: 0;
+            width: 110px;
+            height: 90px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 45px 45px 35px 35px;
+            z-index: 30;
+            transition: all 0.3s ease;
+        }
+
+        .special-move .eye, 
+        .special-move .nose {
+            opacity: 0;
+        }
+
+        .special-move .head {
+            background-color: var(--capy-beige);
+            transform: rotateX(-20deg);
+        }
+
+        .ear {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background-color: var(--capy-beige);
+            border: 3px solid var(--capy-dark);
+            border-radius: 50%;
+            top: -8px;
+        }
+        .ear-l { left: 15px; }
+        .ear-r { right: 15px; }
+
+        .eye {
+            position: absolute;
+            width: 9px;
+            height: 9px;
+            background-color: #222;
+            border-radius: 50%;
+            top: 40px;
+            transition: opacity 0.2s;
+        }
+        .eye-l { left: 30px; }
+        .eye-r { right: 30px; }
+
+        .nose {
+            position: absolute;
+            width: 24px;
+            height: 14px;
+            background-color: #4e342e;
+            border-radius: 12px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.2s;
+        }
+
+        /* Torso */
+        .torso {
+            position: absolute;
+            top: 80px;
+            width: 150px;
+            height: 150px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 60px 60px 45px 45px;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        /* Raja del culo gorda y larga */
+        .torso::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 12px; 
+            height: 100px; 
+            background-color: var(--capy-dark);
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .special-move .torso::after {
+            opacity: 0.85;
+        }
+
+        /* Piernas Articuladas Separadas */
+        .leg {
+            position: absolute;
+            bottom: 25px;
+            width: 32px;
+            height: 95px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 16px;
+            z-index: 1;
+        }
+
+        .leg::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -2px;
+            width: calc(100% + 4px);
+            height: 4px;
+            background-color: var(--capy-dark);
+            opacity: 0.5;
+            border-radius: 2px;
+        }
+
+        /* Zapatos más finos y alargados */
+        .shoe {
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 75px; 
+            height: 28px; /* Más finos */
+            background-color: var(--shoe-color);
+            border: 3px solid #1a0f0e;
+            border-radius: 12px 25px 10px 10px;
+            z-index: 2;
+        }
+
+        /* Separación de las piernas */
+        .leg-left { left: 10px; }
+        .leg-right { right: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="stage" id="stage">
+        <div class="capybara dancing" id="capy">
+            <!-- Brazos -->
+            <div class="arm arm-left"></div>
+            <div class="arm arm-right"></div>
+            
+            <!-- Torso -->
+            <div class="torso"></div>
+            
+            <!-- Cabeza -->
+            <div class="head">
+                <div class="ear ear-l"></div>
+                <div class="ear ear-r"></div>
+                <div class="eye eye-l"></div>
+                <div class="eye eye-r"></div>
+                <div class="nose"></div>
+            </div>
+
+            <!-- Piernas y Zapatos Separados -->
+            <div class="leg leg-left">
+                <div class="shoe"></div>
+            </div>
+            <div class="leg leg-right">
+                <div class="shoe"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const capy = document.getElementById('capy');
+        let timeLeft = 3;
+
+        const performSpecialMove = () => {
+            capy.classList.remove('dancing');
+            capy.classList.add('special-move');
+
+            setTimeout(() => {
+                capy.classList.remove('special-move');
+                capy.classList.add('dancing');
+                timeLeft = 3;
+            }, 1800);
+        };
+
+        setInterval(() => {
+            if (capy.classList.contains('dancing')) {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    performSpecialMove();
+                }
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
