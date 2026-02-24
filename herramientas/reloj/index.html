@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reloj Interactivo Avanzado - Poeta Antón</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Importamos la fuente 'Caveat' para el estilo rasgado/manuscrito de la marca y Orbitron para el digital */
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            /* Variables Capibara */
+            --capy-beige: #d2b48c;
+            --capy-dark: #8b7355;
+            --shoe-color: #3e2723;
+            --speed: 0.35s; 
+        }
+
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+            overflow-x: hidden; /* Evitar scroll horizontal al animar */
+        }
+
+        /* --- EFECTO MARCO PLATEADO 3D PARA LAS CAJAS --- */
+        .silver-3d-box {
+            border: 14px solid transparent !important;
+            background: 
+                /* Interior blanco */
+                linear-gradient(#ffffff, #ffffff) padding-box, 
+                /* Gradiente metálico plateado con brillos para el borde */
+                linear-gradient(145deg, #f0f0f0 0%, #ffffff 15%, #999999 45%, #e6e6e6 60%, #ffffff 80%, #b3b3b3 100%) border-box !important;
+            box-shadow: 
+                0 30px 60px -15px rgba(0, 0, 0, 0.4), /* Gran sombra exterior */
+                0 0 0 1px rgba(100, 100, 100, 0.15), /* Finísima línea oscura exterior para definir borde */
+                inset 0 10px 20px rgba(0, 0, 0, 0.05), /* Sombra interior superior (hundimiento) */
+                inset 0 -10px 20px rgba(255, 255, 255, 0.9) !important; /* Brillo interior inferior */
+        }
+
+        /* --- RELOJ ANALÓGICO --- */
+        .clock-face {
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            border: 20px solid #1f2937;
+            position: relative;
+            box-shadow: 
+                0 35px 60px -15px rgba(0,0,0,0.5), 
+                inset 0 15px 30px rgba(0,0,0,0.2), 
+                inset 0 -15px 30px rgba(255,255,255,0.6);
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 1s ease-in-out, margin 1s ease-in-out;
+            flex-shrink: 0;
+            margin-bottom: 2rem;
+            z-index: 10;
+        }
+
+        /* CONFIGURACIÓN DE LAS RAYAS (TICKS) */
+        .tick {
+            position: absolute;
+            left: 50%;
+            bottom: 50%;
+            transform-origin: bottom center;
+            background: #9ca3af;
+            width: 2px;
+            margin-left: -1px;
+            height: 44%;
+            z-index: 1;
+            pointer-events: none;
+            transition: background-color 0.3s;
+        }
+        
+        .tick.major {
+            width: 8px;
+            margin-left: -4px;
+            height: 49%;
+            background: #111827;
+        }
+
+        .number {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #374151;
+            padding-top: 35px;
+            pointer-events: none;
+            z-index: 5;
+            text-shadow: 1px 2px 4px rgba(0,0,0,0.15);
+        }
+
+        /* LOGO DE MARCA EN CURVA (SVG) */
+        .brand-text-svg {
+            position: absolute;
+            top: 34%; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 260px;
+            height: 100px;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .brand-text-svg text {
+            font-family: 'Caveat', cursive; 
+            font-size: 1.6rem; 
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: fill 0.3s;
+            text-shadow: 1px 2px 3px rgba(0,0,0,0.15);
+        }
+
+        /* NÚMEROS EXTERNOS */
+        .outer-number {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            left: 50%;
+            top: 50%;
+            margin-left: -20px;
+            margin-top: -20px;
+            text-align: center;
+            line-height: 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #6b7280;
+            pointer-events: none;
+            transition: opacity 0.3s, color 0.3s;
+        }
+
+        /* Agujas */
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 8px;
+            z-index: 10;
+            transition: transform 0.1s cubic-bezier(0.4, 2.08, 0.55, 0.44), background-color 0.3s;
+            background-image: linear-gradient(to right, rgba(255,255,255,0.5) 0%, transparent 40%, rgba(0,0,0,0.4) 100%);
+            filter: drop-shadow(4px 6px 4px rgba(0,0,0,0.4));
+            cursor: grab;
+            touch-action: none; /* Crucial para evitar scroll al arrastrar la aguja en móviles */
+        }
+        .hand:active {
+            cursor: grabbing;
+        }
+        /* Ampliar el área táctil de las agujas para que sea más fácil cogerlas */
+        .hand::after {
+            content: '';
+            position: absolute;
+            top: -15px; bottom: -15px; left: -20px; right: -20px;
+        }
+
+        .hand.hour {
+            width: 14px;
+            height: 130px;
+            background-color: #111827; 
+            margin-left: -7px;
+        }
+
+        .hand.minute {
+            width: 10px;
+            height: 190px;
+            background-color: #4b5563; 
+            margin-left: -5px;
+        }
+
+        .hand.second {
+            width: 4px;
+            height: 220px;
+            background-color: #ef4444; 
+            margin-left: -2px;
+            z-index: 11;
+            transition: transform 0.05s linear;
+        }
+
+        .center-dot {
+            width: 28px;
+            height: 28px;
+            background-color: #ef4444;
+            background-image: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 60%);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 12;
+            border: 5px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+        }
+
+        /* --- RELOJ DIGITAL --- */
+        .digital-display {
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+        }
+
+        /* Estilos para el panel de Capitales */
+        .world-clock-item {
+            border-bottom: 1px solid #f3f4f6;
+            padding: 12px 4px;
+        }
+        .world-clock-item:last-child {
+            border-bottom: none;
+        }
+        .city-time {
+            font-family: 'Orbitron', monospace;
+            color: #ef4444;
+            font-size: 1rem;
+        }
+        
+        #citiesContainer::-webkit-scrollbar { width: 6px; }
+        #citiesContainer::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        #citiesContainer::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        #citiesContainer::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        .btn-control:active { transform: scale(0.95); }
+        
+        .clock-face-bg-layer {
+            position: absolute;
+            top: 35px; left: 35px; right: 35px; bottom: 35px; 
+            border-radius: 50%;
+            background-color: inherit;
+            z-index: 2;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.08); 
+        }
+
+        /* Animaciones MODO JUEGO */
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shakeMild {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px) rotate(-1deg); }
+            75% { transform: translateX(6px) rotate(1deg); }
+        }
+        @keyframes shakeStrong {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-14px) rotate(-3deg); }
+            20%, 40%, 60%, 80% { transform: translateX(14px) rotate(3deg); }
+        }
+        .shake-mild { animation: shakeMild 0.4s ease-in-out; }
+        .shake-strong { animation: shakeStrong 0.6s ease-in-out; }
+        
+        /* Efectos para Drag & Drop (Táctil y Ratón) */
+        .draggable-number {
+            transition: transform 0.1s;
+            z-index: 50;
+            touch-action: none; 
+        }
+        .draggable-number:active {
+            cursor: grabbing !important;
+            transform: scale(1.1);
+        }
+
+        /* ========================================= */
+        /* --- ESTILOS DEL CAPIBARA CHROMA --- */
+        /* ========================================= */
+        .capy-stage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            /* Centrado absoluto y escalado para encajar bien dentro del reloj (10% más grande: de 0.45 a 0.50) */
+            transform: translate(-50%, -50%) scale(0.5);
+            width: 500px;
+            height: 500px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            z-index: 100; /* Superpuesto a todo el reloj */
+            pointer-events: none; /* No bloquea interacción con agujas */
+        }
+
+        /* Animación de Órbita por el interior del reloj */
+        @keyframes capy-orbit {
+            0% { transform: translate(-50%, -50%) rotate(0deg) translateY(-160px) rotate(0deg) scale(0.5); }
+            100% { transform: translate(-50%, -50%) rotate(360deg) translateY(-160px) rotate(-360deg) scale(0.5); }
+        }
+        
+        .capy-stage.orbiting {
+            animation: capy-orbit 5s linear infinite; /* Da una vuelta cada 5 segundos */
+        }
+
+        .capybara {
+            position: relative;
+            width: 160px;
+            height: 340px;
+            transform-origin: bottom center;
+            transition: transform 0.5s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .capybara.dancing {
+            animation: swish-body var(--speed) cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+        }
+
+        @keyframes swish-body {
+            0% { transform: translateX(-60px) rotate(-10deg); }
+            100% { transform: translateX(60px) rotate(10deg); }
+        }
+
+        .capybara.special-move {
+            animation: shake-butt-anim 1.8s ease-in-out forwards;
+        }
+
+        @keyframes shake-butt-anim {
+            0% { transform: scaleX(1) rotate(0); }
+            15% { transform: scaleX(-1) rotateX(55deg) translateY(35px); } 
+            25%, 45%, 65%, 85% { transform: scaleX(-1) rotateX(55deg) translateY(35px) translateX(-25px) rotateZ(-12deg); } 
+            35%, 55%, 75% { transform: scaleX(-1) rotateX(55deg) translateY(35px) translateX(25px) rotateZ(12deg); }
+            100% { transform: scaleX(1) rotate(0); }
+        }
+
+        .capy-arm {
+            position: absolute;
+            width: 26px;
+            height: 140px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 13px;
+            top: 100px;
+            z-index: 25;
+            transition: opacity 0.2s;
+        }
+
+        .special-move .capy-arm { opacity: 0; }
+
+        .dancing .capy-arm-left {
+            left: -15px;
+            transform-origin: top center;
+            animation: swish-arm-left var(--speed) cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+        }
+
+        .dancing .capy-arm-right {
+            right: -15px;
+            transform-origin: top center;
+            animation: swish-arm-right var(--speed) cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+        }
+
+        @keyframes swish-arm-left {
+            0% { transform: rotate(115deg) translateX(20px); z-index: 40; }
+            100% { transform: rotate(-115deg) translateX(-20px); z-index: 5; }
+        }
+
+        @keyframes swish-arm-right {
+            0% { transform: rotate(115deg) translateX(20px); z-index: 5; }
+            100% { transform: rotate(-115deg) translateX(-20px); z-index: 40; }
+        }
+
+        .capy-head {
+            position: absolute;
+            top: 0;
+            width: 110px;
+            height: 90px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 45px 45px 35px 35px;
+            z-index: 30;
+            transition: all 0.3s ease;
+        }
+
+        .special-move .capy-eye, 
+        .special-move .capy-nose { opacity: 0; }
+        .special-move .capy-head {
+            background-color: var(--capy-beige);
+            transform: rotateX(-20deg);
+        }
+
+        .capy-ear {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background-color: var(--capy-beige);
+            border: 3px solid var(--capy-dark);
+            border-radius: 50%;
+            top: -8px;
+        }
+        .capy-ear-l { left: 15px; }
+        .capy-ear-r { right: 15px; }
+
+        .capy-eye {
+            position: absolute;
+            width: 9px;
+            height: 9px;
+            background-color: #222;
+            border-radius: 50%;
+            top: 40px;
+            transition: opacity 0.2s;
+        }
+        .capy-eye-l { left: 30px; }
+        .capy-eye-r { right: 30px; }
+
+        .capy-nose {
+            position: absolute;
+            width: 24px;
+            height: 14px;
+            background-color: #4e342e;
+            border-radius: 12px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.2s;
+        }
+
+        .capy-torso {
+            position: absolute;
+            top: 80px;
+            width: 150px;
+            height: 150px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 60px 60px 45px 45px;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .capy-torso::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 12px; 
+            height: 100px; 
+            background-color: var(--capy-dark);
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .special-move .capy-torso::after { opacity: 0.85; }
+
+        .capy-leg {
+            position: absolute;
+            bottom: 25px;
+            width: 32px;
+            height: 95px;
+            background-color: var(--capy-beige);
+            border: 4px solid var(--capy-dark);
+            border-radius: 16px;
+            z-index: 1;
+        }
+
+        .capy-leg::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -2px;
+            width: calc(100% + 4px);
+            height: 4px;
+            background-color: var(--capy-dark);
+            opacity: 0.5;
+            border-radius: 2px;
+        }
+
+        .capy-shoe {
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 75px; 
+            height: 28px;
+            background-color: var(--shoe-color);
+            border: 3px solid #1a0f0e;
+            border-radius: 12px 25px 10px 10px;
+            z-index: 2;
+        }
+
+        .capy-leg-left { left: 10px; }
+        .capy-leg-right { right: 10px; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-6 gap-6 flex-wrap bg-gray-200 transition-all duration-500">
+
+    <!-- CAJA 0: CAPITALES DEL MUNDO (Izquierda) -->
+    <div id="worldClockPanel" class="hidden silver-3d-box py-12 px-6 rounded-[100px] flex-col w-72 self-stretch transition-all duration-500 ease-in-out transform origin-left">
+        <h2 class="text-xl font-bold text-gray-700 text-center mb-4 uppercase tracking-wider border-b-2 border-gray-200 pb-2 flex items-center justify-center gap-2">
+            <span>🌍</span> Mundo
+        </h2>
+        
+        <!-- Contenedor con scroll -->
+        <div id="citiesContainer" class="flex flex-col justify-start h-full overflow-y-auto pr-2 gap-1">
+            <!-- Se llenará con JS -->
+        </div>
+    </div>
+
+    <!-- CAJA 1: VISUALIZACIÓN (Relojes) -->
+    <div class="silver-3d-box py-12 px-12 sm:px-16 rounded-[150px] flex flex-col items-center justify-center min-w-[600px] self-stretch transition-all duration-500 relative">
+        
+        <!-- ZONA SUPERIOR MODO JUEGO (Pregunta y Puntuación unificadas) -->
+        <div id="gameTopUI" class="hidden flex-col w-full max-w-lg mb-4 fade-in-up z-20">
+            <!-- Objetivo en Texto (Arriba del todo, alineado a la izquierda) -->
+            <div id="gameTargetText" class="text-left font-bold text-gray-800 text-2xl sm:text-3xl leading-tight bg-yellow-50 p-5 rounded-3xl shadow-inner w-full border-2 border-yellow-200">
+                Cargando...
+            </div>
+            
+            <!-- Puntuación (Debajo y a la derecha) -->
+            <div class="flex justify-end w-full mt-3">
+                <span id="gameScoreDisplay" class="bg-green-100 text-green-800 font-extrabold py-1.5 px-6 rounded-full border-2 border-green-300 shadow-md text-lg">0 Pts</span>
+            </div>
+        </div>
+
+        <!-- Reloj Analógico -->
+        <div id="clockFace" class="clock-face bg-white border-gray-800">
+            <div id="clockBgLayer" class="clock-face-bg-layer bg-white"></div>
+            <div id="ticksContainer"></div>
+            <!-- Contenedor para números externos -->
+            <div id="outerNumbersContainer" class="hidden opacity-0 transition-opacity duration-300 z-0"></div>
+
+            <!-- Logo de la marca con curva SVG -->
+            <svg class="brand-text-svg" viewBox="0 0 260 100">
+                <!-- Trazado de curva invisible -->
+                <path id="text-curve" d="M 10,90 Q 130,10 250,90" fill="transparent" />
+                <text id="brandText" fill="#374151">
+                    <textPath href="#text-curve" startOffset="50%" text-anchor="middle">
+                        Poeta Antón
+                    </textPath>
+                </text>
+            </svg>
+
+            <!-- Agujas arrastrables -->
+            <div class="hand hour" id="hourHand"></div>
+            <div class="hand minute" id="minuteHand"></div>
+            <div class="hand second pointer-events-none" id="secondHand"></div>
+            <div class="center-dot"></div>
+
+            <!-- CAPIBARA (Oculto por defecto) -->
+            <div id="capybaraContainer" class="capy-stage hidden">
+                <div class="capybara dancing" id="capy">
+                    <div class="capy-arm capy-arm-left"></div>
+                    <div class="capy-arm capy-arm-right"></div>
+                    <div class="capy-torso"></div>
+                    <div class="capy-head">
+                        <div class="capy-ear capy-ear-l"></div>
+                        <div class="capy-ear capy-ear-r"></div>
+                        <div class="capy-eye capy-eye-l"></div>
+                        <div class="capy-eye capy-eye-r"></div>
+                        <div class="capy-nose"></div>
+                    </div>
+                    <div class="capy-leg capy-leg-left">
+                        <div class="capy-shoe"></div>
+                    </div>
+                    <div class="capy-leg capy-leg-right">
+                        <div class="capy-shoe"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CONTENEDOR NORMAL: Reloj Digital y Letras -->
+        <div id="digitalClockContainer" class="w-full flex flex-col items-center transition-all duration-300">
+            <div class="relative w-full">
+                <div class="bg-black text-red-500 text-5xl px-8 py-8 rounded-2xl digital-display text-center border-4 border-gray-800 shadow-lg mt-2 flex justify-center items-center relative">
+                    
+                    <!-- Botón flotante para Opciones (Izquierda) -->
+                    <button onclick="toggleControls()" id="optionsBtn" class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gray-800 text-gray-300 text-xs font-sans font-bold py-1 px-3 rounded border border-gray-600 hover:bg-gray-700 transition">
+                        OPC
+                    </button>
+
+                    <span id="digitalTime">00:00:00</span>
+                    
+                    <!-- Display del Temporizador -->
+                    <div id="timerDisplay" class="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-yellow-400 text-sm tracking-widest hidden transition-all">⏳ 00:00</div>
+                    
+                    <!-- Botón flotante para cambiar formato -->
+                    <button onclick="toggleFormat()" id="formatBtn" class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-800 text-gray-300 text-xs font-sans font-bold py-1 px-3 rounded border border-gray-600 hover:bg-gray-700 transition">
+                        24H
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Display de la Hora en Letras -->
+            <div id="textTimeDisplay" class="mt-6 mx-auto w-max bg-gray-100 px-8 py-3 rounded-full border border-gray-300 text-gray-700 font-bold text-2xl sm:text-3xl shadow-inner hidden transition-all">
+                <!-- Se llenará con JS -->
+            </div>
+        </div>
+
+        <!-- Bandeja de Números Arrastrables (DRAG & DROP) -->
+        <div id="dragNumberPool" class="flex-wrap justify-center gap-3 w-full max-w-md mt-4 bg-gray-200 p-5 rounded-[2rem] shadow-[inset_0_4px_10px_rgba(0,0,0,0.15)] border-[3px] border-gray-300 min-h-[95px] hidden relative z-30 fade-in-up">
+            <!-- Se llenarán con JS -->
+        </div>
+
+        <!-- ZONA INFERIOR MODO JUEGO -->
+        <div id="gameBottomUI" class="hidden flex-col w-full max-w-2xl mt-1 fade-in-up items-center z-20">
+            
+            <!-- Mensajes de Feedback -->
+            <div id="gameFeedback" class="text-base sm:text-lg font-extrabold text-center h-6 sm:h-8 mb-3 text-red-500 transition-all uppercase tracking-wider"></div>
+
+            <!-- BOTONERA HORIZONTAL (Izquierda, Centro, Derecha) -->
+            <div class="flex flex-row items-center justify-center gap-2 sm:gap-5 w-full">
+                
+                <!-- BOTONES IZQUIERDA -->
+                <div class="flex flex-col gap-2 w-[100px] sm:w-[130px]">
+                    <button onclick="exitGameMode()" class="w-full py-2.5 sm:py-3 bg-blue-500 text-white font-bold rounded-xl shadow-md hover:bg-blue-600 border-b-4 border-blue-700 active:border-b-0 active:translate-y-1 transition-all text-[10px] sm:text-xs tracking-wider">PRÁCTICA</button>
+                    <button onclick="useGameHint()" class="w-full py-2.5 sm:py-3 bg-purple-500 text-white font-bold rounded-xl shadow-md hover:bg-purple-600 border-b-4 border-purple-700 active:border-b-0 active:translate-y-1 transition-all text-[10px] sm:text-xs tracking-wider">PISTAS</button>
+                </div>
+
+                <!-- CONTROLES CENTRO (FLECHAS) -->
+                <div class="flex justify-center gap-2 sm:gap-5 shrink-0">
+                    <!-- HORA -->
+                    <div class="flex flex-col items-center">
+                        <button onpointerdown="startAdjust('h', 1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="touch-none select-none w-16 sm:w-20 h-10 sm:h-12 bg-gray-800 text-white rounded-t-2xl flex items-center justify-center shadow-md hover:bg-gray-700 transition active:translate-y-1">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                        </button>
+                        <div class="w-16 sm:w-20 py-1 sm:py-1.5 bg-gray-200 border-x border-gray-400 text-center text-[10px] sm:text-[11px] font-bold text-gray-600 tracking-widest shadow-inner">HORA</div>
+                        <button onpointerdown="startAdjust('h', -1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="touch-none select-none w-16 sm:w-20 h-10 sm:h-12 bg-gray-800 text-white rounded-b-2xl flex items-center justify-center shadow-md hover:bg-gray-700 transition active:translate-y-1">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- MINUTOS -->
+                    <div class="flex flex-col items-center">
+                        <button onpointerdown="startAdjust('m', 1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="touch-none select-none w-16 sm:w-20 h-10 sm:h-12 bg-gray-600 text-white rounded-t-2xl flex items-center justify-center shadow-md hover:bg-gray-500 transition active:translate-y-1">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                        </button>
+                        <div class="w-16 sm:w-20 py-1 sm:py-1.5 bg-gray-200 border-x border-gray-400 text-center text-[10px] sm:text-[11px] font-bold text-gray-600 tracking-widest shadow-inner">MIN</div>
+                        <button onpointerdown="startAdjust('m', -1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="touch-none select-none w-16 sm:w-20 h-10 sm:h-12 bg-gray-600 text-white rounded-b-2xl flex items-center justify-center shadow-md hover:bg-gray-500 transition active:translate-y-1">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BOTONES DERECHA -->
+                <div class="flex flex-col gap-2 w-[100px] sm:w-[130px]">
+                    <button onclick="checkGameAnswer()" class="w-full py-2.5 sm:py-3 bg-green-500 text-white font-extrabold rounded-xl shadow-md hover:bg-green-600 border-b-4 border-green-700 active:border-b-0 active:translate-y-1 transition-all text-[10px] sm:text-xs tracking-wider">COMPROBAR</button>
+                    <button onclick="generateNewGameTime()" class="w-full py-2.5 sm:py-3 bg-orange-400 text-white font-bold rounded-xl shadow-md hover:bg-orange-500 border-b-4 border-orange-600 active:border-b-0 active:translate-y-1 transition-all text-[10px] sm:text-xs tracking-wider">OTRA HORA</button>
+                </div>
+            </div>
+            
+            <!-- Pista Inferior para Eventos Diarios -->
+            <div id="eventHintText" class="hidden mt-4 text-xs sm:text-sm font-bold text-blue-600 bg-blue-50 px-5 py-1.5 rounded-full border border-blue-200 uppercase tracking-widest shadow-sm">
+                Pista: 00:00
+            </div>
+        </div>
+    </div>
+
+    <!-- CAJA 2: CONTROLES -->
+    <div id="controlPanel" class="silver-3d-box py-14 px-8 rounded-[100px] flex flex-col items-center w-full max-w-lg space-y-6 h-auto self-stretch justify-center transition-all duration-500 transform origin-right">
+
+        <!-- Fila 1: Color ESFERA -->
+        <div class="w-full">
+            <span class="block text-center font-bold text-gray-400 text-xs tracking-wider uppercase mb-3">Color de Esfera</span>
+            <div class="flex justify-center gap-3 flex-wrap">
+                <button onclick="setClockColor('#ffffff', false)" class="w-10 h-10 rounded-full border border-gray-300 bg-white hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#000000', true)" class="w-10 h-10 rounded-full border border-gray-600 bg-black hover:scale-110 transition shadow-sm ring-2 ring-offset-1 ring-gray-200" title="Negro (Invierte números)"></button>
+                <button onclick="setClockColor('#dbeafe', false)" class="w-10 h-10 rounded-full border border-blue-200 bg-blue-100 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#dcfce7', false)" class="w-10 h-10 rounded-full border border-green-200 bg-green-100 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#fef3c7', false)" class="w-10 h-10 rounded-full border border-yellow-200 bg-yellow-100 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setClockColor('#e5e7eb', false)" class="w-10 h-10 rounded-full border border-gray-400 bg-gray-200 hover:scale-110 transition shadow-sm"></button>
+            </div>
+        </div>
+
+        <!-- Fila 2: Color MARCO -->
+        <div class="w-full">
+            <span class="block text-center font-bold text-gray-400 text-xs tracking-wider uppercase mb-3">Color del Marco</span>
+            <div class="flex justify-center gap-3 flex-wrap">
+                <button onclick="setFrameColor('#1f2937')" class="w-10 h-10 rounded-full border-4 border-gray-800 bg-transparent hover:scale-110 transition shadow-sm" title="Original"></button>
+                <button onclick="setFrameColor('#ef4444')" class="w-10 h-10 rounded-full border-4 border-red-500 bg-transparent hover:scale-110 transition shadow-sm" title="Rojo"></button>
+                <button onclick="setFrameColor('#3b82f6')" class="w-10 h-10 rounded-full border-4 border-blue-500 bg-transparent hover:scale-110 transition shadow-sm" title="Azul"></button>
+                <button onclick="setFrameColor('#22c55e')" class="w-10 h-10 rounded-full border-4 border-green-500 bg-transparent hover:scale-110 transition shadow-sm" title="Verde"></button>
+                <button onclick="setFrameColor('#eab308')" class="w-10 h-10 rounded-full border-4 border-yellow-500 bg-transparent hover:scale-110 transition shadow-sm" title="Amarillo"></button>
+                <button onclick="setFrameColor('#a855f7')" class="w-10 h-10 rounded-full border-4 border-purple-500 bg-transparent hover:scale-110 transition shadow-sm" title="Morado"></button>
+            </div>
+        </div>
+
+        <!-- Fila 3: Color AGUJAS -->
+        <div class="w-full">
+            <span class="block text-center font-bold text-gray-400 text-xs tracking-wider uppercase mb-3">Color de Agujas</span>
+            <div class="flex justify-center gap-3 flex-wrap">
+                <button onclick="setHandColor('#111827')" class="w-10 h-10 rounded-full border border-gray-300 bg-gray-900 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#2563eb')" class="w-10 h-10 rounded-full border border-blue-200 bg-blue-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#16a34a')" class="w-10 h-10 rounded-full border border-green-200 bg-green-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#db2777')" class="w-10 h-10 rounded-full border border-pink-200 bg-pink-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#ca8a04')" class="w-10 h-10 rounded-full border border-yellow-200 bg-yellow-600 hover:scale-110 transition shadow-sm"></button>
+                <button onclick="setHandColor('#7c3aed')" class="w-10 h-10 rounded-full border border-purple-200 bg-purple-600 hover:scale-110 transition shadow-sm"></button>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-200 w-full"></div>
+
+        <!-- Botones Toggle -->
+        <div class="w-full grid grid-cols-6 gap-2">
+            <button id="outerNumbersBtn" onclick="toggleOuterNumbers()" class="col-span-2 py-2 rounded-lg font-bold text-gray-700 bg-blue-100 hover:bg-blue-200 transition shadow-sm border border-blue-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Min. Ext.</span>
+                <span id="outerStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+            
+            <button id="worldClockBtn" onclick="toggleWorldClock()" class="col-span-2 py-2 rounded-lg font-bold text-gray-700 bg-indigo-100 hover:bg-indigo-200 transition shadow-sm border border-indigo-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Mundo</span>
+                <span id="worldStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+
+            <button id="romanBtn" onclick="toggleRoman()" class="col-span-2 py-2 rounded-lg font-bold text-gray-700 bg-pink-100 hover:bg-pink-200 transition shadow-sm border border-pink-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Romanos</span>
+                <span id="romanStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+            
+            <button id="timerToggleBtn" onclick="toggleTimerPanel()" class="col-span-2 py-2 rounded-lg font-bold text-gray-700 bg-yellow-100 hover:bg-yellow-200 transition shadow-sm border border-yellow-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Temporizador</span>
+                <span id="timerStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+            
+            <!-- BOTÓN: ¡A JUGAR! -->
+            <button onclick="enterGameMode()" class="col-span-2 py-2 rounded-lg font-bold text-white bg-red-500 hover:bg-red-600 transition shadow-sm border border-red-600 flex flex-col items-center justify-center text-xs sm:text-xs active:translate-y-1">
+                <span class="text-sm tracking-widest">¡A JUGAR!</span>
+            </button>
+
+            <button id="textTimeToggleBtn" onclick="toggleTextTime()" class="col-span-2 py-2 rounded-lg font-bold text-gray-700 bg-teal-100 hover:bg-teal-200 transition shadow-sm border border-teal-200 flex flex-col items-center justify-center text-xs sm:text-xs">
+                <span>Hora Letras</span>
+                <span id="textTimeStatusIcon" class="mt-1 text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded-full">OFF</span>
+            </button>
+        </div>
+
+        <!-- Panel de Temporizadores -->
+        <div id="timerPresetsPanel" class="w-full hidden flex-col items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Iniciar Temporizador</span>
+            <div class="flex flex-wrap justify-center gap-2">
+                <button onclick="startTimer(1)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">1'</button>
+                <button onclick="startTimer(2)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">2'</button>
+                <button onclick="startTimer(5)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">5'</button>
+                <button onclick="startTimer(10)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">10'</button>
+                <button onclick="startTimer(30)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">30'</button>
+                <button onclick="startTimer(45)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">45'</button>
+                <button onclick="startTimer(60)" class="w-10 h-10 rounded-full bg-white border border-yellow-400 text-yellow-600 font-bold hover:bg-yellow-400 hover:text-white transition shadow-sm">60'</button>
+                <button onclick="stopTimer()" class="w-10 h-10 rounded-full bg-white border border-red-400 text-red-500 font-bold hover:bg-red-500 hover:text-white transition shadow-sm" title="Cancelar">⏹</button>
+            </div>
+        </div>
+
+        <!-- Botones de Estado -->
+        <div class="w-full grid grid-cols-2 gap-4">
+            <div class="flex flex-col items-center">
+                <button id="modeBtn" onclick="toggleMode()" class="w-full py-3 rounded-xl font-bold text-white transition bg-green-500 shadow-md hover:shadow-lg uppercase tracking-wide text-sm">
+                    Automático
+                </button>
+            </div>
+            <div class="flex flex-col items-center">
+                <button id="stepBtn" onclick="toggleStep()" class="w-full py-3 rounded-xl font-bold bg-gray-200 text-gray-600 transition shadow-md hover:bg-gray-300 uppercase tracking-wide text-sm">
+                    1x Normal
+                </button>
+            </div>
+        </div>
+
+        <!-- Flechas de Control Originales -->
+        <div id="manualControls" class="grid grid-cols-3 gap-4 w-full opacity-50 pointer-events-none transition-all duration-300">
+            <!-- Horas -->
+            <div class="flex flex-col items-center group">
+                <button onpointerdown="startAdjust('h', 1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="btn-control touch-none select-none w-14 h-14 bg-gray-800 text-white rounded-2xl flex items-center justify-center shadow-lg mb-2 hover:bg-gray-700 transition active:translate-y-1">
+                    <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+                <span class="font-bold text-gray-500 text-sm tracking-widest mb-2">HORA</span>
+                <button onpointerdown="startAdjust('h', -1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="btn-control touch-none select-none w-14 h-14 bg-gray-800 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-gray-700 transition active:translate-y-1">
+                    <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+            </div>
+
+            <!-- Minutos -->
+            <div class="flex flex-col items-center">
+                <button onpointerdown="startAdjust('m', 1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="btn-control touch-none select-none w-14 h-14 bg-gray-600 text-white rounded-2xl flex items-center justify-center shadow-lg mb-2 hover:bg-gray-500 transition active:translate-y-1">
+                    <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+                <span class="font-bold text-gray-500 text-sm tracking-widest mb-2">MIN</span>
+                <button onpointerdown="startAdjust('m', -1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="btn-control touch-none select-none w-14 h-14 bg-gray-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-gray-500 transition active:translate-y-1">
+                    <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+            </div>
+
+            <!-- Segundos -->
+            <div class="flex flex-col items-center">
+                <button onpointerdown="startAdjust('s', 1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="btn-control touch-none select-none w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg mb-2 hover:bg-red-600 transition active:translate-y-1">
+                    <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+                <span class="font-bold text-gray-500 text-sm tracking-widest mb-2">SEG</span>
+                <button onpointerdown="startAdjust('s', -1)" onpointerup="stopAdjust()" onpointerleave="stopAdjust()" onpointercancel="stopAdjust()" oncontextmenu="return false;" class="btn-control touch-none select-none w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-red-600 transition active:translate-y-1">
+                    <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+            </div>
+        </div>
+        
+        <p id="modeStatus" class="text-sm text-gray-400 italic font-medium h-4">Controles desactivados en modo Automático</p>
+    </div>
+
+    <script>
+        // Estado del Reloj
+        let currentTime = new Date();
+        let isAutomatic = true;
+        let isStepByFive = false;
+        let is24Hour = true;
+        let showOuterNumbers = false;
+        let showWorldClock = false; 
+        let showControls = true; 
+        let isRoman = false; 
+        let showTextTime = false; 
+
+        // Variables de Audio Global
+        let audioCtx = null;
+        let capyAudio = new Audio('Capybara_s_Comet_Cruise.mp3');
+
+        // Variables Modo Juego y Drag & Drop
+        let isGameMode = false;
+        let gameScore = 0;
+        let gameTargetH = 0;
+        let gameTargetM = 0;
+        let gameHintsUsed = 0;
+        let gameFailures = 0;
+        let draggedElement = null;
+        let dragGhost = null; 
+        let gameAnimationTimer = null; 
+
+        // Variables para el arrastre táctil de agujas
+        let draggingHand = null;
+        let prevDragM = null;
+
+        // Variables Temporizador
+        let showTimerPanel = false;
+        let timerInterval = null;
+        let timerSecondsRemaining = 0;
+        let isTimerActive = false;
+
+        // Variables para Rotación Continua de Agujas
+        let currentSDeg = null;
+        let currentMDeg = null;
+        let currentHDeg = null;
+
+        // Mapa de números romanos
+        const romanMap = {1:'I', 2:'II', 3:'III', 4:'IV', 5:'V', 6:'VI', 7:'VII', 8:'VIII', 9:'IX', 10:'X', 11:'XI', 12:'XII'};
+
+        // Ciudades
+        const cities = [
+            { name: "Nueva York", zone: "America/New_York" },
+            { name: "Londres", zone: "Europe/London" },
+            { name: "París", zone: "Europe/Paris" },
+            { name: "Moscú", zone: "Europe/Moscow" },
+            { name: "Estambul", zone: "Europe/Istanbul" },
+            { name: "El Cairo", zone: "Africa/Cairo" },
+            { name: "Tokio", zone: "Asia/Tokyo" },
+            { name: "Pekín", zone: "Asia/Shanghai" },
+            { name: "Sídney", zone: "Australia/Sydney" },
+            { name: "Oslo", zone: "Europe/Oslo" },
+            { name: "Montreal", zone: "America/Toronto" }
+        ];
+
+        // DOM Referencias
+        const hourHand = document.getElementById('hourHand');
+        const minuteHand = document.getElementById('minuteHand');
+        const secondHand = document.getElementById('secondHand');
+        const digitalTime = document.getElementById('digitalTime');
+        const formatBtn = document.getElementById('formatBtn');
+        const manualControls = document.getElementById('manualControls');
+        const modeBtn = document.getElementById('modeBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const modeStatus = document.getElementById('modeStatus');
+        const clockFace = document.getElementById('clockFace');
+        const clockBgLayer = document.getElementById('clockBgLayer');
+        const ticksContainer = document.getElementById('ticksContainer');
+        const outerNumbersContainer = document.getElementById('outerNumbersContainer');
+        const outerNumbersBtn = document.getElementById('outerNumbersBtn');
+        const outerStatusIcon = document.getElementById('outerStatusIcon');
+        const worldClockPanel = document.getElementById('worldClockPanel');
+        const worldClockBtn = document.getElementById('worldClockBtn');
+        const worldStatusIcon = document.getElementById('worldStatusIcon');
+        const citiesContainer = document.getElementById('citiesContainer');
+        const controlPanel = document.getElementById('controlPanel');
+        const optionsBtn = document.getElementById('optionsBtn');
+        const romanBtn = document.getElementById('romanBtn');
+        const romanStatusIcon = document.getElementById('romanStatusIcon');
+        const textTimeDisplay = document.getElementById('textTimeDisplay');
+        const textTimeStatusIcon = document.getElementById('textTimeStatusIcon');
+        const timerPresetsPanel = document.getElementById('timerPresetsPanel');
+        const timerStatusIcon = document.getElementById('timerStatusIcon');
+        const timerDisplay = document.getElementById('timerDisplay');
+        
+        // DOM Modo Juego
+        const digitalClockContainer = document.getElementById('digitalClockContainer');
+        const gameTopUI = document.getElementById('gameTopUI');
+        const gameBottomUI = document.getElementById('gameBottomUI');
+        const gameScoreDisplay = document.getElementById('gameScoreDisplay');
+        const gameTargetText = document.getElementById('gameTargetText');
+        const gameFeedback = document.getElementById('gameFeedback');
+        const dragNumberPool = document.getElementById('dragNumberPool');
+        const eventHintText = document.getElementById('eventHintText');
+
+        // ATAJO DE TECLADO
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '9' && isGameMode) {
+                autoPlaceNumbers();
+            }
+        });
+
+        function init() {
+            generateNumbers();
+            generateDropZones(); 
+            generateTicks();
+            generateOuterNumbers();
+            generateCities();
+            setupHandsDragging(); 
+            updateClock();
+            setInterval(tick, 1000);
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function setupHandsDragging() {
+            hourHand.addEventListener('pointerdown', (e) => {
+                if (isAutomatic) return;
+                e.preventDefault();
+                draggingHand = 'h';
+                clockFace.style.cursor = 'grabbing';
+            });
+
+            minuteHand.addEventListener('pointerdown', (e) => {
+                if (isAutomatic) return;
+                e.preventDefault();
+                draggingHand = 'm';
+                prevDragM = currentTime.getMinutes();
+                clockFace.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('pointermove', (e) => {
+                if (draggingHand) {
+                    e.preventDefault(); 
+                    const rect = clockFace.getBoundingClientRect();
+                    const cx = rect.left + rect.width / 2;
+                    const cy = rect.top + rect.height / 2;
+                    
+                    let angle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI + 90;
+                    if (angle < 0) angle += 360;
+
+                    if (draggingHand === 'm') {
+                        let m = Math.round(angle / 6);
+                        if (m === 60) m = 0;
+                        if (isStepByFive) m = Math.round(m / 5) * 5;
+                        if (m === 60) m = 0;
+                        
+                        if (prevDragM > 45 && m < 15) {
+                            currentTime.setHours(currentTime.getHours() + 1);
+                        } else if (prevDragM < 15 && m > 45) {
+                            currentTime.setHours(currentTime.getHours() - 1);
+                        }
+                        
+                        currentTime.setMinutes(m);
+                        prevDragM = m;
+                        
+                    } else if (draggingHand === 'h') {
+                        let h = Math.round(angle / 30);
+                        if (h === 12) h = 0;
+                        const isPM = currentTime.getHours() >= 12;
+                        currentTime.setHours(isPM ? h + 12 : h);
+                    }
+                    updateDisplay();
+                }
+            }, { passive: false });
+
+            document.addEventListener('pointerup', () => {
+                if (draggingHand) {
+                    draggingHand = null;
+                    clockFace.style.cursor = 'default';
+                }
+            });
+        }
+
+        function generateNumbers() {
+            for (let i = 1; i <= 12; i++) {
+                const numberDiv = document.createElement('div');
+                numberDiv.classList.add('number');
+                const angle = i * 30;
+                numberDiv.style.transform = `rotate(${angle}deg)`;
+                
+                const innerSpan = document.createElement('span');
+                innerSpan.id = `original-num-${i}`;
+                innerSpan.innerText = i;
+                innerSpan.style.display = 'block';
+                innerSpan.style.transform = `rotate(-${angle}deg)`;
+                
+                numberDiv.appendChild(innerSpan);
+                clockFace.appendChild(numberDiv);
+            }
+        }
+
+        function generateDropZones() {
+            const radius = 167; 
+            const centerX = 230; 
+            const centerY = 230;
+            
+            for (let i = 1; i <= 12; i++) {
+                const angle = (i * 30 - 90) * Math.PI / 180;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                const dz = document.createElement('div');
+                dz.id = `dropzone-${i}`;
+                dz.className = 'drop-zone absolute rounded-full border-[3px] border-gray-300 flex items-center justify-center opacity-0 transition-all duration-300 pointer-events-none z-20 bg-gray-50 shadow-[inset_0px_3px_6px_rgba(0,0,0,0.2)]';
+                dz.style.width = '64px';
+                dz.style.height = '64px';
+                dz.style.left = `${x - 32}px`;
+                dz.style.top = `${y - 32}px`;
+                dz.dataset.num = i;
+
+                dz.addEventListener('dragover', handleDragOver);
+                dz.addEventListener('dragenter', handleDragEnter);
+                dz.addEventListener('dragleave', handleDragLeave);
+                dz.addEventListener('drop', handleDrop);
+
+                clockFace.appendChild(dz);
+            }
+        }
+
+        function generateTicks() {
+            for (let i = 0; i < 60; i++) {
+                const tick = document.createElement('div');
+                tick.classList.add('tick');
+                if (i % 5 === 0) tick.classList.add('major');
+                const angle = i * 6;
+                tick.style.transform = `rotate(${angle}deg)`;
+                ticksContainer.appendChild(tick);
+            }
+        }
+
+        function generateOuterNumbers() {
+            for (let i = 5; i <= 60; i += 5) {
+                const numDiv = document.createElement('div');
+                numDiv.classList.add('outer-number');
+                numDiv.innerText = i;
+                const angle = (i / 5) * 30;
+                const radius = 285;
+                numDiv.style.transform = `rotate(${angle}deg) translate(0, -${radius}px) rotate(-${angle}deg)`;
+                outerNumbersContainer.appendChild(numDiv);
+
+                if (i >= 35 && i <= 55) {
+                    const negDiv = document.createElement('div');
+                    negDiv.classList.add('outer-number');
+                    negDiv.innerText = i - 60;
+                    negDiv.style.color = '#ef4444';
+                    negDiv.style.fontSize = '0.9rem';
+                    const negRadius = 260;
+                    negDiv.style.transform = `rotate(${angle}deg) translate(0, -${negRadius}px) rotate(-${angle}deg)`;
+                    outerNumbersContainer.appendChild(negDiv);
+                }
+            }
+        }
+
+        function generateCities() {
+            citiesContainer.innerHTML = '';
+            cities.forEach(city => {
+                const div = document.createElement('div');
+                div.className = 'world-clock-item';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center px-1">
+                        <span class="font-bold text-gray-600 text-sm">${city.name}</span>
+                        <span id="time-${city.name.replace(/\s/g,'-')}" class="city-time font-bold">--:--</span>
+                    </div>
+                `;
+                citiesContainer.appendChild(div);
+            });
+        }
+
+        function tick() {
+            if (isAutomatic && !isGameMode) currentTime = new Date();
+            updateDisplay();
+        }
+
+        function getShortestAngle(current, target) {
+            let diff = (target - current) % 360;
+            if (diff < -180) diff += 360;
+            if (diff > 180) diff -= 360;
+            return current + diff;
+        }
+
+        function updateDisplay() {
+            const h = currentTime.getHours();
+            const m = currentTime.getMinutes();
+            const s = currentTime.getSeconds();
+
+            let displayH = h;
+            let ampm = '';
+            if (!is24Hour) {
+                ampm = h >= 12 ? ' PM' : ' AM';
+                displayH = h % 12 || 12;
+            }
+
+            const hStr = displayH.toString().padStart(2, '0');
+            const mStr = m.toString().padStart(2, '0');
+            const sStr = s.toString().padStart(2, '0');
+            
+            digitalTime.innerHTML = `${hStr}:${mStr}:${sStr}<span class="text-2xl ml-2">${ampm}</span>`;
+            if (showTextTime) textTimeDisplay.innerText = getTimeInSpanish(h, m, true);
+
+            const rawSDeg = s * 6;
+            const rawMDeg = m * 6 + s * 0.1;
+            const rawHDeg = (h % 12) * 30 + m * 0.5;
+
+            if (currentSDeg === null) {
+                currentSDeg = rawSDeg;
+                currentMDeg = rawMDeg;
+                currentHDeg = rawHDeg;
+            } else {
+                currentSDeg = getShortestAngle(currentSDeg, rawSDeg);
+                currentMDeg = getShortestAngle(currentMDeg, rawMDeg);
+                currentHDeg = getShortestAngle(currentHDeg, rawHDeg);
+            }
+
+            if (secondHand) secondHand.style.transform = `rotate(${currentSDeg}deg)`;
+            minuteHand.style.transform = `rotate(${currentMDeg}deg)`;
+            hourHand.style.transform = `rotate(${currentHDeg}deg)`;
+            
+            if (showWorldClock && !isGameMode) updateWorldClocks();
+        }
+
+        function updateWorldClocks() {
+            const baseDate = new Date(); 
+            cities.forEach(city => {
+                const el = document.getElementById(`time-${city.name.replace(/\s/g,'-')}`);
+                if (el) {
+                    const options = { hour: '2-digit', minute: '2-digit', hour12: !is24Hour, timeZone: city.zone };
+                    el.innerText = baseDate.toLocaleTimeString('es-ES', options);
+                }
+            });
+        }
+        
+        function getTimeInSpanish(h, m, includePeriod = true) {
+            let hour = h;
+            let isPastHalf = m > 30;
+            if (isPastHalf) hour += 1;
+            
+            let period = "";
+            if (includePeriod) {
+                let hPeriod = hour % 24;
+                period = (hPeriod >= 0 && hPeriod <= 5) ? " de la madrugada" :
+                         (hPeriod >= 6 && hPeriod <= 11) ? " de la mañana" :
+                         (hPeriod >= 12 && hPeriod <= 20) ? " de la tarde" : " de la noche";
+            }
+
+            let h12 = hour % 12 || 12;
+            const numbers = ["", "una", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve", "veinte", "veintiuno", "veintidós", "veintitrés", "veinticuatro", "veinticinco", "veintiséis", "veintisiete", "veintiocho", "veintinueve"];
+
+            let hourStr = h12 === 1 ? "La una" : "Las " + numbers[h12];
+            let minStr = (m === 0) ? "en punto" :
+                         (m === 15) ? "y cuarto" :
+                         (m === 30) ? "y media" :
+                         (m === 45) ? "menos cuarto" :
+                         (isPastHalf) ? "menos " + numbers[60 - m] : "y " + numbers[m];
+
+            return `${hourStr} ${minStr}${period}.`;
+        }
+
+        // ==========================================
+        //         LÓGICA DRAG AND DROP
+        // ==========================================
+
+        function populateDragPool() {
+            dragNumberPool.innerHTML = '';
+            let nums = [1,2,3,4,5,6,7,8,9,10,11,12];
+            nums.sort(() => Math.random() - 0.5); 
+
+            nums.forEach(n => {
+                const el = document.createElement('div');
+                el.className = 'draggable-number w-14 h-14 bg-white rounded-full border-2 border-gray-800 flex items-center justify-center text-xl font-bold text-gray-800 cursor-grab shadow-md hover:bg-gray-100 hover:scale-110';
+                el.draggable = true;
+                el.id = `drag-num-${n}`;
+                el.dataset.num = n;
+                el.innerText = isRoman ? romanMap[n] : n;
+
+                el.addEventListener('dragstart', handleDragStart);
+                el.addEventListener('dragend', handleDragEnd);
+
+                el.addEventListener('touchstart', handleTouchStart, {passive: false});
+                el.addEventListener('touchmove', handleTouchMove, {passive: false});
+                el.addEventListener('touchend', handleTouchEnd);
+
+                dragNumberPool.appendChild(el);
+            });
+            
+            dragNumberPool.classList.remove('hidden');
+            setTimeout(() => dragNumberPool.classList.add('flex'), 10);
+        }
+
+        function autoPlaceNumbers() {
+            if (dragNumberPool.classList.contains('hidden')) return;
+
+            let placedAny = false;
+            document.querySelectorAll('.drop-zone').forEach(dz => {
+                if (dz.children.length === 0) {
+                    const num = dz.dataset.num;
+                    const el = document.getElementById(`drag-num-${num}`);
+                    if (el && el.parentElement === dragNumberPool) {
+                        dz.appendChild(el);
+                        el.className = 'draggable-number dropped w-full h-full flex items-center justify-center !text-[3.5rem] !font-[800] bg-transparent border-transparent shadow-none cursor-default';
+                        el.draggable = false;
+                        el.style.opacity = '1';
+                        
+                        let isDark = clockFace.style.backgroundColor === 'rgb(0, 0, 0)' || clockFace.style.backgroundColor === 'black';
+                        el.style.color = isDark ? '#ffffff' : '#374151';
+
+                        dz.className = 'drop-zone absolute flex items-center justify-center z-20 pointer-events-none';
+                        placedAny = true;
+                    }
+                }
+            });
+
+            if (placedAny) {
+                initAudio();
+                beepRaw(audioCtx, 0, 800, 0.1, 'sine');
+                checkAllDropped();
+            }
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.num);
+            setTimeout(() => this.classList.add('opacity-50'), 0);
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('opacity-50');
+            draggedElement = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            if (this.children.length === 0) {
+                this.classList.replace('border-gray-300', 'border-blue-500');
+                this.classList.replace('bg-gray-50', 'bg-blue-100');
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.replace('border-blue-500', 'border-gray-300');
+            this.classList.replace('bg-blue-100', 'bg-gray-50');
+        }
+
+        function handleDrop(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            this.classList.replace('border-blue-500', 'border-gray-300');
+            this.classList.replace('bg-blue-100', 'bg-gray-50');
+
+            const droppedNum = e.dataTransfer.getData('text/plain');
+            processDrop(this, droppedNum);
+            return false;
+        }
+
+        function handleTouchStart(e) {
+            if (this.classList.contains('dropped')) return;
+            draggedElement = this;
+            const touch = e.touches[0];
+
+            dragGhost = this.cloneNode(true);
+            dragGhost.style.position = 'fixed';
+            dragGhost.style.zIndex = '9999';
+            dragGhost.style.opacity = '0.9';
+            dragGhost.style.pointerEvents = 'none'; 
+            
+            const rect = this.getBoundingClientRect();
+            const offsetX = touch.clientX - rect.left;
+            const offsetY = touch.clientY - rect.top;
+            
+            dragGhost.style.left = (touch.clientX - offsetX) + 'px';
+            dragGhost.style.top = (touch.clientY - offsetY) + 'px';
+            
+            document.body.appendChild(dragGhost);
+            this.style.opacity = '0.2';
+            
+            dragGhost.dataset.offsetX = offsetX;
+            dragGhost.dataset.offsetY = offsetY;
+        }
+
+        function handleTouchMove(e) {
+            if (!dragGhost) return;
+            e.preventDefault(); 
+            const touch = e.touches[0];
+            const offsetX = parseFloat(dragGhost.dataset.offsetX);
+            const offsetY = parseFloat(dragGhost.dataset.offsetY);
+            
+            dragGhost.style.left = (touch.clientX - offsetX) + 'px';
+            dragGhost.style.top = (touch.clientY - offsetY) + 'px';
+            
+            const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+            document.querySelectorAll('.drop-zone').forEach(dz => {
+                if ((dz === elUnder || dz.contains(elUnder)) && dz.children.length === 0) {
+                    dz.classList.replace('border-gray-300', 'border-blue-500');
+                    dz.classList.replace('bg-gray-50', 'bg-blue-100');
+                } else {
+                    dz.classList.replace('border-blue-500', 'border-gray-300');
+                    dz.classList.replace('bg-blue-100', 'bg-gray-50');
+                }
+            });
+        }
+
+        function handleTouchEnd(e) {
+            if (!dragGhost) return;
+            const touch = e.changedTouches[0];
+            
+            dragGhost.style.display = 'none'; 
+            let elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+            dragGhost.style.display = 'block';
+
+            let dropZone = null;
+            if (elUnder && elUnder.classList.contains('drop-zone')) {
+                dropZone = elUnder;
+            } else if (elUnder && elUnder.closest('.drop-zone')) {
+                dropZone = elUnder.closest('.drop-zone');
+            }
+
+            if (dropZone && dropZone.children.length === 0) {
+                dropZone.classList.replace('border-blue-500', 'border-gray-300');
+                dropZone.classList.replace('bg-blue-100', 'bg-gray-50');
+                processDrop(dropZone, draggedElement.dataset.num);
+            } else {
+                initAudio();
+                beepRaw(audioCtx, 0, 200, 0.2, 'sawtooth');
+                draggedElement.style.opacity = '1';
+            }
+
+            if (dragGhost && dragGhost.parentNode) {
+                dragGhost.parentNode.removeChild(dragGhost);
+            }
+            dragGhost = null;
+            draggedElement = null;
+            
+            document.querySelectorAll('.drop-zone').forEach(dz => {
+                dz.classList.replace('border-blue-500', 'border-gray-300');
+                dz.classList.replace('bg-blue-100', 'bg-gray-50');
+            });
+        }
+
+        function processDrop(zone, numString) {
+            if (zone.dataset.num === numString) {
+                initAudio();
+                beepRaw(audioCtx, 0, 800, 0.1, 'sine');
+
+                zone.appendChild(draggedElement);
+                
+                draggedElement.className = 'draggable-number dropped w-full h-full flex items-center justify-center !text-[3.5rem] !font-[800] bg-transparent border-transparent shadow-none cursor-default';
+                draggedElement.draggable = false;
+                draggedElement.style.opacity = '1';
+                
+                let isDark = clockFace.style.backgroundColor === 'rgb(0, 0, 0)' || clockFace.style.backgroundColor === 'black';
+                draggedElement.style.color = isDark ? '#ffffff' : '#374151';
+
+                zone.className = 'drop-zone absolute flex items-center justify-center z-20 pointer-events-none';
+                
+                checkAllDropped();
+            } else {
+                initAudio();
+                beepRaw(audioCtx, 0, 200, 0.2, 'sawtooth');
+                if (draggedElement) draggedElement.style.opacity = '1';
+            }
+        }
+
+        function checkAllDropped() {
+            const droppedCount = document.querySelectorAll('.draggable-number.dropped').length;
+            if (droppedCount === 12) {
+                setTimeout(() => {
+                    beepRaw(audioCtx, 0, 523.25, 0.1, 'sine');
+                    beepRaw(audioCtx, 0.15, 659.25, 0.1, 'sine');
+                    beepRaw(audioCtx, 0.3, 783.99, 0.2, 'sine');
+                    
+                    dragNumberPool.classList.add('hidden');
+                    dragNumberPool.classList.remove('flex');
+                    
+                    gameBottomUI.classList.remove('hidden');
+                    gameBottomUI.classList.add('flex');
+                    
+                    clockFace.classList.add('-translate-y-6', '-mb-6');
+                }, 500); 
+            }
+        }
+
+        // ==========================================
+        //         LÓGICA DEL MODO JUEGO
+        // ==========================================
+
+        function enterGameMode() {
+            initAudio();
+            isGameMode = true;
+            gameScore = 0;
+            updateGameScoreDisplay();
+            
+            if (secondHand) secondHand.classList.add('hidden');
+            digitalClockContainer.classList.add('hidden');
+            digitalClockContainer.classList.remove('flex');
+
+            gameTopUI.classList.remove('hidden');
+            gameTopUI.classList.add('flex');
+            
+            dragNumberPool.innerHTML = '';
+            dragNumberPool.classList.add('hidden');
+            dragNumberPool.classList.remove('flex');
+            
+            gameBottomUI.classList.add('hidden');
+            gameBottomUI.classList.remove('flex');
+
+            for (let i = 1; i <= 12; i++) {
+                const orig = document.getElementById(`original-num-${i}`);
+                if (orig) {
+                    const startAngle = i * 30;
+                    orig.style.transition = `all 3.5s cubic-bezier(0.35, 0, 0.25, 1) ${i * 0.15}s`;
+                    const sideShift = (i % 2 === 0 ? 1 : -1) * (i * 12); 
+                    orig.style.transform = `rotate(${1080 - startAngle}deg) translate(${sideShift}px, 350px) scale(0.1)`;
+                    orig.style.opacity = '0';
+                }
+            }
+            
+            isAutomatic = false;
+            modeBtn.innerText = "MANUAL";
+            modeBtn.classList.replace('bg-green-500', 'bg-orange-500');
+            manualControls.classList.remove('opacity-50', 'pointer-events-none');
+            modeStatus.innerText = "MODO MANUAL: Usa las flechas para ajustar";
+            
+            currentTime.setHours(0, 0, 0, 0);
+            updateDisplay();
+
+            worldClockPanel.classList.add('hidden');
+            worldClockPanel.classList.remove('flex');
+            controlPanel.classList.add('hidden');
+            controlPanel.classList.remove('flex');
+            
+            generateNewGameTime();
+
+            if(gameAnimationTimer) clearTimeout(gameAnimationTimer);
+            gameAnimationTimer = setTimeout(() => {
+                if(!isGameMode) return; 
+                
+                document.querySelectorAll('.drop-zone').forEach(dz => {
+                    dz.innerHTML = ''; 
+                    dz.style.opacity = '';
+                    dz.style.pointerEvents = '';
+                    dz.className = 'drop-zone absolute rounded-full border-[3px] border-gray-300 flex items-center justify-center opacity-100 transition-all duration-300 pointer-events-auto z-20 bg-gray-50 shadow-[inset_0px_3px_6px_rgba(0,0,0,0.2)] hover:bg-blue-50';
+                });
+                
+                populateDragPool();
+                
+            }, 5000);
+        }
+
+        function generateNewGameTime() {
+            gameHintsUsed = 0;
+            gameFailures = 0;
+            clockFace.classList.remove('shake-mild', 'shake-strong');
+            
+            if (Math.random() < 0.4) {
+                const dailyEvents = [
+                    { text: 'la hora del desayuno', h: 8, m: 30 },
+                    { text: 'la entrada al colegio', h: 9, m: 30 },
+                    { text: 'la hora de la comida', h: 14, m: 30 },
+                    { text: 'la salida del colegio', h: 14, m: 30 },
+                    { text: 'la hora de la merienda', h: 17, m: 30 },
+                    { text: 'la hora de la cena', h: 21, m: 0 }
+                ];
+                let ev = dailyEvents[Math.floor(Math.random() * dailyEvents.length)];
+                gameTargetH = ev.h;
+                gameTargetM = ev.m;
+                gameTargetText.innerText = "Pon " + ev.text;
+                
+                const hStr = ev.h;
+                const mStr = ev.m.toString().padStart(2, '0');
+                eventHintText.innerText = `Pista: ${hStr}:${mStr}`;
+                eventHintText.classList.remove('hidden');
+                
+            } else {
+                gameTargetH = Math.floor(Math.random() * 24);
+                gameTargetM = Math.floor(Math.random() * 12) * 5; 
+                gameTargetText.innerText = getTimeInSpanish(gameTargetH, gameTargetM, false);
+                eventHintText.classList.add('hidden');
+            }
+            
+            gameFeedback.innerText = "¡Ajusta la hora y comprueba!";
+            gameFeedback.classList.replace('text-green-500', 'text-red-500');
+            
+            if (!showOuterNumbers) {
+                outerNumbersContainer.classList.add('opacity-0');
+                setTimeout(() => outerNumbersContainer.classList.add('hidden'), 300);
+            }
+            
+            digitalClockContainer.classList.add('hidden');
+            digitalClockContainer.classList.remove('flex');
+            
+            is24Hour = true;
+            formatBtn.innerText = "24H";
+        }
+
+        // MOSTRAR LA ANIMACIÓN DEL CAPIBARA
+        function showCapybara() {
+            const capyStage = document.getElementById('capybaraContainer');
+            const capy = document.getElementById('capy');
+
+            // Iniciar la música del Capibara
+            capyAudio.currentTime = 0;
+            capyAudio.play().catch(e => console.log("Reproducción automática bloqueada", e));
+
+            capyStage.classList.remove('hidden');
+            capyStage.classList.add('orbiting'); // Activar la rotación
+            capy.classList.add('dancing');
+
+            // Movimiento especial (media vuelta) a los 3s
+            setTimeout(() => {
+                capy.classList.remove('dancing');
+                capy.classList.add('special-move');
+            }, 3000);
+
+            setTimeout(() => {
+                capy.classList.remove('special-move');
+                capy.classList.add('dancing');
+            }, 4800);
+            
+            // Otro movimiento especial a los 7s
+            setTimeout(() => {
+                capy.classList.remove('dancing');
+                capy.classList.add('special-move');
+            }, 7000);
+
+            setTimeout(() => {
+                capy.classList.remove('special-move');
+                capy.classList.add('dancing');
+            }, 8800);
+
+            // Desaparecer completamente a los 10s exactos
+            setTimeout(() => {
+                capyStage.classList.add('hidden');
+                capyStage.classList.remove('orbiting');
+                capy.classList.remove('special-move');
+                capy.classList.add('dancing'); // Reset para el futuro
+                
+                // Detener la música
+                capyAudio.pause();
+            }, 10000);
+        }
+
+        function checkGameAnswer() {
+            initAudio();
+            
+            let currentH = currentTime.getHours();
+            let currentM = currentTime.getMinutes();
+            
+            if ((currentH % 12) === (gameTargetH % 12) && currentM === gameTargetM) {
+                playSuccessSound();
+                let points = 200;
+                if (gameHintsUsed === 1) points = 100;
+                if (gameHintsUsed === 2) points = 50;
+                
+                let previousScore = gameScore;
+                gameScore += points;
+                updateGameScoreDisplay();
+                
+                // CONDICIÓN DEL CAPIBARA: 1000, 2000, y 3000 Pts
+                if ((previousScore < 1000 && gameScore >= 1000) || 
+                    (previousScore < 2000 && gameScore >= 2000) || 
+                    (previousScore < 3000 && gameScore >= 3000)) {
+                    showCapybara();
+                }
+
+                gameFeedback.classList.replace('text-red-500', 'text-green-500');
+                gameFeedback.innerText = `¡Correcto! +${points} puntos`;
+                
+                setTimeout(() => {
+                    generateNewGameTime();
+                }, 2500);
+            } else {
+                gameFailures++;
+                gameFeedback.classList.replace('text-green-500', 'text-red-500');
+                
+                playErrorSound(gameFailures > 1 ? 2 : 1);
+                shakeClock(gameFailures > 1 ? 'strong' : 'mild');
+                
+                gameFeedback.innerText = "¡Error! Usa las PISTAS o inténtalo de nuevo.";
+            }
+        }
+
+        function useGameHint() {
+            if (gameHintsUsed === 0) {
+                gameHintsUsed = 1;
+                outerNumbersContainer.classList.remove('hidden');
+                setTimeout(() => outerNumbersContainer.classList.remove('opacity-0'), 10);
+                gameFeedback.innerText = "Pista 1: Minutos exteriores (Máx 100 pts)";
+            } else if (gameHintsUsed === 1) {
+                gameHintsUsed = 2;
+                is24Hour = false;
+                formatBtn.innerText = "12H";
+                updateDisplay();
+
+                digitalClockContainer.classList.remove('hidden');
+                digitalClockContainer.classList.add('flex');
+                textTimeDisplay.classList.add('hidden'); 
+
+                gameFeedback.innerText = "Pista 2: Reloj digital (12H) (Máx 50 pts)";
+            } else {
+                gameFeedback.innerText = "¡Inténtalo! Ya no hay más pistas.";
+            }
+        }
+
+        function exitGameMode() {
+            isGameMode = false;
+            if(gameAnimationTimer) clearTimeout(gameAnimationTimer);
+            
+            if (secondHand) secondHand.classList.remove('hidden');
+            
+            clockFace.classList.remove('-translate-y-6', '-mb-6');
+            eventHintText.classList.add('hidden'); 
+
+            // Esconder capibara si estaba en reproducción
+            document.getElementById('capybaraContainer').classList.add('hidden');
+            
+            document.querySelectorAll('.drop-zone').forEach(dz => {
+                dz.innerHTML = ''; 
+                dz.style.opacity = '';
+                dz.style.pointerEvents = '';
+                dz.className = 'drop-zone absolute rounded-full border-[3px] border-gray-300 flex items-center justify-center opacity-0 transition-all duration-300 pointer-events-none z-20 bg-gray-50 shadow-[inset_0px_3px_6px_rgba(0,0,0,0.2)]';
+            });
+            
+            dragNumberPool.innerHTML = '';
+            dragNumberPool.classList.add('hidden');
+            dragNumberPool.classList.remove('flex');
+            
+            for (let i = 1; i <= 12; i++) {
+                const orig = document.getElementById(`original-num-${i}`);
+                if (orig) {
+                    orig.style.transition = 'all 0.5s ease';
+                    orig.style.transitionDelay = '0s'; 
+                    orig.style.opacity = '1';
+                    const angle = i * 30;
+                    orig.style.transform = `rotate(-${angle}deg)`; 
+                }
+            }
+            
+            if (!showOuterNumbers) {
+                outerNumbersContainer.classList.add('opacity-0');
+                setTimeout(() => outerNumbersContainer.classList.add('hidden'), 300);
+            }
+            if (showWorldClock) {
+                worldClockPanel.classList.remove('hidden');
+                worldClockPanel.classList.add('flex');
+            }
+            if (showControls) {
+                controlPanel.classList.remove('hidden');
+                controlPanel.classList.add('flex');
+            }
+            
+            gameTopUI.classList.add('hidden');
+            gameTopUI.classList.remove('flex');
+
+            gameBottomUI.classList.add('hidden');
+            gameBottomUI.classList.remove('flex');
+            
+            digitalClockContainer.classList.remove('hidden');
+            digitalClockContainer.classList.add('flex');
+            if (showTextTime) {
+                textTimeDisplay.classList.remove('hidden');
+            }
+            
+            gameTargetText.innerText = "Cargando...";
+            gameFeedback.innerText = "";
+        }
+
+        function updateGameScoreDisplay() {
+            gameScoreDisplay.innerText = `${gameScore} Pts`;
+        }
+
+        function shakeClock(intensity) {
+            clockFace.classList.remove('shake-mild', 'shake-strong');
+            void clockFace.offsetWidth; 
+            clockFace.classList.add(intensity === 'mild' ? 'shake-mild' : 'shake-strong');
+        }
+
+        function playSuccessSound() {
+            if (!audioCtx) return;
+            beepRaw(audioCtx, 0, 523.25, 0.1, 'sine');
+            beepRaw(audioCtx, 0.1, 659.25, 0.1, 'sine');
+            beepRaw(audioCtx, 0.2, 783.99, 0.15, 'sine');
+            beepRaw(audioCtx, 0.35, 1046.50, 0.25, 'sine');
+        }
+
+        function playErrorSound(count) {
+            if (!audioCtx) return;
+            beepRaw(audioCtx, 0, 150, 0.25, 'sawtooth');
+            if (count > 1) {
+                beepRaw(audioCtx, 0.35, 150, 0.25, 'sawtooth');
+            }
+        }
+        
+        function beepRaw(ctx, time, freq, dur, type='sine') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = type; 
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, ctx.currentTime + time);
+            gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + time + 0.02);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + dur);
+            osc.start(ctx.currentTime + time);
+            osc.stop(ctx.currentTime + time + dur);
+        }
+
+        // ==========================================
+        //         RESTO DE FUNCIONES NORMALES
+        // ==========================================
+
+        function toggleTextTime() {
+            showTextTime = !showTextTime;
+            if (showTextTime) {
+                textTimeDisplay.classList.remove('hidden');
+                textTimeStatusIcon.innerText = "ON";
+                textTimeStatusIcon.classList.replace('bg-gray-400', 'bg-teal-500');
+                updateDisplay();
+            } else {
+                textTimeDisplay.classList.add('hidden');
+                textTimeStatusIcon.innerText = "OFF";
+                textTimeStatusIcon.classList.replace('bg-teal-500', 'bg-gray-400');
+            }
+        }
+
+        function toggleControls() {
+            showControls = !showControls;
+            controlPanel.classList.toggle('hidden', !showControls);
+            controlPanel.classList.toggle('flex', showControls);
+        }
+
+        function toggleWorldClock() {
+            showWorldClock = !showWorldClock;
+            worldClockPanel.classList.toggle('hidden', !showWorldClock);
+            worldClockPanel.classList.toggle('flex', showWorldClock);
+            worldStatusIcon.innerText = showWorldClock ? "ON" : "OFF";
+            worldStatusIcon.classList.toggle('bg-gray-400', !showWorldClock);
+            worldStatusIcon.classList.toggle('bg-indigo-500', showWorldClock);
+            if (showWorldClock) updateWorldClocks();
+        }
+
+        function toggleRoman() {
+            isRoman = !isRoman;
+            romanStatusIcon.innerText = isRoman ? "ON" : "OFF";
+            romanStatusIcon.classList.toggle('bg-gray-400', !isRoman);
+            romanStatusIcon.classList.toggle('bg-pink-500', isRoman);
+            
+            for (let i = 1; i <= 12; i++) {
+                const orig = document.getElementById(`original-num-${i}`);
+                if (orig) orig.innerText = isRoman ? romanMap[i] : i;
+            }
+
+            const dragNums = document.querySelectorAll('.draggable-number');
+            dragNums.forEach(el => {
+                el.innerText = isRoman ? romanMap[el.dataset.num] : el.dataset.num;
+            });
+        }
+
+        function toggleOuterNumbers() {
+            showOuterNumbers = !showOuterNumbers;
+            if (showOuterNumbers) {
+                outerNumbersContainer.classList.remove('hidden');
+                setTimeout(() => outerNumbersContainer.classList.remove('opacity-0'), 10);
+            } else {
+                outerNumbersContainer.classList.add('opacity-0');
+                setTimeout(() => outerNumbersContainer.classList.add('hidden'), 300);
+            }
+            outerStatusIcon.innerText = showOuterNumbers ? "ON" : "OFF";
+            outerStatusIcon.classList.toggle('bg-gray-400', !showOuterNumbers);
+            outerStatusIcon.classList.toggle('bg-blue-500', showOuterNumbers);
+        }
+
+        function toggleFormat() {
+            is24Hour = !is24Hour;
+            formatBtn.innerText = is24Hour ? "24H" : "12H";
+            updateDisplay();
+        }
+
+        function toggleMode() {
+            isAutomatic = !isAutomatic;
+            modeBtn.innerText = isAutomatic ? "AUTOMÁTICO" : "MANUAL";
+            modeBtn.classList.toggle('bg-orange-500', !isAutomatic);
+            modeBtn.classList.toggle('bg-green-500', isAutomatic);
+            manualControls.classList.toggle('opacity-50', isAutomatic);
+            manualControls.classList.toggle('pointer-events-none', isAutomatic);
+            modeStatus.innerText = isAutomatic ? "Controles desactivados en modo Automático" : "MODO MANUAL: Usa las flechas para ajustar";
+            if (!isAutomatic) {
+                currentTime.setHours(0, 0, 0, 0);
+            }
+            updateDisplay();
+        }
+
+        function toggleStep() {
+            isStepByFive = !isStepByFive;
+            stepBtn.innerText = isStepByFive ? "5x RÁPIDO" : "1x NORMAL";
+            stepBtn.classList.toggle('bg-gray-200', !isStepByFive);
+            stepBtn.classList.toggle('text-gray-600', !isStepByFive);
+            stepBtn.classList.toggle('bg-purple-600', isStepByFive);
+            stepBtn.classList.toggle('text-white', isStepByFive);
+        }
+
+        function setClockColor(color, isDark) {
+            clockFace.style.backgroundColor = color;
+            clockBgLayer.style.backgroundColor = color;
+            const numbers = document.querySelectorAll('.number span'); 
+            const majors = document.querySelectorAll('.tick.major');
+            const brandText = document.getElementById('brandText');
+            
+            numbers.forEach(n => n.style.color = isDark ? '#ffffff' : '#374151');
+            majors.forEach(t => t.style.backgroundColor = isDark ? '#ffffff' : '#111827');
+            if (brandText) brandText.style.fill = isDark ? '#ffffff' : '#374151';
+
+            const droppedNums = document.querySelectorAll('.draggable-number.dropped');
+            droppedNums.forEach(n => n.style.color = isDark ? '#ffffff' : '#374151');
+        }
+
+        function setFrameColor(color) { clockFace.style.borderColor = color; }
+        function setHandColor(color) { hourHand.style.backgroundColor = color; minuteHand.style.backgroundColor = color; }
+
+        function adjustTime(unit, direction) {
+            let amount = (isStepByFive && (unit === 'm' || unit === 's')) ? 5 : 1;
+            amount *= direction;
+            if (unit === 'h') currentTime.setHours(currentTime.getHours() + amount);
+            else if (unit === 'm') currentTime.setMinutes(currentTime.getMinutes() + amount);
+            else if (unit === 's') currentTime.setSeconds(currentTime.getSeconds() + amount);
+            updateDisplay();
+        }
+
+        let adjustTimeout = null;
+        let adjustInterval = null;
+
+        function startAdjust(unit, direction) {
+            adjustTime(unit, direction);
+            adjustTimeout = setTimeout(() => {
+                adjustInterval = setInterval(() => {
+                    adjustTime(unit, direction);
+                }, 80); 
+            }, 400); 
+        }
+
+        function stopAdjust() {
+            if(adjustTimeout) clearTimeout(adjustTimeout);
+            if(adjustInterval) clearInterval(adjustInterval);
+        }
+
+        function updateClock() { updateDisplay(); }
+
+        function toggleTimerPanel() {
+            showTimerPanel = !showTimerPanel;
+            timerPresetsPanel.classList.toggle('hidden', !showTimerPanel);
+            timerPresetsPanel.classList.toggle('flex', showTimerPanel);
+            timerStatusIcon.innerText = showTimerPanel ? "ON" : "OFF";
+            timerStatusIcon.classList.toggle('bg-gray-400', !showTimerPanel);
+            timerStatusIcon.classList.toggle('bg-yellow-500', showTimerPanel);
+        }
+
+        function startTimer(minutes) {
+            initAudio();
+            stopTimer();
+            timerSecondsRemaining = minutes * 60;
+            isTimerActive = true;
+            timerDisplay.classList.remove('hidden', 'text-red-500', 'animate-pulse');
+            timerDisplay.classList.add('text-yellow-400');
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timerSecondsRemaining--;
+                if (timerSecondsRemaining <= 0) timerFinished();
+                else updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() { if (timerInterval) clearInterval(timerInterval); isTimerActive = false; timerDisplay.classList.add('hidden'); }
+        function updateTimerDisplay() {
+            const m = Math.floor(timerSecondsRemaining / 60).toString().padStart(2, '0');
+            const s = (timerSecondsRemaining % 60).toString().padStart(2, '0');
+            timerDisplay.innerText = `⏳ ${m}:${s}`;
+        }
+
+        function timerFinished() {
+            stopTimer();
+            initAudio();
+            for (let i = 0; i < 4; i++) { 
+                beepRaw(audioCtx, i * 0.6, 1000, 0.1, 'sine'); 
+                beepRaw(audioCtx, i * 0.6 + 0.15, 1000, 0.1, 'sine'); 
+            }
+            timerDisplay.classList.remove('hidden', 'text-yellow-400');
+            timerDisplay.innerText = "¡TIEMPO!";
+            timerDisplay.classList.add('text-red-500', 'animate-pulse');
+            setTimeout(() => { timerDisplay.classList.add('hidden'); }, 5000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
