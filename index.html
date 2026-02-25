@@ -71,9 +71,23 @@
 
         .grid-container {
             display: grid;
-            /* Anchura mínima ajustada a 230px para forzar columnas más estrechas y 3 por fila */
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-            gap: 15px; /* Hueco entre tarjetas reducido (antes 25px) */
+            /* Fuerza exactamente 3 columnas para mantener la distribución 3x3 en PC */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        /* Adaptación para pantallas medianas (Tablets): 2 columnas */
+        @media (max-width: 900px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Adaptación para móviles: 1 sola columna */
+        @media (max-width: 600px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
         }
 
         .card {
