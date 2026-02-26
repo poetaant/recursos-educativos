@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bolitas Interactivas - Cursos</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            height: 100vh;
+            background-color: #f4f4f9; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            box-sizing: border-box;
+            transition: background-color 2s ease; 
+        }
+
+        /* Panel lateral fijo a la izquierda */
+        .sidebar {
+            width: 190px; 
+            min-width: 190px;
+            background-color: #ffe6f2;
+            border: 8px ridge #C0C0C0; /* Efecto 3D en Plata inicial */
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: background-color 2s ease, border-color 1s ease; /* Transición independiente */
+        }
+
+        /* Contenedor del lienzo de dibujo */
+        #canvas-container {
+            flex: 1; 
+            border: 16px ridge #CD7F32; /* Efecto 3D en Bronce inicial */
+            border-radius: 20px;
+            background-color: #fff0f5;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1), 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 1s ease, background-color 2s ease; /* Transición para el fondo añadida */
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        h3 {
+            margin: 0 0 10px 0;
+            color: #00008B; /* Azul oscuro */
+            font-size: 18px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        /* Estilos de la tabla de cursos */
+        .tabla-cursos {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .tabla-cursos td {
+            border: 2px solid #ff99cc;
+            padding: 10px 5px;
+            text-align: center;
+            font-weight: bold;
+            color: #00008B; /* Azul oscuro */
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 50%;
+        }
+
+        .tabla-cursos td:hover {
+            background-color: #ffb3d9;
+            color: white;
+        }
+
+        .tabla-cursos td.activo {
+            background-color: #ff66b2;
+            color: white;
+            border-color: #ff3399;
+        }
+
+        /* Botones de grupos */
+        .grupo-botones {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .grupo-botones button {
+            background-color: #fff;
+            border: 2px solid #ff99cc;
+            color: #00008B; /* Azul oscuro */
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .grupo-botones button:hover {
+            background-color: #ffe6f2;
+        }
+
+        .grupo-botones button.activo {
+            background-color: #ff66b2;
+            color: #fff;
+            border-color: #ff3399;
+        }
+
+        /* Botón Stop Especial */
+        #btn-stop {
+            background-color: #ff3333;
+            color: white;
+            border-color: #cc0000;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+        #btn-stop:hover { background-color: #ff6666; }
+        #btn-stop.activo-stop {
+            background-color: #28a745;
+            border-color: #1e7e34;
+        }
+        #btn-stop.activo-stop:hover { background-color: #34ce57; }
+
+        .btn-separador {
+            margin-top: 5px;
+            border-top: 2px dashed #ffb3d9;
+            padding-top: 15px;
+        }
+
+        .titulo {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff3399;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .subtitulo {
+            font-size: 15px;
+            color: #666;
+            display: block;
+            font-weight: normal;
+            text-shadow: none;
+            margin-top: 5px;
+        }
+
+        /* Botón flotante para la ficha */
+        #btn-abrir-ficha {
+            display: none;
+            position: absolute;
+            background: #ff66b2;
+            color: white;
+            border: 2px solid white;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 100;
+            transition: transform 0.2s;
+        }
+        #btn-abrir-ficha:hover { transform: scale(1.05); }
+
+        /* Modal Ficha */
+        #modal-ficha {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 5px solid #ff66b2;
+        }
+
+        #modal-content h2 { margin: 0; color: #ff3399; }
+        
+        #ficha-texto {
+            width: 100%;
+            height: 150px;
+            resize: none;
+            padding: 10px;
+            border: 2px solid #ffb3d9;
+            border-radius: 8px;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .close-btn {
+            align-self: flex-end;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            margin-top: -10px;
+            margin-bottom: -15px;
+        }
+        .close-btn:hover { color: #ff3399; }
+    </style>
+</head>
+<body>
+
+    <!-- Panel Lateral Izquierdo -->
+    <aside class="sidebar" id="panel-sidebar">
+        <h3>ELIGE CURSO</h3>
+        <table class="tabla-cursos">
+            <tr>
+                <td onclick="seleccionarCurso('I3A', this)">I3A</td>
+                <td onclick="seleccionarCurso('I3B', this)">I3B</td>
+            </tr>
+            <tr>
+                <td onclick="seleccionarCurso('I4', this)">I4</td>
+                <td onclick="seleccionarCurso('I5', this)">I5</td>
+            </tr>
+            <tr>
+                <td onclick="seleccionarCurso('1ºA', this)">1ºA</td>
+                <td onclick="seleccionarCurso('1ºB', this)">1ºB</td>
+            </tr>
+            <tr>
+                <td colspan="2" onclick="seleccionarCurso('2º', this)">2º</td>
+            </tr>
+            <tr>
+                <td onclick="seleccionarCurso('3ºA', this)">3ºA</td>
+                <td onclick="seleccionarCurso('3ºB', this)">3ºB</td>
+            </tr>
+            <tr>
+                <td onclick="seleccionarCurso('4ºA', this)">4ºA</td>
+                <td onclick="seleccionarCurso('4ºB', this)">4ºB</td>
+            </tr>
+            <tr>
+                <td onclick="seleccionarCurso('5ºA', this)">5ºA</td>
+                <td onclick="seleccionarCurso('5ºB', this)">5ºB</td>
+            </tr>
+            <tr>
+                <td onclick="seleccionarCurso('6ºA', this)">6ºA</td>
+                <td onclick="seleccionarCurso('6ºB', this)">6ºB</td>
+            </tr>
+        </table>
+
+        <h3>FORMA GRUPOS</h3>
+        <div class="grupo-botones">
+            <button id="btn-1" class="activo" onclick="setGrupo(1)">Individuales</button>
+            <button id="btn-2" onclick="setGrupo(2)">Grupos de 2</button>
+            <button id="btn-3" onclick="setGrupo(3)">Grupos de 3</button>
+            <button id="btn-4" onclick="setGrupo(4)">Grupos de 4</button>
+            <div class="btn-separador"></div>
+            <button onclick="reiniciarBolas()">🔄 Soltar y Reiniciar</button>
+            <button id="btn-stop" onclick="toggleStop()">⏸️ STOP</button>
+        </div>
+    </aside>
+
+    <!-- Área del Canvas Derecho -->
+    <main id="canvas-container">
+        <!-- Títulos Superiores -->
+        <div class="titulo">
+            <span id="nombre-clase-titulo">Selecciona un curso</span>
+            <span class="subtitulo" id="subtitulo-clase">Esperando selección...</span>
+        </div>
+
+        <!-- Botón flotante Ficha -->
+        <button id="btn-abrir-ficha" onclick="abrirFicha()">📝 Abrir Ficha</button>
+
+        <!-- Modal emergente Ficha -->
+        <div id="modal-ficha">
+            <div id="modal-content">
+                <span class="close-btn" onclick="cerrarFicha()">&times;</span>
+                <h2 id="ficha-titulo">Ficha</h2>
+                <textarea id="ficha-texto" placeholder="Añade notas aquí..."></textarea>
+            </div>
+        </div>
+
+        <canvas id="miCanvas"></canvas>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('miCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Base de datos consolidada
+        const datosCursos = {
+            "I3A": ["Jorge", "Mario", "Maia", "Vega", "Laia", "Candela", "Eiden", "Valeria", "Serigne", "Luna", "Adariannys", "Erik", "Leo", "Julia", "Ángela"],
+            "I3B": ["Ariana", "Román", "Mateo", "Gonzalo", "Illán", "Eva", "Nahia", "Pelayo", "Ari", "Iago", "Carla", "Nel", "Vera", "Tristán", "Chloe", "Eda"],
+            "I4": ["Uwais", "Lucas", "Gracia", "India", "Lya", "Erik", "Diego", "Antonio", "Nacho", "Lila", "Chloe", "Eneas", "Manuel", "Mael", "Daniel", "Martina", "Dioma", "Younes", "Alejandro"],
+            "I5": ["Yago", "Nur", "Milán", "Martina", "Nela", "Nicholas", "Lia", "Nicolás", "Lucía", "Jorge", "Cristina", "Thiago", "Grecia", "Indiana", "Triana", "Alejandro", "Dante", "Carla", "David", "Yassir", "Diego"],
+            "1ºA": ["Daniela", "Pablo", "Eyla", "Silvia", "Alena", "Kevin", "Amelia", "Mario", "Liv", "Estrella", "Deva", "Olivia"],
+            "1ºB": ["Hannah", "Elena", "Nacho", "Blanca", "Lisa", "Mouhamed", "Izan", "Lola", "Damian", "Alba", "Noelia", "Verena", "Enzo"],
+            "2º": ["Isaac", "Valeria", "Leslie", "Haroun", "Iria", "Enzo", "Lola", "Camila", "Alejandra", "Beatriz", "Lucía", "Leo", "Matteo", "Thiago", "Antonella", "Bruno", "Djei", "Suhaila", "Claudia"],
+            "3ºA": ["Matías", "Gala", "Jazmín", "Martiño", "Uriel", "Jose", "Dylan", "Darío", "Liriel", "Celeste", "Ángel", "Isaac", "Elba", "Carmen", "Einar", "Hugo", "Gabriel"],
+            "3ºB": ["Elsa", "Abie", "Xel", "Nayara", "Noa", "Jonás", "Tymofii", "Yadiel", "Ander", "Adrián", "Mario", "África", "Izan", "Lucas", "Eloy", "Selena", "Nira", "Rafael"],
+            "4ºA": ["Deva", "Adriana", "Rubén", "Valeria", "Sila", "Emma", "Andrea", "Vega", "Daniela", "Pablo", "Enol", "Nel", "Álvaro", "Juan", "Axel", "Diego", "Claudia", "Daniel"],
+            "4ºB": ["Izan", "Alia", "Chloe", "Celia", "Mael", "Nerea", "Valeria", "Elisa", "Adrián", "Leo", "Joaquín", "Serigne", "Pedro", "Carla", "Kenya", "Quila", "Ainhoa", "Daniel"],
+            "5ºA": ["Darío", "Lola", "Daniel", "Ángel", "Nerea", "Hugo", "Leo", "Ainara", "Pelayo", "Izan", "Genaro", "Iria", "Mark", "Diego", "Carmen", "Dainiel", "Nicolle", "Silvia", "Celia", "Sara", "Nel", "Tarja", "Nel", "Alba"],
+            "5ºB": ["Elia", "Adriana", "Ariana", "Claudia", "Anas", "Iker", "Iris", "Nicolás", "Llué", "Leo", "Emma", "Izan", "Noa", "Roberto", "Victoria", "Dmytro", "Cristina", "Martín", "Luca", "Ager", "Saúl", "Sofía", "Kairo", "Mario"],
+            "6ºA": ["Valentina", "Noa", "Amaya", "Odeth", "Ángela", "Héctor", "Anxo", "Lukas", "Gabriel", "Mauro", "Nora", "Lola", "Daniel", "Telva", "Noah", "Teo", "Carla", "Elena", "Khadija", "Yoel", "Beltrán"],
+            "6ºB": ["Ángela", "Laura", "Daniela", "Eire", "Sofía", "Maia", "Rodrigo", "Antón", "Martina", "Nora", "Luis", "Paul", "Diego", "Xela", "Deva", "Carmen", "Jorge", "Nicolás", "Naia", "Gorka", "Nicolás", "Javier"]
+        };
+
+        let nombresActuales = [];
+        let bolitas = [];
+        const RADIO_BASE = 40; 
+        
+        let bolitaSeleccionada = null;
+        let bolitaEnRetorno = null;
+        let maxGrupo = 1;
+        let temporizadorEstancamiento = 0; 
+
+        // Variables de Arrastre y Pausa
+        let isPaused = false;
+        let bolitaArrastrada = null;
+        let isDragging = false;
+        let startX, startY;
+
+        // Diccionario de Notas Ficha
+        const notasAlumnos = {};
+
+        function ajustarCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        window.addEventListener('resize', () => {
+            ajustarCanvas();
+            bolitas.forEach(b => {
+                if(b.x + b.radio > canvas.width) b.x = canvas.width - b.radio - 5;
+                if(b.y + b.radio > canvas.height) b.y = canvas.height - b.radio - 5;
+            });
+        });
+
+        function seleccionarCurso(curso, elementoTd) {
+            document.querySelectorAll('.tabla-cursos td').forEach(td => td.classList.remove('activo'));
+            if(elementoTd) elementoTd.classList.add('activo');
+
+            nombresActuales = datosCursos[curso];
+            document.getElementById('nombre-clase-titulo').innerText = curso; 
+            document.getElementById('subtitulo-clase').innerText = "Haz clic en una bolita para verla en grande";
+            
+            setGrupo(1); 
+            iniciar();
+        }
+
+        function setGrupo(num) {
+            maxGrupo = num;
+            temporizadorEstancamiento = 0; 
+            document.querySelectorAll('.grupo-botones button').forEach(btn => btn.classList.remove('activo'));
+            document.getElementById('btn-' + num).classList.add('activo');
+        }
+
+        function reiniciarBolas() {
+            if (nombresActuales.length === 0) return;
+            setGrupo(1);
+            iniciar();
+        }
+
+        function toggleStop() {
+            isPaused = !isPaused;
+            const btn = document.getElementById('btn-stop');
+            if (isPaused) {
+                btn.innerHTML = '▶️ PLAY';
+                btn.classList.add('activo-stop');
+                document.getElementById('subtitulo-clase').innerText = "Modo pausa: Arrastra las bolitas donde quieras";
+            } else {
+                btn.innerHTML = '⏸️ STOP';
+                btn.classList.remove('activo-stop');
+                document.getElementById('subtitulo-clase').innerText = "Haz clic en una bolita para verla en grande";
+            }
+        }
+
+        // Gestión de la Ficha Modal
+        function abrirFicha() {
+            if (!bolitaSeleccionada) return;
+            const nombreGrupo = bolitaSeleccionada.nombres.join(', ');
+            document.getElementById('ficha-titulo').innerText = nombreGrupo;
+            document.getElementById('ficha-texto').value = notasAlumnos[nombreGrupo] || '';
+            document.getElementById('modal-ficha').style.display = 'flex';
+        }
+
+        function cerrarFicha() {
+            const nombreGrupo = document.getElementById('ficha-titulo').innerText;
+            notasAlumnos[nombreGrupo] = document.getElementById('ficha-texto').value;
+            document.getElementById('modal-ficha').style.display = 'none';
+        }
+
+        function colorAleatorio() {
+            const colores = [
+                '#FF5733', '#33FF57', '#3357FF', '#F033FF', '#33FFF0',
+                '#FFD133', '#FF3380', '#80FF33', '#3380FF', '#FF8C33',
+                '#4A235A', '#117A65', '#D4AC0D', '#BA4A00', '#2E86C1'
+            ];
+            return colores[Math.floor(Math.random() * colores.length)];
+        }
+
+        function rotar(velocidad, angulo) {
+            return {
+                x: velocidad.x * Math.cos(angulo) - velocidad.y * Math.sin(angulo),
+                y: velocidad.x * Math.sin(angulo) + velocidad.y * Math.cos(angulo)
+            };
+        }
+
+        function resolverColision(bolita, otraBolita) {
+            const diffXVelocidad = bolita.dx - otraBolita.dx;
+            const diffYVelocidad = bolita.dy - otraBolita.dy;
+            const xDist = otraBolita.x - bolita.x;
+            const yDist = otraBolita.y - bolita.y;
+
+            if (diffXVelocidad * xDist + diffYVelocidad * yDist >= 0) {
+                const angulo = -Math.atan2(otraBolita.y - bolita.y, otraBolita.x - bolita.x);
+                const m1 = bolita.masa;
+                const m2 = otraBolita.masa;
+                const u1 = rotar({ x: bolita.dx, y: bolita.dy }, angulo);
+                const u2 = rotar({ x: otraBolita.dx, y: otraBolita.dy }, angulo);
+
+                const v1 = { x: (u1.x * (m1 - m2) + 2 * m2 * u2.x) / (m1 + m2), y: u1.y };
+                const v2 = { x: (u2.x * (m2 - m1) + 2 * m1 * u1.x) / (m1 + m2), y: u2.y };
+
+                const vFinal1 = rotar(v1, -angulo);
+                const vFinal2 = rotar(v2, -angulo);
+
+                bolita.dx = vFinal1.x;
+                bolita.dy = vFinal1.y;
+                otraBolita.dx = vFinal2.x;
+                otraBolita.dy = vFinal2.y;
+            }
+        }
+
+        class Bolita {
+            constructor(x, y, radio, color, nombresArray) {
+                this.x = x;
+                this.y = y;
+                this.radioOriginal = radio; 
+                this.radio = radio;
+                this.color = color;
+                
+                this.nombres = nombresArray; 
+                this.masa = nombresArray.length; 
+
+                this.xOriginal = x; 
+                this.yOriginal = y;
+                this.marcadaParaBorrar = false;
+                this.cooldownFusion = 0; 
+                this.tiempoLleno = 0; 
+                this.forzarFusionCon = null; 
+                
+                this.dx = (Math.random() - 0.5) * 6;
+                this.dy = (Math.random() - 0.5) * 6;
+                
+                if (Math.abs(this.dx) < 1.5) this.dx = this.dx < 0 ? -2 : 2;
+                if (Math.abs(this.dy) < 1.5) this.dy = this.dy < 0 ? -2 : 2;
+            }
+
+            dibujar(esGrande = false) {
+                ctx.beginPath();
+                ctx.arc(this.x + (esGrande ? 8 : 3), this.y + (esGrande ? 8 : 3), this.radio, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fill();
+                ctx.closePath();
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radio, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.lineWidth = esGrande ? 6 : 3;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+                ctx.closePath();
+
+                ctx.fillStyle = '#00008B'; 
+                const fontSize = esGrande ? 38 : 16;
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.lineWidth = esGrande ? 4 : 2;
+                ctx.strokeStyle = '#ffffff'; 
+                
+                let lineSpacing = esGrande ? (fontSize + 10) : 18;
+                let startY = this.y - ((this.nombres.length - 1) * lineSpacing) / 2;
+                
+                this.nombres.forEach((nombre, idx) => {
+                    let yPos = startY + idx * lineSpacing;
+                    ctx.strokeText(nombre, this.x, yPos);
+                    ctx.fillText(nombre, this.x, yPos);
+                });
+            }
+
+            actualizar(bolitasArray, pausado) {
+                if (this.marcadaParaBorrar) return;
+                
+                if (this.cooldownFusion > 0 && !pausado) this.cooldownFusion--; 
+
+                this.dibujar();
+
+                if (pausado) return; 
+
+                // Chocar con paredes
+                if (this.x + this.radio >= canvas.width || this.x - this.radio <= 0) {
+                    this.dx = -this.dx;
+                    if (this.x + this.radio >= canvas.width) this.x = canvas.width - this.radio;
+                    if (this.x - this.radio <= 0) this.x = this.radio;
+                }
+                
+                if (this.y + this.radio >= canvas.height || this.y - this.radio <= 0) {
+                    this.dy = -this.dy;
+                    if (this.y + this.radio >= canvas.height) this.y = canvas.height - this.radio;
+                    if (this.y - this.radio <= 0) this.y = this.radio;
+                }
+
+                // Chocar con otras bolas
+                for (let i = 0; i < bolitasArray.length; i++) {
+                    let otra = bolitasArray[i];
+                    if (this === otra || otra.marcadaParaBorrar) continue;
+
+                    const dist = Math.hypot(this.x - otra.x, this.y - otra.y);
+                    
+                    if (dist - (this.radio + otra.radio) < 0) {
+                        
+                        let puedeFusionarseNormal = maxGrupo > 1 && (this.nombres.length + otra.nombres.length) <= maxGrupo;
+                        let esFusionForzada = (this.forzarFusionCon === otra) || (otra.forzarFusionCon === this);
+
+                        // Si tiene misión forzada, ignora uniones normales para no entorpecerse
+                        if (this.forzarFusionCon && !esFusionForzada) puedeFusionarseNormal = false;
+                        if (otra.forzarFusionCon && !esFusionForzada) puedeFusionarseNormal = false;
+
+                        if ((puedeFusionarseNormal || esFusionForzada) && 
+                            this.cooldownFusion === 0 && 
+                            otra.cooldownFusion === 0) {
+                            
+                            const m1 = this.masa;
+                            const m2 = otra.masa;
+                            this.dx = (this.dx * m1 + otra.dx * m2) / (m1 + m2);
+                            this.dy = (this.dy * m1 + otra.dy * m2) / (m1 + m2);
+
+                            this.nombres = this.nombres.concat(otra.nombres);
+                            this.masa = m1 + m2;
+
+                            // Registramos cuando la bola llega al tope exacto
+                            if (this.masa === maxGrupo && this.tiempoLleno === 0) {
+                                this.tiempoLleno = Date.now() + Math.random();
+                            }
+
+                            this.radioOriginal = RADIO_BASE + (this.masa - 1) * 18;
+                            this.radio = this.radioOriginal;
+
+                            if (this.x + this.radio > canvas.width) this.x = canvas.width - this.radio;
+                            if (this.x - this.radio < 0) this.x = this.radio;
+                            if (this.y + this.radio > canvas.height) this.y = canvas.height - this.radio;
+                            if (this.y - this.radio < 0) this.y = this.radio;
+
+                            otra.marcadaParaBorrar = true;
+                            this.forzarFusionCon = null; // Misión cumplida
+                        } else {
+                            resolverColision(this, otra);
+                        }
+                    }
+                }
+
+                this.x += this.dx;
+                this.y += this.dy;
+            }
+        }
+
+        // Lógica de "Explotar y Repartir Equitativamente"
+        function verificarEstancamiento() {
+            if (maxGrupo <= 1) return;
+            if (bolitas.some(b => b.cooldownFusion > 0)) { temporizadorEstancamiento = 0; return; }
+
+            let incompletas = bolitas.filter(b => b.nombres.length < maxGrupo && !b.marcadaParaBorrar);
+            let completas = bolitas.filter(b => b.nombres.length === maxGrupo && !b.marcadaParaBorrar); // Solo las de tamaño EXACTO al tope
+
+            if (incompletas.length === 0) { temporizadorEstancamiento = 0; return; }
+
+            // Analizamos si las incompletas pueden seguir fusionándose normalmente entre ellas
+            let sumaIncompletas = incompletas.reduce((sum, b) => sum + b.nombres.length, 0);
+            let sonRestosDefinitivos = sumaIncompletas < maxGrupo; // Si los restos ni sumándolos todos llegan al tope
+
+            let puedenFusionarse = false;
+            if (!sonRestosDefinitivos) {
+                for (let i = 0; i < incompletas.length; i++) {
+                    for (let j = i + 1; j < incompletas.length; j++) {
+                        if (incompletas[i].nombres.length + incompletas[j].nombres.length <= maxGrupo) {
+                            puedenFusionarse = true;
+                            break;
+                        }
+                    }
+                    if (puedenFusionarse) break;
+                }
+            }
+
+            // Si hay estancamiento (porque ya son restos que sobran o porque encallaron matemáticamente)
+            if (sonRestosDefinitivos || !puedenFusionarse) {
+                
+                // 1º Paso: Explotar los grupos pequeños sobrantes para poder repartirlos individualmente
+                let mayoresAUno = incompletas.filter(b => b.nombres.length > 1);
+                if (mayoresAUno.length > 0) {
+                    temporizadorEstancamiento++;
+                    if (temporizadorEstancamiento > 60) {
+                        mayoresAUno.forEach(b => {
+                            b.x += (Math.random() - 0.5) * 6;
+                            b.y += (Math.random() - 0.5) * 6;
+                        });
+                    }
+                    if (temporizadorEstancamiento > 120) {
+                        explotarGruposPequenos(mayoresAUno);
+                        temporizadorEstancamiento = 0;
+                    }
+                    return;
+                }
+
+                // 2º Paso: Ahora todas las incompletas son de tamaño 1. Las repartimos sin superar tope + 1
+                // Filtramos las bolas completas que AÚN NO han sido seleccionadas por otra suelta
+                let disponibles = completas.filter(c => {
+                    let targeting = incompletas.filter(inc => inc.forzarFusionCon === c).length;
+                    return targeting === 0; // Garantiza que CADA grupo completo reciba solo UNA extra
+                });
+
+                // Ordenamos las disponibles para dárselas a los grupos más antiguos primero
+                disponibles.sort((a, b) => a.tiempoLleno - b.tiempoLleno);
+
+                incompletas.forEach(suelta => {
+                    // Validar si su objetivo sigue existiendo y sigue siendo del tamaño correcto
+                    if (suelta.forzarFusionCon) {
+                        if (suelta.forzarFusionCon.marcadaParaBorrar || suelta.forzarFusionCon.nombres.length !== maxGrupo) {
+                            suelta.forzarFusionCon = null;
+                        }
+                    }
+
+                    // Asignar un grupo completo si hay hueco
+                    if (!suelta.forzarFusionCon && disponibles.length > 0) {
+                        suelta.forzarFusionCon = disponibles.shift();
+                    }
+
+                    // Atracción magnética hacia el objetivo
+                    if (suelta.forzarFusionCon) {
+                        let target = suelta.forzarFusionCon;
+                        let dx = target.x - suelta.x;
+                        let dy = target.y - suelta.y;
+                        let dist = Math.hypot(dx, dy);
+                        
+                        if (dist > 0) {
+                            suelta.dx += (dx / dist) * 0.4;
+                            suelta.dy += (dy / dist) * 0.4;
+                            
+                            let speed = Math.hypot(suelta.dx, suelta.dy);
+                            if (speed > 8) {
+                                suelta.dx = (suelta.dx / speed) * 8;
+                                suelta.dy = (suelta.dy / speed) * 8;
+                            }
+                        }
+                    }
+                });
+                temporizadorEstancamiento = 0;
+            } else {
+                temporizadorEstancamiento = 0;
+            }
+        }
+
+        function explotarGruposPequenos(grupos) {
+            grupos.forEach(b => {
+                b.marcadaParaBorrar = true;
+                let cantidad = b.nombres.length;
+                let anguloBase = Math.random() * Math.PI * 2;
+                for (let i = 0; i < cantidad; i++) {
+                    let angulo = anguloBase + (Math.PI * 2 / cantidad) * i;
+                    let velocidadExplosion = 12; 
+                    let spawnX = b.x + Math.cos(angulo) * 15;
+                    let spawnY = b.y + Math.sin(angulo) * 15;
+
+                    let nuevaBolita = new Bolita(spawnX, spawnY, RADIO_BASE, colorAleatorio(), [b.nombres[i]]);
+                    nuevaBolita.dx = Math.cos(angulo) * velocidadExplosion;
+                    nuevaBolita.dy = Math.sin(angulo) * velocidadExplosion;
+                    nuevaBolita.cooldownFusion = 90; // Escudo temporal post-explosión
+                    bolitas.push(nuevaBolita);
+                }
+            });
+        }
+
+        // Lógica de Ratón: Arrastrar en pausa vs Seleccionar Bolita
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            startX = mouseX;
+            startY = mouseY;
+            isDragging = false;
+
+            if (isPaused && !bolitaSeleccionada && !bolitaEnRetorno) {
+                for (let i = bolitas.length - 1; i >= 0; i--) {
+                    const b = bolitas[i];
+                    if (Math.hypot(b.x - mouseX, b.y - mouseY) <= b.radio) {
+                        bolitaArrastrada = b;
+                        b.dx = 0; 
+                        b.dy = 0;
+                        break;
+                    }
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Lógica de arrastrar si estamos en pausa
+            if (bolitaArrastrada && isPaused) {
+                if (Math.hypot(mouseX - startX, mouseY - startY) > 3) isDragging = true;
+                
+                if (isDragging) {
+                    bolitaArrastrada.x = mouseX;
+                    bolitaArrastrada.y = mouseY;
+                    // Prevenir salir del marco mientras arrastra
+                    if(bolitaArrastrada.x < bolitaArrastrada.radio) bolitaArrastrada.x = bolitaArrastrada.radio;
+                    if(bolitaArrastrada.x > canvas.width - bolitaArrastrada.radio) bolitaArrastrada.x = canvas.width - bolitaArrastrada.radio;
+                    if(bolitaArrastrada.y < bolitaArrastrada.radio) bolitaArrastrada.y = bolitaArrastrada.radio;
+                    if(bolitaArrastrada.y > canvas.height - bolitaArrastrada.radio) bolitaArrastrada.y = canvas.height - bolitaArrastrada.radio;
+                }
+            } else {
+                // Cambiar el cursor según lo que haya debajo
+                if (bolitaSeleccionada) { canvas.style.cursor = 'pointer'; return; }
+                if (bolitaEnRetorno) { canvas.style.cursor = 'default'; return; }
+                
+                let hover = false;
+                for (let i = 0; i < bolitas.length; i++) {
+                    if (Math.hypot(bolitas[i].x - mouseX, bolitas[i].y - mouseY) <= bolitas[i].radio) {
+                        hover = true;
+                        break;
+                    }
+                }
+                canvas.style.cursor = hover ? (isPaused ? 'grab' : 'pointer') : 'default';
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            if (bolitaArrastrada) {
+                if (!isDragging) manejarClick(mouseX, mouseY); // Era solo un clic, no arrastre
+                bolitaArrastrada = null;
+            } else {
+                manejarClick(mouseX, mouseY);
+            }
+        });
+
+        function manejarClick(mouseX, mouseY) {
+            if (bolitaSeleccionada) {
+                // Al volver a la normalidad escondemos botón de ficha
+                bolitaEnRetorno = bolitaSeleccionada;
+                bolitaSeleccionada = null;
+                document.getElementById('btn-abrir-ficha').style.display = 'none';
+            } else if (!bolitaEnRetorno) {
+                for (let i = bolitas.length - 1; i >= 0; i--) {
+                    const b = bolitas[i];
+                    if (Math.hypot(b.x - mouseX, b.y - mouseY) <= b.radio) {
+                        bolitaSeleccionada = b;
+                        b.xOriginal = b.x; 
+                        b.yOriginal = b.y;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function iniciar() {
+            ajustarCanvas(); 
+            bolitas = [];
+            document.getElementById('btn-abrir-ficha').style.display = 'none';
+            bolitaSeleccionada = null;
+            bolitaEnRetorno = null;
+
+            for (let i = 0; i < nombresActuales.length; i++) {
+                let x, y;
+                let superpuesto = true;
+                let intentos = 0;
+                while (superpuesto && intentos < 100) { 
+                    x = Math.random() * (canvas.width - RADIO_BASE * 2) + RADIO_BASE;
+                    y = Math.random() * (canvas.height - RADIO_BASE * 2) + RADIO_BASE;
+                    superpuesto = false;
+                    for (let j = 0; j < bolitas.length; j++) {
+                        const dist = Math.hypot(x - bolitas[j].x, y - bolitas[j].y);
+                        if (dist < RADIO_BASE * 2 + 5) { 
+                            superpuesto = true;
+                            break;
+                        }
+                    }
+                    intentos++;
+                }
+                bolitas.push(new Bolita(x, y, RADIO_BASE, colorAleatorio(), [nombresActuales[i]]));
+            }
+        }
+
+        function animar() {
+            requestAnimationFrame(animar);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (bolitaSeleccionada) {
+                // Desenfoque de las demás
+                bolitas.forEach(b => {
+                    if (b !== bolitaSeleccionada && !b.marcadaParaBorrar) {
+                        ctx.globalAlpha = 0.2;
+                        b.dibujar(false);
+                        ctx.globalAlpha = 1.0;
+                    }
+                });
+
+                const b = bolitaSeleccionada;
+                
+                // Si es un grupo individual, se va a la izquierda (x=180). Si es un grupo se va al centro.
+                const targetX = (maxGrupo === 1) ? 180 : canvas.width / 2;
+                
+                b.x += (targetX - b.x) * 0.1;
+                b.y += (canvas.height / 2 - b.y) * 0.1;
+                b.radio += (130 - b.radio) * 0.1; 
+                b.dibujar(true); 
+
+                // Mostrar el botón de la Ficha posicionado dinámicamente al lado
+                const btnFicha = document.getElementById('btn-abrir-ficha');
+                btnFicha.style.display = 'block';
+                btnFicha.style.left = (b.x + b.radio + 20) + 'px';
+                btnFicha.style.top = (b.y - 20) + 'px';
+
+            } else if (bolitaEnRetorno) {
+                bolitas.forEach(b => {
+                    if (b !== bolitaEnRetorno && !b.marcadaParaBorrar) b.dibujar(false);
+                });
+
+                const b = bolitaEnRetorno;
+                b.x += (b.xOriginal - b.x) * 0.15;
+                b.y += (b.yOriginal - b.y) * 0.15;
+                b.radio += (b.radioOriginal - b.radio) * 0.15;
+                b.dibujar(b.radio > (b.radioOriginal + 30));
+
+                if (Math.abs(b.radio - b.radioOriginal) < 1) {
+                    b.x = b.xOriginal;
+                    b.y = b.yOriginal;
+                    b.radio = b.radioOriginal;
+                    bolitaEnRetorno = null; 
+                }
+            } else {
+                if (!isPaused) verificarEstancamiento(); 
+                
+                bolitas.forEach(bolita => {
+                    bolita.actualizar(bolitas, isPaused);
+                });
+                bolitas = bolitas.filter(b => !b.marcadaParaBorrar);
+            }
+        }
+
+        ajustarCanvas();
+        animar();
+
+        // -------------------------------------------------------------
+        // Temporizadores para Pantalla Principal y Sidebar Desfases
+        // -------------------------------------------------------------
+        const coloresMetalicos = ['#C0C0C0', '#CD7F32']; // Plata y Bronce
+        const coloresFondo = ['#f4f4f9', '#e6f7ff', '#f0fff0', '#fff0f5', '#ffffe6', '#f5e6ff', '#e6ffee', '#ffebcd', '#f0ffff'];
+        const coloresFondoDerecha = ['#fff0f5', '#f0f8ff', '#f5fffa', '#fffacd', '#f0ffff', '#ffe4e1', '#e6e6fa', '#ffebcd', '#fdf5e6']; 
+
+        // Principal (20s borde, 15s fondo)
+        let indiceMarco = 1; // Empieza en Bronce
+        let indiceFondo = 0;
+        let indiceFondoCaja = 0;
+
+        setInterval(() => {
+            indiceMarco = (indiceMarco + 1) % coloresMetalicos.length;
+            document.getElementById('canvas-container').style.borderColor = coloresMetalicos[indiceMarco];
+        }, 20000); 
+
+        setInterval(() => {
+            indiceFondo = (indiceFondo + 1) % coloresFondo.length;
+            document.body.style.backgroundColor = coloresFondo[indiceFondo];
+
+            // Cambia el fondo de la caja de la derecha cada 15 segundos
+            indiceFondoCaja = (indiceFondoCaja + 1) % coloresFondoDerecha.length;
+            document.getElementById('canvas-container').style.backgroundColor = coloresFondoDerecha[indiceFondoCaja];
+        }, 15000);
+
+        // Sidebar Izquierdo (desfasado: 20s borde, 16s fondo)
+        let indiceMarcoSidebar = 0; // Empieza en Plata
+        let indiceFondoSidebar = 5;
+        
+        // Retrasamos el temporizador del sidebar 10 segundos para que NUNCA coincida
+        setTimeout(() => {
+            setInterval(() => {
+                indiceMarcoSidebar = (indiceMarcoSidebar + 1) % coloresMetalicos.length;
+                document.getElementById('panel-sidebar').style.borderColor = coloresMetalicos[indiceMarcoSidebar];
+            }, 20000);
+        }, 10000); 
+
+        setInterval(() => {
+            indiceFondoSidebar = (indiceFondoSidebar + 1) % coloresFondo.length;
+            document.getElementById('panel-sidebar').style.backgroundColor = coloresFondo[indiceFondoSidebar];
+        }, 16000);
+
+    </script>
+</body>
+</html>
