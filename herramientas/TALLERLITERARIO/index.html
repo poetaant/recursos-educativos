@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taller Literario del Poeta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        /* Ocultar elementos temporalmente */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-200">
+
+    <!-- Header -->
+    <header class="bg-rose-900 text-white py-8 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4">
+            <i data-lucide="feather" class="w-10 h-10 text-rose-300"></i>
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">Taller Literario del Poeta</h1>
+                <p class="text-rose-200 mt-1">Generador de textos multiformato basado en tus variables</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Panel Izquierdo: Formulario -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h2 class="text-xl font-semibold flex items-center gap-2">
+                        <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                        Define tu historia
+                    </h2>
+                    <button id="btn-random" class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors font-medium border border-indigo-200" title="Rellenar con ideas al azar">
+                        <i data-lucide="dices" class="w-4 h-4"></i>
+                        Idea al azar
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Ciclo / Nivel de lectura -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Nivel de Lectura (Público objetivo)</label>
+                        <div id="cycles-container" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <!-- Los botones de ciclo se generarán aquí con JS -->
+                        </div>
+                    </div>
+
+                    <!-- Protagonistas (Azul) -->
+                    <div class="border-l-4 border-blue-500 bg-blue-50/50 p-3 rounded-r-xl">
+                        <label class="block text-sm font-bold text-blue-800 mb-1">Protagonistas</label>
+                        <textarea id="in-protagonistas" rows="2" class="w-full px-4 py-2 border border-blue-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y overflow-y-auto custom-scrollbar" placeholder="Ej: Ana y Luis"></textarea>
+                    </div>
+
+                    <!-- Personajes Secundarios (Cian) -->
+                    <div class="border-l-4 border-cyan-500 bg-cyan-50/50 p-3 rounded-r-xl">
+                        <label class="block text-sm font-bold text-cyan-800 mb-1">Personajes secundarios</label>
+                        <textarea id="in-personajes" rows="2" class="w-full px-4 py-2 border border-cyan-200 bg-white rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all resize-y overflow-y-auto custom-scrollbar" placeholder="Ej: El abuelo sabio, el villano enmascarado"></textarea>
+                    </div>
+
+                    <!-- Época (Ámbar) -->
+                    <div class="border-l-4 border-amber-500 bg-amber-50/50 p-3 rounded-r-xl">
+                        <label class="block text-sm font-bold text-amber-800 mb-1">Época / Tiempo</label>
+                        <textarea id="in-epoca" rows="2" class="w-full px-4 py-2 border border-amber-200 bg-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-y overflow-y-auto custom-scrollbar" placeholder="Ej: Edad Media, Año 2050, Presente"></textarea>
+                    </div>
+
+                    <!-- Escenario Físico (Esmeralda) -->
+                    <div class="border-l-4 border-emerald-500 bg-emerald-50/50 p-3 rounded-r-xl">
+                        <label class="block text-sm font-bold text-emerald-800 mb-1">Escenario físico (Real)</label>
+                        <textarea id="in-escenarioFisico" rows="2" class="w-full px-4 py-2 border border-emerald-200 bg-white rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-y overflow-y-auto custom-scrollbar" placeholder="Ej: Un castillo en ruinas rodeado de un bosque espeso."></textarea>
+                    </div>
+
+                    <!-- Escenario Abstracto (Morado) -->
+                    <div class="border-l-4 border-purple-500 bg-purple-50/50 p-3 rounded-r-xl">
+                        <label class="block text-sm font-bold text-purple-800 mb-1">Escenario abstracto (Percepciones)</label>
+                        <textarea id="in-escenarioAbstracto" rows="2" class="w-full px-4 py-2 border border-purple-200 bg-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all resize-y overflow-y-auto custom-scrollbar" placeholder="Ej: Atmósfera de tensión constante, olores a recuerdos olvidados."></textarea>
+                    </div>
+
+                    <!-- Situación (Rosa) -->
+                    <div class="border-l-4 border-rose-500 bg-rose-50/50 p-3 rounded-r-xl">
+                        <label class="block text-sm font-bold text-rose-800 mb-1">Situación / Conflicto principal</label>
+                        <textarea id="in-situacion" rows="3" class="w-full px-4 py-2 border border-rose-200 bg-white rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all resize-y overflow-y-auto custom-scrollbar" placeholder="Ej: Encuentran un mapa del tesoro, pero están siendo perseguidos."></textarea>
+                    </div>
+
+                    <!-- Final (Naranja) -->
+                    <div class="border-l-4 border-orange-500 bg-orange-50/50 p-3 rounded-r-xl">
+                        <label class="block text-sm font-bold text-orange-800 mb-1">Final deseado</label>
+                        <textarea id="in-final" rows="2" class="w-full px-4 py-2 border border-orange-200 bg-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all resize-y overflow-y-auto custom-scrollbar" placeholder="Ej: Escapan por poco pero pierden el mapa, dejando un final abierto."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Derecho: Formatos y Resultado -->
+        <div class="lg:col-span-7 flex flex-col space-y-6">
+            
+            <!-- Selector de Formatos -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                 <h2 class="text-xl font-semibold mb-4 flex items-center gap-2 border-b pb-4">
+                    <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+                    Elige el formato
+                </h2>
+                <div id="formats-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <!-- Los botones de formato se generarán aquí con JS -->
+                </div>
+
+                <button id="btn-generate" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex justify-center items-center gap-2">
+                    <i data-lucide="wand-2" class="w-5 h-5 icon-default"></i>
+                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin hidden icon-loading"></i>
+                    <span id="btn-generate-text">Generar Texto</span>
+                </button>
+            </div>
+
+            <!-- Área de Resultados -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex-grow flex flex-col min-h-[400px]">
+                <div class="flex justify-between items-center mb-4 border-b pb-4">
+                    <h2 class="text-xl font-semibold flex items-center gap-2">
+                        <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+                        Resultado
+                    </h2>
+                    
+                    <div id="result-actions" class="flex gap-2 hidden">
+                        <button id="btn-audio" class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors font-medium border border-rose-200">
+                            <i data-lucide="headphones" class="w-4 h-4 icon-default"></i>
+                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin hidden icon-loading"></i>
+                            <span id="btn-audio-text">Interpretar obra</span>
+                        </button>
+                        <button id="btn-copy" class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-medium">
+                            <i data-lucide="copy" class="w-4 h-4 icon-default"></i>
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 hidden icon-success"></i>
+                            <span id="btn-copy-text">Copiar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-grow flex flex-col relative bg-slate-50 rounded-xl p-6 border border-slate-100 overflow-hidden">
+                    
+                    <!-- Mensaje de Error -->
+                    <div id="error-message" class="bg-red-50 text-red-600 p-4 rounded-lg mb-4 text-sm border border-red-200 hidden"></div>
+
+                    <!-- Reproductor de Audio -->
+                    <div id="audio-container" class="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex flex-col items-center hidden">
+                        <p id="audio-title" class="text-sm text-indigo-800 font-medium mb-2">🎵 Escucha la interpretación musical</p>
+                        <audio id="audio-player" controls class="w-full max-w-md shadow-sm rounded-full"></audio>
+                    </div>
+
+                    <!-- Loader Text Generation -->
+                    <div id="loading-state" class="flex flex-col items-center justify-center h-full text-slate-400 space-y-4 py-12 hidden">
+                        <div class="relative w-16 h-16">
+                            <div class="absolute inset-0 rounded-full border-t-2 border-indigo-500 animate-spin"></div>
+                            <i data-lucide="feather" class="absolute inset-0 m-auto w-6 h-6 text-indigo-400 animate-pulse"></i>
+                        </div>
+                        <p id="loading-text" class="animate-pulse font-medium text-indigo-900/60">
+                            Invocando a las musas...
+                        </p>
+                    </div>
+
+                    <!-- Estado Vacío -->
+                    <div id="empty-state" class="flex flex-col items-center justify-center h-full text-slate-400 py-12 text-center">
+                        <i data-lucide="feather" class="w-12 h-12 mb-4 opacity-20"></i>
+                        <p>Completa las variables y pulsa "Generar Texto"<br/>para ver la magia ocurrir.</p>
+                    </div>
+
+                    <!-- Contenedor del Texto Generado -->
+                    <div id="generated-content" class="prose prose-slate max-w-none w-full whitespace-pre-wrap font-serif leading-relaxed text-slate-800 text-lg overflow-y-auto max-h-[600px] custom-scrollbar pr-4 hidden"></div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- CONFIGURACIÓN Y CONSTANTES ---
+        const apiKey = ""; // La clave se inyecta en el entorno de ejecución
+        
+        const CYCLES = [
+            { id: 'primer', label: 'Primer Ciclo (5-7 años)' },
+            { id: 'segundo', label: 'Segundo Ciclo (8-9 años)' },
+            { id: 'tercer', label: 'Tercer Ciclo (10-12 años)' }
+        ];
+
+        const FORMATS = [
+            { id: 'cuento', label: 'Cuento', icon: 'book-open' },
+            { id: 'novela', label: 'Novela (Fragmento)', icon: 'book-open' },
+            { id: 'noticia', label: 'Noticia', icon: 'newspaper' },
+            { id: 'teatro', label: 'Teatro', icon: 'drama' },
+            { id: 'cancion', label: 'Canción', icon: 'music' },
+            { id: 'poesia', label: 'Poesía', icon: 'quote' }
+        ];
+
+        const RANDOM_TEMPLATES = [
+            {
+                protagonistas: 'Elena (una relojera ciega) y Leo (un ladrón de poca monta)',
+                personajes: 'El Inspector Vargas (implacable pero cansado)',
+                escenarioFisico: 'Una ciudad victoriana envuelta en niebla perenne, llena de engranajes y vapor.',
+                escenarioAbstracto: 'Una sensación de tiempo que se escapa, melancolía pesada y un suspenso silencioso.',
+                epoca: 'Finales del siglo XIX alternativo (Steampunk)',
+                situacion: 'Leo roba un reloj de bolsillo que controla el flujo del tiempo local y Elena es la única que puede desactivarlo antes de que la ciudad quede congelada para siempre.',
+                final: 'Logran detener el reloj, pero Leo queda atrapado un minuto en el pasado para siempre, observando a Elena sin poder tocarla.'
+            },
+            {
+                protagonistas: 'Kael (un aprendiz de mago inseguro) y un Dragón escamas de zafiro',
+                personajes: 'El Rey Tirano de las Cenizas',
+                escenarioFisico: 'Unas montañas nevadas escarpadas y una cueva de cristal subterránea.',
+                escenarioAbstracto: 'Esperanza renacida, magia ancestral zumbando en el aire y un frío que cala los huesos.',
+                epoca: 'Edad Media Mítica',
+                situacion: 'Kael debe encontrar la Gema del Invierno para despertar al dragón antes de que el ejército del Rey Tirano cruce el paso de la montaña.',
+                final: 'El dragón despierta y congela al ejército, reconociendo a Kael como su nuevo jinete.'
+            },
+            {
+                protagonistas: 'La Capitana Clara "Viento Rojo" y un cartógrafo desertor de la marina',
+                personajes: 'El Comodoro Silva (obsesionado con atraparla) y una tripulación supersticiosa',
+                escenarioFisico: 'El Mar Caribe bajo una tormenta eléctrica brutal, a bordo de un galeón destartalado.',
+                escenarioAbstracto: 'Sed de libertad inquebrantable, olor a salitre, miedo a la muerte y camaradería.',
+                epoca: 'Siglo XVIII (Edad de Oro de la Piratería)',
+                situacion: 'Tienen el único mapa que lleva a la Isla del Leviatán, pero el barco del Comodoro Silva los ha acorralado en medio de un huracán.',
+                final: 'Usan el huracán para hundir al barco enemigo. Logran escapar, pero el mapa sale volando y se pierde en el mar.'
+            },
+            {
+                protagonistas: 'Aria (una bióloga terrestre) y X-7 (un robot con fallos de memoria)',
+                personajes: 'La Inteligencia Artificial central de la nave (estricta y sin emociones)',
+                escenarioFisico: 'Los pasillos metálicos y parpadeantes de una nave espacial a la deriva en el vacío estelar.',
+                escenarioAbstracto: 'Claustrofobia, soledad inmensa del espacio y una pequeña chispa de humanidad artificial.',
+                epoca: 'Año 2350 (Futuro Lejano)',
+                situacion: 'Los motores principales han fallado y el soporte vital se agota. Deben reiniciar el núcleo manualmente, cruzando un sector con radiación letal.',
+                final: 'X-7 se sacrifica entrando al sector radiactivo para reiniciar el núcleo, salvando a Aria antes de apagarse para siempre.'
+            }
+        ];
+
+        // --- ESTADO GLOBAL ---
+        let currentCycle = 'segundo';
+        let currentFormat = 'cuento';
+        let isGenerating = false;
+        let isGeneratingAudio = false;
+        let generatedTextData = '';
+
+        // --- ELEMENTOS DEL DOM ---
+        const els = {
+            cyclesContainer: document.getElementById('cycles-container'),
+            formatsContainer: document.getElementById('formats-container'),
+            btnRandom: document.getElementById('btn-random'),
+            btnGenerate: document.getElementById('btn-generate'),
+            btnAudio: document.getElementById('btn-audio'),
+            btnCopy: document.getElementById('btn-copy'),
+            resultActions: document.getElementById('result-actions'),
+            errorMessage: document.getElementById('error-message'),
+            audioContainer: document.getElementById('audio-container'),
+            audioPlayer: document.getElementById('audio-player'),
+            audioTitle: document.getElementById('audio-title'),
+            loadingState: document.getElementById('loading-state'),
+            emptyState: document.getElementById('empty-state'),
+            generatedContent: document.getElementById('generated-content'),
+            inputs: {
+                protagonistas: document.getElementById('in-protagonistas'),
+                personajes: document.getElementById('in-personajes'),
+                epoca: document.getElementById('in-epoca'),
+                escenarioFisico: document.getElementById('in-escenarioFisico'),
+                escenarioAbstracto: document.getElementById('in-escenarioAbstracto'),
+                situacion: document.getElementById('in-situacion'),
+                final: document.getElementById('in-final'),
+            }
+        };
+
+        // --- INICIALIZACIÓN ---
+        function init() {
+            renderCycles();
+            renderFormats();
+            fillForm(RANDOM_TEMPLATES[0]); // Llenar con el primer template por defecto
+            
+            // Event Listeners
+            els.btnRandom.addEventListener('click', handleRandomize);
+            els.btnGenerate.addEventListener('click', generateText);
+            els.btnAudio.addEventListener('click', generateAudio);
+            els.btnCopy.addEventListener('click', copyToClipboard);
+
+            // Cargar iconos de Lucide
+            lucide.createIcons();
+        }
+
+        // --- RENDERIZADO DE UI ---
+        function renderCycles() {
+            els.cyclesContainer.innerHTML = CYCLES.map(c => `
+                <button type="button" onclick="setCycle('${c.id}')" id="cycle-${c.id}" class="px-2 py-2 text-sm rounded-lg border transition-all ${
+                    currentCycle === c.id 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-800 font-medium shadow-sm' 
+                        : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 text-slate-600'
+                }">
+                    ${c.label}
+                </button>
+            `).join('');
+        }
+
+        function renderFormats() {
+            els.formatsContainer.innerHTML = FORMATS.map(f => `
+                <button type="button" onclick="setFormat('${f.id}')" id="format-${f.id}" class="flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 group ${
+                    currentFormat === f.id 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-800 shadow-sm' 
+                        : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 text-slate-600'
+                }">
+                    <i data-lucide="${f.icon}" class="w-6 h-6 mb-2 ${currentFormat === f.id ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'}"></i>
+                    <span class="font-medium text-sm text-center">${f.label}</span>
+                </button>
+            `).join('');
+            lucide.createIcons(); // Recargar iconos después de modificar innerHTML
+        }
+
+        // --- MANEJADORES DE ESTADO LOCAL ---
+        window.setCycle = function(id) {
+            currentCycle = id;
+            renderCycles();
+        };
+
+        window.setFormat = function(id) {
+            currentFormat = id;
+            renderFormats();
+            
+            // Actualizar texto del botón de audio según formato
+            const audioText = document.getElementById('btn-audio-text');
+            if(audioText) {
+                audioText.innerText = (currentFormat === 'cancion') ? 'Cantar canción' : 'Recitar texto';
+            }
+        };
+
+        function fillForm(template) {
+            Object.keys(els.inputs).forEach(key => {
+                els.inputs[key].value = template[key] || '';
+            });
+        }
+
+        function handleRandomize() {
+            let randomTemplate;
+            const currentProtagonistas = els.inputs.protagonistas.value;
+            do {
+                randomTemplate = RANDOM_TEMPLATES[Math.floor(Math.random() * RANDOM_TEMPLATES.length)];
+            } while (randomTemplate.protagonistas === currentProtagonistas);
+            fillForm(randomTemplate);
+        }
+
+        function showError(msg) {
+            els.errorMessage.innerText = msg;
+            els.errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            els.errorMessage.classList.add('hidden');
+        }
+
+        // --- FUNCIONES DE IA (TEXTO Y AUDIO) ---
+        async function generateText() {
+            if (isGenerating) return;
+            isGenerating = true;
+            
+            // UI State
+            els.btnGenerate.disabled = true;
+            els.btnGenerate.classList.add('opacity-70', 'cursor-not-allowed');
+            els.btnGenerate.querySelector('.icon-default').classList.add('hidden');
+            els.btnGenerate.querySelector('.icon-loading').classList.remove('hidden');
+            document.getElementById('btn-generate-text').innerText = 'Escribiendo obra...';
+            
+            hideError();
+            els.emptyState.classList.add('hidden');
+            els.generatedContent.classList.add('hidden');
+            els.audioContainer.classList.add('hidden');
+            els.resultActions.classList.add('hidden');
+            
+            els.loadingState.classList.remove('hidden');
+            document.getElementById('loading-text').innerText = `Invocando a las musas y redactando en formato de ${currentFormat}...`;
+
+            const cycleInstructions = {
+                'primer': 'PÚBLICO: Niños de 5, 6 y 7 años (Primer Ciclo). Usa un vocabulario muy sencillo, amigable y fácil de entender. Usa frases muy cortas y directas. Simplifica los conceptos abstractos para que sean visuales y fáciles de imaginar.',
+                'segundo': 'PÚBLICO: Niños de 8 y 9 años (Segundo Ciclo). Usa un vocabulario intermedio y oraciones de longitud moderada. Mantén la trama clara, pero añade algo de aventura, diálogos divertidos y detalle descriptivo.',
+                'tercer': 'PÚBLICO: Niños de 10, 11 y 12 años (Tercer Ciclo). Usa un vocabulario rico, variado y estructuras gramaticales más complejas. Puedes profundizar un poco más en la psicología de los personajes, usar metáforas y desarrollar más la atmósfera del entorno.'
+            };
+
+            const prompt = `
+Actúa como un maestro escritor, poeta y periodista. Tu tarea es escribir un texto en formato de "${currentFormat.toUpperCase()}".
+
+Debes incorporar de manera coherente, creativa y fluida los siguientes elementos proporcionados por el usuario:
+- Protagonistas: ${els.inputs.protagonistas.value}
+- Otros Personajes: ${els.inputs.personajes.value}
+- Escenario Físico: ${els.inputs.escenarioFisico.value}
+- Escenario Abstracto: ${els.inputs.escenarioAbstracto.value}
+- Época: ${els.inputs.epoca.value}
+- Situación / Trama: ${els.inputs.situacion.value}
+- Final: ${els.inputs.final.value}
+
+ADAPTACIÓN DE NIVEL DE LECTURA:
+${cycleInstructions[currentCycle]}
+
+INSTRUCCIONES DE FORMATO ESTRICTAS:
+- Si es CUENTO: Escribe una historia completa con planteamiento, nudo y el final especificado.
+- Si es NOVELA (Fragmento): Escribe como si fuera el último capítulo de una novela, con descripciones muy detalladas.
+- Si es NOTICIA: Escribe con titular, entradilla y cuerpo. Estilo periodístico y objetivo.
+- Si es TEATRO: Usa nombres de personajes en mayúsculas seguidos de dos puntos para los diálogos, e incluye acotaciones escénicas entre paréntesis y en cursiva.
+- Si es CANCIÓN: Escribe en estrofas (Verso, Estribillo, Puente). Incluye acordes musicales sugeridos entre corchetes (ej. [Do Mayor], [Mim]) sobre los versos.
+- Si es POESÍA: Escribe en versos, usando lenguaje poético y metáforas.
+
+Escribe el texto directamente en español, sin introducciones ni comentarios adicionales.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: "Eres un asistente de escritura creativa altamente versátil. Sigues las instrucciones de formato al pie de la letra." }] }
+            };
+
+            let retries = 5;
+            let delay = 1000;
+            let success = false;
+
+            while (retries > 0 && !success) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (text) {
+                        generatedTextData = text;
+                        els.generatedContent.innerText = text; // Usamos innerText para preservar los saltos de línea (whitespace-pre-wrap lo formatea en CSS)
+                        
+                        els.loadingState.classList.add('hidden');
+                        els.generatedContent.classList.remove('hidden');
+                        els.resultActions.classList.remove('hidden');
+                        success = true;
+                    } else {
+                        throw new Error("Respuesta vacía de la API");
+                    }
+                } catch (err) {
+                    retries--;
+                    if (retries === 0) {
+                        showError("Hubo un error al generar el texto. Por favor, inténtalo de nuevo.");
+                        els.loadingState.classList.add('hidden');
+                        els.emptyState.classList.remove('hidden');
+                        console.error(err);
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2;
+                    }
+                }
+            }
+            
+            // Restore UI
+            isGenerating = false;
+            els.btnGenerate.disabled = false;
+            els.btnGenerate.classList.remove('opacity-70', 'cursor-not-allowed');
+            els.btnGenerate.querySelector('.icon-default').classList.remove('hidden');
+            els.btnGenerate.querySelector('.icon-loading').classList.add('hidden');
+            document.getElementById('btn-generate-text').innerText = 'Generar Texto';
+        }
+
+        async function generateAudio() {
+            if (!generatedTextData || isGeneratingAudio) return;
+            isGeneratingAudio = true;
+            hideError();
+
+            // UI State
+            els.btnAudio.disabled = true;
+            els.btnAudio.classList.add('opacity-50');
+            els.btnAudio.querySelector('.icon-default').classList.add('hidden');
+            els.btnAudio.querySelector('.icon-loading').classList.remove('hidden');
+            document.getElementById('btn-audio-text').innerText = 'Creando audio...';
+
+            let audioPrompt = generatedTextData;
+            if (currentFormat === 'cancion') {
+                audioPrompt = "Canta la siguiente letra con una voz melódica y rítmica:\n" + generatedTextData.replace(/\[.*?\]/g, ''); 
+            } else if (currentFormat === 'poesia') {
+                audioPrompt = "Recita el siguiente poema con voz profunda y muy emotiva:\n" + generatedTextData;
+            } else {
+                audioPrompt = "Lee el siguiente texto como un narrador apasionado:\n" + generatedTextData;
+            }
+
+            const payload = {
+                contents: [{ parts: [{ text: audioPrompt }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                const pcmData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                
+                if (pcmData) {
+                    const wavUrl = pcmToWav(pcmData);
+                    els.audioPlayer.src = wavUrl;
+                    
+                    els.audioTitle.innerText = currentFormat === 'cancion' ? '🎵 Escucha la interpretación musical' : '🎙️ Escucha la narración';
+                    els.audioContainer.classList.remove('hidden');
+                    els.audioPlayer.play();
+                } else {
+                    throw new Error("No se recibió audio de la API");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Hubo un error al generar la pista de audio. Inténtalo de nuevo.");
+            } finally {
+                // Restore UI
+                isGeneratingAudio = false;
+                els.btnAudio.disabled = false;
+                els.btnAudio.classList.remove('opacity-50');
+                els.btnAudio.querySelector('.icon-default').classList.remove('hidden');
+                els.btnAudio.querySelector('.icon-loading').classList.add('hidden');
+                document.getElementById('btn-audio-text').innerText = (currentFormat === 'cancion') ? 'Cantar canción' : 'Recitar texto';
+            }
+        }
+
+        // --- FUNCIONES AUXILIARES DE AUDIO (PCM to WAV) ---
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        function pcmToWav(pcmBase64, sampleRate = 24000) {
+            const binaryString = atob(pcmBase64);
+            const pcmData = new Int16Array(binaryString.length / 2);
+            for (let i = 0; i < pcmData.length; i++) {
+                pcmData[i] = (binaryString.charCodeAt(i * 2) & 0xff) | (binaryString.charCodeAt(i * 2 + 1) << 8);
+            }
+            const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+            const view = new DataView(buffer);
+            
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcmData.length * 2, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcmData.length * 2, true);
+            
+            let offset = 44;
+            for (let i = 0; i < pcmData.length; i++, offset += 2) {
+                view.setInt16(offset, pcmData[i], true);
+            }
+            const blob = new Blob([view], { type: 'audio/wav' });
+            return URL.createObjectURL(blob);
+        }
+
+        // --- COPIAR AL PORTAPAPELES ---
+        function copyToClipboard() {
+            if(!generatedTextData) return;
+            
+            const btnCopy = els.btnCopy;
+            const iconDefault = btnCopy.querySelector('.icon-default');
+            const iconSuccess = btnCopy.querySelector('.icon-success');
+            const textSpan = document.getElementById('btn-copy-text');
+
+            const showSuccess = () => {
+                iconDefault.classList.add('hidden');
+                iconSuccess.classList.remove('hidden');
+                textSpan.innerText = '¡Copiado!';
+                setTimeout(() => {
+                    iconDefault.classList.remove('hidden');
+                    iconSuccess.classList.add('hidden');
+                    textSpan.innerText = 'Copiar';
+                }, 2000);
+            };
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(generatedTextData)
+                    .then(showSuccess)
+                    .catch(err => console.error('Error al copiar', err));
+            } else {
+                // Fallback para iframe sin permisos
+                const textArea = document.createElement("textarea");
+                textArea.value = generatedTextData;
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showSuccess();
+                } catch (err) {
+                    console.error('No se pudo copiar el texto', err);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // --- ARRANQUE ---
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
