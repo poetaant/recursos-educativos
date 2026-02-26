@@ -22,26 +22,26 @@
             width: 190px; 
             min-width: 190px;
             background-color: #ffe6f2;
-            border: 8px ridge #C0C0C0; /* Efecto 3D en Plata inicial */
+            border: 8px ridge #C0C0C0; 
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            padding: 15px;
+            padding: 10px 15px; /* Reducido para compactar */
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            transition: background-color 2s ease, border-color 1s ease; /* Transición independiente */
+            transition: background-color 2s ease, border-color 1s ease; 
         }
 
         /* Contenedor del lienzo de dibujo */
         #canvas-container {
             flex: 1; 
-            border: 16px ridge #CD7F32; /* Efecto 3D en Bronce inicial */
+            border: 16px ridge #CD7F32; 
             border-radius: 20px;
             background-color: #fff0f5;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.1), 0 10px 30px rgba(0, 0, 0, 0.5);
             position: relative;
             overflow: hidden;
-            transition: border-color 1s ease, background-color 2s ease; /* Transición para el fondo añadida */
+            transition: border-color 1s ease, background-color 2s ease; 
         }
 
         canvas {
@@ -51,18 +51,22 @@
         }
 
         h3 {
-            margin: 0 0 10px 0;
-            color: #00008B; /* Azul oscuro */
-            font-size: 18px;
+            margin: 8px 0 6px 0; /* Márgenes ajustados para juntar verticalmente */
+            color: #00008B; 
+            font-size: 14px; 
             text-align: center;
             text-transform: uppercase;
+        }
+        
+        h3:first-child {
+            margin-top: 0;
         }
 
         /* Estilos de la tabla de cursos */
         .tabla-cursos {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 25px;
+            margin-bottom: 8px; /* Reducido para juntar con el siguiente bloque */
             background: white;
             border-radius: 8px;
             overflow: hidden;
@@ -70,13 +74,14 @@
 
         .tabla-cursos td {
             border: 2px solid #ff99cc;
-            padding: 10px 5px;
+            padding: 5px 2px; 
             text-align: center;
             font-weight: bold;
-            color: #00008B; /* Azul oscuro */
+            font-size: 12px; 
+            color: #00008B; 
             cursor: pointer;
             transition: all 0.2s;
-            width: 50%;
+            width: 33.33%; 
         }
 
         .tabla-cursos td:hover {
@@ -94,19 +99,19 @@
         .grupo-botones {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px; /* Gap reducido */
         }
 
         .grupo-botones button {
             background-color: #fff;
             border: 2px solid #ff99cc;
-            color: #00008B; /* Azul oscuro */
-            padding: 10px;
+            color: #00008B; 
+            padding: 6px; 
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 14px;
+            font-size: 12px; 
         }
 
         .grupo-botones button:hover {
@@ -119,13 +124,40 @@
             border-color: #ff3399;
         }
 
+        /* Botones Franjas */
+        .btn-zona {
+            background-color: #fff;
+            padding: 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            border: 2px solid;
+        }
+        #btn-zona-izq { border-color: #28a745; color: #28a745; }
+        #btn-zona-izq:hover { background-color: rgba(40, 167, 69, 0.1); }
+        #btn-zona-izq.activo { background-color: #28a745; color: #fff; }
+        
+        #btn-zona-der { border-color: #dc3545; color: #dc3545; }
+        #btn-zona-der:hover { background-color: rgba(220, 53, 69, 0.1); }
+        #btn-zona-der.activo { background-color: #dc3545; color: #fff; }
+
+        /* Cuadrícula 2x2 para los botones de grupos */
+        .grid-grupos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px; /* Ajustado para compactar */
+        }
+
         /* Botón Stop Especial */
         #btn-stop {
             background-color: #ff3333;
             color: white;
             border-color: #cc0000;
-            margin-top: 5px;
-            font-size: 16px;
+            margin-top: 2px; /* Reducido */
+            font-size: 13px; 
+            padding: 8px;
         }
         #btn-stop:hover { background-color: #ff6666; }
         #btn-stop.activo-stop {
@@ -135,20 +167,19 @@
         #btn-stop.activo-stop:hover { background-color: #34ce57; }
 
         .btn-separador {
-            margin-top: 5px;
+            margin-top: 2px;
             border-top: 2px dashed #ffb3d9;
-            padding-top: 15px;
+            padding-top: 8px;
         }
 
         .titulo {
             position: absolute;
             top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 20px; 
             color: #ff3399;
             font-size: 28px;
             font-weight: bold;
-            text-align: center;
+            text-align: left;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
             pointer-events: none;
             z-index: 10;
@@ -238,42 +269,45 @@
             <tr>
                 <td onclick="seleccionarCurso('I3A', this)">I3A</td>
                 <td onclick="seleccionarCurso('I3B', this)">I3B</td>
-            </tr>
-            <tr>
                 <td onclick="seleccionarCurso('I4', this)">I4</td>
-                <td onclick="seleccionarCurso('I5', this)">I5</td>
             </tr>
             <tr>
+                <td onclick="seleccionarCurso('I5', this)">I5</td>
                 <td onclick="seleccionarCurso('1ºA', this)">1ºA</td>
                 <td onclick="seleccionarCurso('1ºB', this)">1ºB</td>
             </tr>
             <tr>
-                <td colspan="2" onclick="seleccionarCurso('2º', this)">2º</td>
-            </tr>
-            <tr>
+                <td onclick="seleccionarCurso('2º', this)">2º</td>
                 <td onclick="seleccionarCurso('3ºA', this)">3ºA</td>
                 <td onclick="seleccionarCurso('3ºB', this)">3ºB</td>
             </tr>
             <tr>
                 <td onclick="seleccionarCurso('4ºA', this)">4ºA</td>
                 <td onclick="seleccionarCurso('4ºB', this)">4ºB</td>
-            </tr>
-            <tr>
                 <td onclick="seleccionarCurso('5ºA', this)">5ºA</td>
-                <td onclick="seleccionarCurso('5ºB', this)">5ºB</td>
             </tr>
             <tr>
+                <td onclick="seleccionarCurso('5ºB', this)">5ºB</td>
                 <td onclick="seleccionarCurso('6ºA', this)">6ºA</td>
                 <td onclick="seleccionarCurso('6ºB', this)">6ºB</td>
             </tr>
         </table>
 
+        <h3>FRANJAS</h3>
+        <div class="grid-grupos">
+            <button id="btn-zona-izq" class="btn-zona" onclick="toggleZona('izquierda')">Línea Verde</button>
+            <button id="btn-zona-der" class="btn-zona" onclick="toggleZona('derecha')">Línea Roja</button>
+        </div>
+        <div class="btn-separador"></div>
+
         <h3>FORMA GRUPOS</h3>
         <div class="grupo-botones">
-            <button id="btn-1" class="activo" onclick="setGrupo(1)">Individuales</button>
-            <button id="btn-2" onclick="setGrupo(2)">Grupos de 2</button>
-            <button id="btn-3" onclick="setGrupo(3)">Grupos de 3</button>
-            <button id="btn-4" onclick="setGrupo(4)">Grupos de 4</button>
+            <div class="grid-grupos">
+                <button id="btn-1" class="activo" onclick="setGrupo(1)">De 1</button>
+                <button id="btn-2" onclick="setGrupo(2)">De 2</button>
+                <button id="btn-3" onclick="setGrupo(3)">De 3</button>
+                <button id="btn-4" onclick="setGrupo(4)">De 4</button>
+            </div>
             <div class="btn-separador"></div>
             <button onclick="reiniciarBolas()">🔄 Soltar y Reiniciar</button>
             <button id="btn-stop" onclick="toggleStop()">⏸️ STOP</button>
@@ -335,6 +369,11 @@
         let maxGrupo = 1;
         let temporizadorEstancamiento = 0; 
 
+        // Zonas Laterales (Aparcamiento)
+        const ZONA_WIDTH = 90; // Franjas estrechas
+        let zonaIzquierdaHabilitada = false;
+        let zonaDerechaHabilitada = false;
+
         // Variables de Arrastre y Pausa
         let isPaused = false;
         let bolitaArrastrada = null;
@@ -375,6 +414,42 @@
             temporizadorEstancamiento = 0; 
             document.querySelectorAll('.grupo-botones button').forEach(btn => btn.classList.remove('activo'));
             document.getElementById('btn-' + num).classList.add('activo');
+        }
+
+        function toggleZona(lado) {
+            if (lado === 'izquierda') {
+                zonaIzquierdaHabilitada = !zonaIzquierdaHabilitada;
+                const btn = document.getElementById('btn-zona-izq');
+                if (zonaIzquierdaHabilitada) {
+                    btn.classList.add('activo');
+                    // Expulsar bolitas que estén en el camino pero no puestas a mano
+                    bolitas.forEach(b => {
+                        if (!b.enZona && b.x - b.radio < ZONA_WIDTH) {
+                            b.x = ZONA_WIDTH + b.radio;
+                            b.dx = Math.abs(b.dx);
+                        }
+                    });
+                } else {
+                    btn.classList.remove('activo');
+                    bolitas.forEach(b => { if (b.enZona === 'izquierda') b.enZona = false; });
+                }
+            } else {
+                zonaDerechaHabilitada = !zonaDerechaHabilitada;
+                const btn = document.getElementById('btn-zona-der');
+                if (zonaDerechaHabilitada) {
+                    btn.classList.add('activo');
+                    // Expulsar bolitas
+                    bolitas.forEach(b => {
+                        if (!b.enZona && b.x + b.radio > canvas.width - ZONA_WIDTH) {
+                            b.x = canvas.width - ZONA_WIDTH - b.radio;
+                            b.dx = -Math.abs(b.dx);
+                        }
+                    });
+                } else {
+                    btn.classList.remove('activo');
+                    bolitas.forEach(b => { if (b.enZona === 'derecha') b.enZona = false; });
+                }
+            }
         }
 
         function reiniciarBolas() {
@@ -471,6 +546,7 @@
                 this.cooldownFusion = 0; 
                 this.tiempoLleno = 0; 
                 this.forzarFusionCon = null; 
+                this.enZona = false; 
                 
                 this.dx = (Math.random() - 0.5) * 6;
                 this.dy = (Math.random() - 0.5) * 6;
@@ -522,11 +598,16 @@
 
                 if (pausado) return; 
 
-                // Chocar con paredes
-                if (this.x + this.radio >= canvas.width || this.x - this.radio <= 0) {
-                    this.dx = -this.dx;
-                    if (this.x + this.radio >= canvas.width) this.x = canvas.width - this.radio;
-                    if (this.x - this.radio <= 0) this.x = this.radio;
+                // Muros fijos desde que pulsamos el botón de la franja
+                let limiteIzquierdo = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
+                let limiteDerecho = zonaDerechaHabilitada ? canvas.width - ZONA_WIDTH : canvas.width;
+
+                if (this.x - this.radio <= limiteIzquierdo) {
+                    this.dx = Math.abs(this.dx);
+                    this.x = limiteIzquierdo + this.radio;
+                } else if (this.x + this.radio >= limiteDerecho) {
+                    this.dx = -Math.abs(this.dx);
+                    this.x = limiteDerecho - this.radio;
                 }
                 
                 if (this.y + this.radio >= canvas.height || this.y - this.radio <= 0) {
@@ -538,7 +619,7 @@
                 // Chocar con otras bolas
                 for (let i = 0; i < bolitasArray.length; i++) {
                     let otra = bolitasArray[i];
-                    if (this === otra || otra.marcadaParaBorrar) continue;
+                    if (this === otra || otra.marcadaParaBorrar || otra.enZona) continue;
 
                     const dist = Math.hypot(this.x - otra.x, this.y - otra.y);
                     
@@ -547,7 +628,6 @@
                         let puedeFusionarseNormal = maxGrupo > 1 && (this.nombres.length + otra.nombres.length) <= maxGrupo;
                         let esFusionForzada = (this.forzarFusionCon === otra) || (otra.forzarFusionCon === this);
 
-                        // Si tiene misión forzada, ignora uniones normales para no entorpecerse
                         if (this.forzarFusionCon && !esFusionForzada) puedeFusionarseNormal = false;
                         if (otra.forzarFusionCon && !esFusionForzada) puedeFusionarseNormal = false;
 
@@ -563,7 +643,6 @@
                             this.nombres = this.nombres.concat(otra.nombres);
                             this.masa = m1 + m2;
 
-                            // Registramos cuando la bola llega al tope exacto
                             if (this.masa === maxGrupo && this.tiempoLleno === 0) {
                                 this.tiempoLleno = Date.now() + Math.random();
                             }
@@ -577,7 +656,7 @@
                             if (this.y - this.radio < 0) this.y = this.radio;
 
                             otra.marcadaParaBorrar = true;
-                            this.forzarFusionCon = null; // Misión cumplida
+                            this.forzarFusionCon = null; 
                         } else {
                             resolverColision(this, otra);
                         }
@@ -594,14 +673,13 @@
             if (maxGrupo <= 1) return;
             if (bolitas.some(b => b.cooldownFusion > 0)) { temporizadorEstancamiento = 0; return; }
 
-            let incompletas = bolitas.filter(b => b.nombres.length < maxGrupo && !b.marcadaParaBorrar);
-            let completas = bolitas.filter(b => b.nombres.length === maxGrupo && !b.marcadaParaBorrar); // Solo las de tamaño EXACTO al tope
+            let incompletas = bolitas.filter(b => b.nombres.length < maxGrupo && !b.marcadaParaBorrar && !b.enZona);
+            let completas = bolitas.filter(b => b.nombres.length === maxGrupo && !b.marcadaParaBorrar && !b.enZona); 
 
             if (incompletas.length === 0) { temporizadorEstancamiento = 0; return; }
 
-            // Analizamos si las incompletas pueden seguir fusionándose normalmente entre ellas
             let sumaIncompletas = incompletas.reduce((sum, b) => sum + b.nombres.length, 0);
-            let sonRestosDefinitivos = sumaIncompletas < maxGrupo; // Si los restos ni sumándolos todos llegan al tope
+            let sonRestosDefinitivos = sumaIncompletas < maxGrupo; 
 
             let puedenFusionarse = false;
             if (!sonRestosDefinitivos) {
@@ -616,10 +694,7 @@
                 }
             }
 
-            // Si hay estancamiento (porque ya son restos que sobran o porque encallaron matemáticamente)
             if (sonRestosDefinitivos || !puedenFusionarse) {
-                
-                // 1º Paso: Explotar los grupos pequeños sobrantes para poder repartirlos individualmente
                 let mayoresAUno = incompletas.filter(b => b.nombres.length > 1);
                 if (mayoresAUno.length > 0) {
                     temporizadorEstancamiento++;
@@ -636,30 +711,24 @@
                     return;
                 }
 
-                // 2º Paso: Ahora todas las incompletas son de tamaño 1. Las repartimos sin superar tope + 1
-                // Filtramos las bolas completas que AÚN NO han sido seleccionadas por otra suelta
                 let disponibles = completas.filter(c => {
                     let targeting = incompletas.filter(inc => inc.forzarFusionCon === c).length;
-                    return targeting === 0; // Garantiza que CADA grupo completo reciba solo UNA extra
+                    return targeting === 0; 
                 });
 
-                // Ordenamos las disponibles para dárselas a los grupos más antiguos primero
                 disponibles.sort((a, b) => a.tiempoLleno - b.tiempoLleno);
 
                 incompletas.forEach(suelta => {
-                    // Validar si su objetivo sigue existiendo y sigue siendo del tamaño correcto
                     if (suelta.forzarFusionCon) {
                         if (suelta.forzarFusionCon.marcadaParaBorrar || suelta.forzarFusionCon.nombres.length !== maxGrupo) {
                             suelta.forzarFusionCon = null;
                         }
                     }
 
-                    // Asignar un grupo completo si hay hueco
                     if (!suelta.forzarFusionCon && disponibles.length > 0) {
                         suelta.forzarFusionCon = disponibles.shift();
                     }
 
-                    // Atracción magnética hacia el objetivo
                     if (suelta.forzarFusionCon) {
                         let target = suelta.forzarFusionCon;
                         let dx = target.x - suelta.x;
@@ -698,7 +767,7 @@
                     let nuevaBolita = new Bolita(spawnX, spawnY, RADIO_BASE, colorAleatorio(), [b.nombres[i]]);
                     nuevaBolita.dx = Math.cos(angulo) * velocidadExplosion;
                     nuevaBolita.dy = Math.sin(angulo) * velocidadExplosion;
-                    nuevaBolita.cooldownFusion = 90; // Escudo temporal post-explosión
+                    nuevaBolita.cooldownFusion = 90; 
                     bolitas.push(nuevaBolita);
                 }
             });
@@ -732,21 +801,18 @@
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            // Lógica de arrastrar si estamos en pausa
             if (bolitaArrastrada && isPaused) {
                 if (Math.hypot(mouseX - startX, mouseY - startY) > 3) isDragging = true;
                 
                 if (isDragging) {
                     bolitaArrastrada.x = mouseX;
                     bolitaArrastrada.y = mouseY;
-                    // Prevenir salir del marco mientras arrastra
                     if(bolitaArrastrada.x < bolitaArrastrada.radio) bolitaArrastrada.x = bolitaArrastrada.radio;
                     if(bolitaArrastrada.x > canvas.width - bolitaArrastrada.radio) bolitaArrastrada.x = canvas.width - bolitaArrastrada.radio;
                     if(bolitaArrastrada.y < bolitaArrastrada.radio) bolitaArrastrada.y = bolitaArrastrada.radio;
                     if(bolitaArrastrada.y > canvas.height - bolitaArrastrada.radio) bolitaArrastrada.y = canvas.height - bolitaArrastrada.radio;
                 }
             } else {
-                // Cambiar el cursor según lo que haya debajo
                 if (bolitaSeleccionada) { canvas.style.cursor = 'pointer'; return; }
                 if (bolitaEnRetorno) { canvas.style.cursor = 'default'; return; }
                 
@@ -767,7 +833,18 @@
             const mouseY = e.clientY - rect.top;
 
             if (bolitaArrastrada) {
-                if (!isDragging) manejarClick(mouseX, mouseY); // Era solo un clic, no arrastre
+                if (!isDragging) {
+                    manejarClick(mouseX, mouseY); 
+                } else {
+                    // Solo permite dejarla si la franja fue activada con el botón correspondiente
+                    if (bolitaArrastrada.x < ZONA_WIDTH && zonaIzquierdaHabilitada) {
+                        bolitaArrastrada.enZona = 'izquierda';
+                    } else if (bolitaArrastrada.x > canvas.width - ZONA_WIDTH && zonaDerechaHabilitada) {
+                        bolitaArrastrada.enZona = 'derecha';
+                    } else {
+                        bolitaArrastrada.enZona = false;
+                    }
+                }
                 bolitaArrastrada = null;
             } else {
                 manejarClick(mouseX, mouseY);
@@ -776,7 +853,6 @@
 
         function manejarClick(mouseX, mouseY) {
             if (bolitaSeleccionada) {
-                // Al volver a la normalidad escondemos botón de ficha
                 bolitaEnRetorno = bolitaSeleccionada;
                 bolitaSeleccionada = null;
                 document.getElementById('btn-abrir-ficha').style.display = 'none';
@@ -800,12 +876,16 @@
             bolitaSeleccionada = null;
             bolitaEnRetorno = null;
 
+            // Asegurarnos de que no inicien detrás de muros existentes
+            let limIzq = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
+            let limDer = zonaDerechaHabilitada ? ZONA_WIDTH : 0;
+
             for (let i = 0; i < nombresActuales.length; i++) {
                 let x, y;
                 let superpuesto = true;
                 let intentos = 0;
                 while (superpuesto && intentos < 100) { 
-                    x = Math.random() * (canvas.width - RADIO_BASE * 2) + RADIO_BASE;
+                    x = Math.random() * (canvas.width - limIzq - limDer - RADIO_BASE * 2) + RADIO_BASE + limIzq;
                     y = Math.random() * (canvas.height - RADIO_BASE * 2) + RADIO_BASE;
                     superpuesto = false;
                     for (let j = 0; j < bolitas.length; j++) {
@@ -825,8 +905,35 @@
             requestAnimationFrame(animar);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            ctx.save();
+            
+            // Renderizado Zona Izquierda
+            if (zonaIzquierdaHabilitada) {
+                ctx.fillStyle = 'rgba(144, 238, 144, 0.4)'; // Siempre coloreado al habilitar
+                ctx.fillRect(0, 0, ZONA_WIDTH, canvas.height);
+                ctx.beginPath();
+                ctx.moveTo(ZONA_WIDTH, 0);
+                ctx.lineTo(ZONA_WIDTH, canvas.height);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(40, 167, 69, 0.8)'; // Línea continua sólida
+                ctx.stroke();
+            }
+
+            // Renderizado Zona Derecha
+            if (zonaDerechaHabilitada) {
+                ctx.fillStyle = 'rgba(255, 182, 193, 0.4)'; // Siempre coloreado al habilitar
+                ctx.fillRect(canvas.width - ZONA_WIDTH, 0, ZONA_WIDTH, canvas.height);
+                ctx.beginPath();
+                ctx.moveTo(canvas.width - ZONA_WIDTH, 0);
+                ctx.lineTo(canvas.width - ZONA_WIDTH, canvas.height);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(220, 53, 69, 0.8)'; // Línea continua sólida
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+
             if (bolitaSeleccionada) {
-                // Desenfoque de las demás
                 bolitas.forEach(b => {
                     if (b !== bolitaSeleccionada && !b.marcadaParaBorrar) {
                         ctx.globalAlpha = 0.2;
@@ -837,15 +944,13 @@
 
                 const b = bolitaSeleccionada;
                 
-                // Si es un grupo individual, se va a la izquierda (x=180). Si es un grupo se va al centro.
-                const targetX = (maxGrupo === 1) ? 180 : canvas.width / 2;
+                const targetX = (maxGrupo === 1) ? (zonaIzquierdaHabilitada ? ZONA_WIDTH + 140 : 140) : canvas.width / 2;
                 
                 b.x += (targetX - b.x) * 0.1;
                 b.y += (canvas.height / 2 - b.y) * 0.1;
                 b.radio += (130 - b.radio) * 0.1; 
                 b.dibujar(true); 
 
-                // Mostrar el botón de la Ficha posicionado dinámicamente al lado
                 const btnFicha = document.getElementById('btn-abrir-ficha');
                 btnFicha.style.display = 'block';
                 btnFicha.style.left = (b.x + b.radio + 20) + 'px';
@@ -872,7 +977,12 @@
                 if (!isPaused) verificarEstancamiento(); 
                 
                 bolitas.forEach(bolita => {
-                    bolita.actualizar(bolitas, isPaused);
+                    // Si la bolita está en zona, no interactúa ni se mueve, solo se dibuja inerte
+                    if (bolita.enZona) {
+                        bolita.dibujar(false); 
+                    } else {
+                        bolita.actualizar(bolitas, isPaused);
+                    }
                 });
                 bolitas = bolitas.filter(b => !b.marcadaParaBorrar);
             }
@@ -884,12 +994,11 @@
         // -------------------------------------------------------------
         // Temporizadores para Pantalla Principal y Sidebar Desfases
         // -------------------------------------------------------------
-        const coloresMetalicos = ['#C0C0C0', '#CD7F32']; // Plata y Bronce
+        const coloresMetalicos = ['#C0C0C0', '#CD7F32']; 
         const coloresFondo = ['#f4f4f9', '#e6f7ff', '#f0fff0', '#fff0f5', '#ffffe6', '#f5e6ff', '#e6ffee', '#ffebcd', '#f0ffff'];
         const coloresFondoDerecha = ['#fff0f5', '#f0f8ff', '#f5fffa', '#fffacd', '#f0ffff', '#ffe4e1', '#e6e6fa', '#ffebcd', '#fdf5e6']; 
 
-        // Principal (20s borde, 15s fondo)
-        let indiceMarco = 1; // Empieza en Bronce
+        let indiceMarco = 1; 
         let indiceFondo = 0;
         let indiceFondoCaja = 0;
 
@@ -902,16 +1011,13 @@
             indiceFondo = (indiceFondo + 1) % coloresFondo.length;
             document.body.style.backgroundColor = coloresFondo[indiceFondo];
 
-            // Cambia el fondo de la caja de la derecha cada 15 segundos
             indiceFondoCaja = (indiceFondoCaja + 1) % coloresFondoDerecha.length;
             document.getElementById('canvas-container').style.backgroundColor = coloresFondoDerecha[indiceFondoCaja];
         }, 15000);
 
-        // Sidebar Izquierdo (desfasado: 20s borde, 16s fondo)
-        let indiceMarcoSidebar = 0; // Empieza en Plata
+        let indiceMarcoSidebar = 0; 
         let indiceFondoSidebar = 5;
         
-        // Retrasamos el temporizador del sidebar 10 segundos para que NUNCA coincida
         setTimeout(() => {
             setInterval(() => {
                 indiceMarcoSidebar = (indiceMarcoSidebar + 1) % coloresMetalicos.length;
