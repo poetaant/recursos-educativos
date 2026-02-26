@@ -25,7 +25,7 @@
             border: 8px ridge #C0C0C0; 
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            padding: 10px 15px; /* Reducido para compactar */
+            padding: 10px 15px; 
             display: flex;
             flex-direction: column;
             overflow-y: auto;
@@ -51,7 +51,7 @@
         }
 
         h3 {
-            margin: 8px 0 6px 0; /* Márgenes ajustados para juntar verticalmente */
+            margin: 8px 0 6px 0; 
             color: #00008B; 
             font-size: 14px; 
             text-align: center;
@@ -66,7 +66,7 @@
         .tabla-cursos {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px; /* Reducido para juntar con el siguiente bloque */
+            margin-bottom: 8px; 
             background: white;
             border-radius: 8px;
             overflow: hidden;
@@ -99,7 +99,7 @@
         .grupo-botones {
             display: flex;
             flex-direction: column;
-            gap: 6px; /* Gap reducido */
+            gap: 6px; 
         }
 
         .grupo-botones button {
@@ -126,7 +126,6 @@
 
         /* Botones Franjas */
         .btn-zona {
-            background-color: #fff;
             padding: 6px;
             border-radius: 8px;
             font-weight: bold;
@@ -134,20 +133,39 @@
             transition: all 0.2s;
             font-size: 12px;
             border: 2px solid;
+            color: white; /* Letras en blanco */
         }
-        #btn-zona-izq { border-color: #28a745; color: #28a745; }
-        #btn-zona-izq:hover { background-color: rgba(40, 167, 69, 0.1); }
-        #btn-zona-izq.activo { background-color: #28a745; color: #fff; }
+        #btn-zona-izq { 
+            background-color: #28a745; /* Botón verde */
+            border-color: #1e7e34; 
+        }
+        #btn-zona-izq:hover { 
+            background-color: #218838; 
+        }
+        #btn-zona-izq.activo { 
+            background-color: #1c7430; 
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5); /* Efecto hundido al estar activo */
+            border-color: #145523;
+        }
         
-        #btn-zona-der { border-color: #dc3545; color: #dc3545; }
-        #btn-zona-der:hover { background-color: rgba(220, 53, 69, 0.1); }
-        #btn-zona-der.activo { background-color: #dc3545; color: #fff; }
+        #btn-zona-der { 
+            background-color: #dc3545; /* Botón rojo */
+            border-color: #bd2130; 
+        }
+        #btn-zona-der:hover { 
+            background-color: #c82333; 
+        }
+        #btn-zona-der.activo { 
+            background-color: #b02a37; 
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5); /* Efecto hundido al estar activo */
+            border-color: #87202a;
+        }
 
         /* Cuadrícula 2x2 para los botones de grupos */
         .grid-grupos {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 6px; /* Ajustado para compactar */
+            gap: 6px; 
         }
 
         /* Botón Stop Especial */
@@ -155,7 +173,7 @@
             background-color: #ff3333;
             color: white;
             border-color: #cc0000;
-            margin-top: 2px; /* Reducido */
+            margin-top: 2px; 
             font-size: 13px; 
             padding: 8px;
         }
@@ -368,9 +386,10 @@
         let bolitaEnRetorno = null;
         let maxGrupo = 1;
         let temporizadorEstancamiento = 0; 
+        let spawnTimeout = null; // NUEVO: Control para la salida de bolitas una a una
 
         // Zonas Laterales (Aparcamiento)
-        const ZONA_WIDTH = 90; // Franjas estrechas
+        const ZONA_WIDTH = 90; 
         let zonaIzquierdaHabilitada = false;
         let zonaDerechaHabilitada = false;
 
@@ -422,7 +441,6 @@
                 const btn = document.getElementById('btn-zona-izq');
                 if (zonaIzquierdaHabilitada) {
                     btn.classList.add('activo');
-                    // Expulsar bolitas que estén en el camino pero no puestas a mano
                     bolitas.forEach(b => {
                         if (!b.enZona && b.x - b.radio < ZONA_WIDTH) {
                             b.x = ZONA_WIDTH + b.radio;
@@ -438,7 +456,6 @@
                 const btn = document.getElementById('btn-zona-der');
                 if (zonaDerechaHabilitada) {
                     btn.classList.add('activo');
-                    // Expulsar bolitas
                     bolitas.forEach(b => {
                         if (!b.enZona && b.x + b.radio > canvas.width - ZONA_WIDTH) {
                             b.x = canvas.width - ZONA_WIDTH - b.radio;
@@ -472,7 +489,6 @@
             }
         }
 
-        // Gestión de la Ficha Modal
         function abrirFicha() {
             if (!bolitaSeleccionada) return;
             const nombreGrupo = bolitaSeleccionada.nombres.join(', ');
@@ -548,11 +564,16 @@
                 this.forzarFusionCon = null; 
                 this.enZona = false; 
                 
-                this.dx = (Math.random() - 0.5) * 6;
-                this.dy = (Math.random() - 0.5) * 6;
+                // VELOCIDAD AÚN MÁS REDUCIDA Y DIRIGIDA AL CENTRO DE INICIO
+                let velX = (Math.random() * 0.8) + 0.2; // Valores muy suaves: de 0.2 a 1.0
+                let velY = (Math.random() * 0.8) + 0.2;
                 
-                if (Math.abs(this.dx) < 1.5) this.dx = this.dx < 0 ? -2 : 2;
-                if (Math.abs(this.dy) < 1.5) this.dy = this.dy < 0 ? -2 : 2;
+                // Asegurar que viajen hacia el centro al nacer
+                if (x > canvas.width / 2) velX = -velX;
+                if (y > canvas.height / 2) velY = -velY;
+
+                this.dx = velX;
+                this.dy = velY;
             }
 
             dibujar(esGrande = false) {
@@ -598,7 +619,6 @@
 
                 if (pausado) return; 
 
-                // Muros fijos desde que pulsamos el botón de la franja
                 let limiteIzquierdo = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
                 let limiteDerecho = zonaDerechaHabilitada ? canvas.width - ZONA_WIDTH : canvas.width;
 
@@ -616,7 +636,6 @@
                     if (this.y - this.radio <= 0) this.y = this.radio;
                 }
 
-                // Chocar con otras bolas
                 for (let i = 0; i < bolitasArray.length; i++) {
                     let otra = bolitasArray[i];
                     if (this === otra || otra.marcadaParaBorrar || otra.enZona) continue;
@@ -668,7 +687,6 @@
             }
         }
 
-        // Lógica de "Explotar y Repartir Equitativamente"
         function verificarEstancamiento() {
             if (maxGrupo <= 1) return;
             if (bolitas.some(b => b.cooldownFusion > 0)) { temporizadorEstancamiento = 0; return; }
@@ -739,10 +757,11 @@
                             suelta.dx += (dx / dist) * 0.4;
                             suelta.dy += (dy / dist) * 0.4;
                             
+                            // Velocidad de atracción suave
                             let speed = Math.hypot(suelta.dx, suelta.dy);
-                            if (speed > 8) {
-                                suelta.dx = (suelta.dx / speed) * 8;
-                                suelta.dy = (suelta.dy / speed) * 8;
+                            if (speed > 5) {
+                                suelta.dx = (suelta.dx / speed) * 5;
+                                suelta.dy = (suelta.dy / speed) * 5;
                             }
                         }
                     }
@@ -760,7 +779,8 @@
                 let anguloBase = Math.random() * Math.PI * 2;
                 for (let i = 0; i < cantidad; i++) {
                     let angulo = anguloBase + (Math.PI * 2 / cantidad) * i;
-                    let velocidadExplosion = 12; 
+                    // Explosiones más suaves también
+                    let velocidadExplosion = 8; 
                     let spawnX = b.x + Math.cos(angulo) * 15;
                     let spawnY = b.y + Math.sin(angulo) * 15;
 
@@ -773,7 +793,6 @@
             });
         }
 
-        // Lógica de Ratón: Arrastrar en pausa vs Seleccionar Bolita
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -836,7 +855,6 @@
                 if (!isDragging) {
                     manejarClick(mouseX, mouseY); 
                 } else {
-                    // Solo permite dejarla si la franja fue activada con el botón correspondiente
                     if (bolitaArrastrada.x < ZONA_WIDTH && zonaIzquierdaHabilitada) {
                         bolitaArrastrada.enZona = 'izquierda';
                     } else if (bolitaArrastrada.x > canvas.width - ZONA_WIDTH && zonaDerechaHabilitada) {
@@ -876,29 +894,53 @@
             bolitaSeleccionada = null;
             bolitaEnRetorno = null;
 
-            // Asegurarnos de que no inicien detrás de muros existentes
+            // Limpiamos la cola de salida si había otra clase saliendo
+            if (spawnTimeout) clearTimeout(spawnTimeout);
+
             let limIzq = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
             let limDer = zonaDerechaHabilitada ? ZONA_WIDTH : 0;
 
-            for (let i = 0; i < nombresActuales.length; i++) {
+            let index = 0;
+
+            // Función recursiva para que salgan una a una
+            function spawnNext() {
+                if (index >= nombresActuales.length) return;
+
+                let esquina = index % 4; // Distribuir de una en una por las 4 esquinas cíclicamente
                 let x, y;
-                let superpuesto = true;
-                let intentos = 0;
-                while (superpuesto && intentos < 100) { 
-                    x = Math.random() * (canvas.width - limIzq - limDer - RADIO_BASE * 2) + RADIO_BASE + limIzq;
-                    y = Math.random() * (canvas.height - RADIO_BASE * 2) + RADIO_BASE;
-                    superpuesto = false;
-                    for (let j = 0; j < bolitas.length; j++) {
-                        const dist = Math.hypot(x - bolitas[j].x, y - bolitas[j].y);
-                        if (dist < RADIO_BASE * 2 + 5) { 
-                            superpuesto = true;
-                            break;
-                        }
-                    }
-                    intentos++;
+                
+                // Las colocamos exactamente en el extremo de las esquinas respetando el muro
+                let marginX = RADIO_BASE + 5;
+                let marginY = RADIO_BASE + 5;
+
+                if (esquina === 0) { // Arriba-Izquierda
+                    x = limIzq + marginX;
+                    y = marginY;
+                } else if (esquina === 1) { // Arriba-Derecha
+                    x = canvas.width - limDer - marginX;
+                    y = marginY;
+                } else if (esquina === 2) { // Abajo-Izquierda
+                    x = limIzq + marginX;
+                    y = canvas.height - marginY;
+                } else { // Abajo-Derecha
+                    x = canvas.width - limDer - marginX;
+                    y = canvas.height - marginY;
                 }
-                bolitas.push(new Bolita(x, y, RADIO_BASE, colorAleatorio(), [nombresActuales[i]]));
+
+                // Asegurarnos que nacen estrictamente dentro de su área permitida
+                if (x < limIzq + RADIO_BASE) x = limIzq + RADIO_BASE;
+                if (x > canvas.width - limDer - RADIO_BASE) x = canvas.width - limDer - RADIO_BASE;
+                if (y < RADIO_BASE) y = RADIO_BASE;
+                if (y > canvas.height - RADIO_BASE) y = canvas.height - RADIO_BASE;
+
+                bolitas.push(new Bolita(x, y, RADIO_BASE, colorAleatorio(), [nombresActuales[index]]));
+                
+                index++;
+                // Llama a la siguiente bolita en 250 milisegundos (efecto cascada)
+                spawnTimeout = setTimeout(spawnNext, 250); 
             }
+
+            spawnNext();
         }
 
         function animar() {
@@ -907,27 +949,25 @@
             
             ctx.save();
             
-            // Renderizado Zona Izquierda
             if (zonaIzquierdaHabilitada) {
-                ctx.fillStyle = 'rgba(144, 238, 144, 0.4)'; // Siempre coloreado al habilitar
+                ctx.fillStyle = 'rgba(144, 238, 144, 0.4)'; 
                 ctx.fillRect(0, 0, ZONA_WIDTH, canvas.height);
                 ctx.beginPath();
                 ctx.moveTo(ZONA_WIDTH, 0);
                 ctx.lineTo(ZONA_WIDTH, canvas.height);
                 ctx.lineWidth = 4;
-                ctx.strokeStyle = 'rgba(40, 167, 69, 0.8)'; // Línea continua sólida
+                ctx.strokeStyle = 'rgba(40, 167, 69, 0.8)'; 
                 ctx.stroke();
             }
 
-            // Renderizado Zona Derecha
             if (zonaDerechaHabilitada) {
-                ctx.fillStyle = 'rgba(255, 182, 193, 0.4)'; // Siempre coloreado al habilitar
+                ctx.fillStyle = 'rgba(255, 182, 193, 0.4)'; 
                 ctx.fillRect(canvas.width - ZONA_WIDTH, 0, ZONA_WIDTH, canvas.height);
                 ctx.beginPath();
                 ctx.moveTo(canvas.width - ZONA_WIDTH, 0);
                 ctx.lineTo(canvas.width - ZONA_WIDTH, canvas.height);
                 ctx.lineWidth = 4;
-                ctx.strokeStyle = 'rgba(220, 53, 69, 0.8)'; // Línea continua sólida
+                ctx.strokeStyle = 'rgba(220, 53, 69, 0.8)'; 
                 ctx.stroke();
             }
             
@@ -977,7 +1017,6 @@
                 if (!isPaused) verificarEstancamiento(); 
                 
                 bolitas.forEach(bolita => {
-                    // Si la bolita está en zona, no interactúa ni se mueve, solo se dibuja inerte
                     if (bolita.enZona) {
                         bolita.dibujar(false); 
                     } else {
@@ -991,9 +1030,6 @@
         ajustarCanvas();
         animar();
 
-        // -------------------------------------------------------------
-        // Temporizadores para Pantalla Principal y Sidebar Desfases
-        // -------------------------------------------------------------
         const coloresMetalicos = ['#C0C0C0', '#CD7F32']; 
         const coloresFondo = ['#f4f4f9', '#e6f7ff', '#f0fff0', '#fff0f5', '#ffffe6', '#f5e6ff', '#e6ffee', '#ffebcd', '#f0ffff'];
         const coloresFondoDerecha = ['#fff0f5', '#f0f8ff', '#f5fffa', '#fffacd', '#f0ffff', '#ffe4e1', '#e6e6fa', '#ffebcd', '#fdf5e6']; 
