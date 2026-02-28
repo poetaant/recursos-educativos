@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bolitas Interactivas - Cursos</title>
+    <!-- Librería para generar PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -133,10 +135,10 @@
             transition: all 0.2s;
             font-size: 12px;
             border: 2px solid;
-            color: white; /* Letras en blanco */
+            color: white; 
         }
         #btn-zona-izq { 
-            background-color: #28a745; /* Botón verde */
+            background-color: #28a745; 
             border-color: #1e7e34; 
         }
         #btn-zona-izq:hover { 
@@ -144,12 +146,12 @@
         }
         #btn-zona-izq.activo { 
             background-color: #1c7430; 
-            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5); /* Efecto hundido al estar activo */
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5); 
             border-color: #145523;
         }
         
         #btn-zona-der { 
-            background-color: #dc3545; /* Botón rojo */
+            background-color: #dc3545; 
             border-color: #bd2130; 
         }
         #btn-zona-der:hover { 
@@ -157,7 +159,7 @@
         }
         #btn-zona-der.activo { 
             background-color: #b02a37; 
-            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5); /* Efecto hundido al estar activo */
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5); 
             border-color: #87202a;
         }
 
@@ -195,12 +197,39 @@
             top: 20px;
             left: 20px; 
             color: #ff3399;
-            font-size: 28px;
             font-weight: bold;
             text-align: left;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
-            pointer-events: none;
+            pointer-events: auto; /* Permite hacer clic en botones dentro */
             z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .titulo-superior {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 28px;
+        }
+
+        .btn-abrir-informe {
+            display: none;
+            padding: 6px 12px;
+            background: #fff;
+            border: 2px solid #ff3399;
+            color: #ff3399;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        .btn-abrir-informe:hover {
+            background: #ff66b2;
+            color: white;
         }
 
         .subtitulo {
@@ -209,7 +238,6 @@
             display: block;
             font-weight: normal;
             text-shadow: none;
-            margin-top: 5px;
         }
 
         /* Botón flotante para la ficha */
@@ -230,8 +258,8 @@
         }
         #btn-abrir-ficha:hover { transform: scale(1.05); }
 
-        /* Modal Ficha */
-        #modal-ficha {
+        /* Modal Ficha y Modal Informes*/
+        .modal-overlay {
             display: none;
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -241,7 +269,7 @@
             align-items: center;
         }
 
-        #modal-content {
+        .modal-content {
             background: white;
             padding: 20px;
             border-radius: 12px;
@@ -253,7 +281,7 @@
             border: 5px solid #ff66b2;
         }
 
-        #modal-content h2 { margin: 0; color: #ff3399; }
+        .modal-content h2 { margin: 0; color: #ff3399; }
         
         #ficha-texto {
             width: 100%;
@@ -276,6 +304,36 @@
             margin-bottom: -15px;
         }
         .close-btn:hover { color: #ff3399; }
+        
+        .btn-modal-accion {
+            background-color: #ff66b2;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-modal-accion:hover {
+            background-color: #ff3399;
+        }
+
+        .btn-informe-opcion {
+            background-color: #fff;
+            border: 2px solid #ff99cc;
+            color: #00008B;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+            text-align: left;
+        }
+        .btn-informe-opcion:hover { background-color: #ffe6f2; color: #ff3399; }
+
     </style>
 </head>
 <body>
@@ -334,9 +392,12 @@
 
     <!-- Área del Canvas Derecho -->
     <main id="canvas-container">
-        <!-- Títulos Superiores -->
+        <!-- Títulos Superiores y Botón de Informe -->
         <div class="titulo">
-            <span id="nombre-clase-titulo">Selecciona un curso</span>
+            <div class="titulo-superior">
+                <span id="nombre-clase-titulo">Selecciona un curso</span>
+                <button id="btn-abrir-informe" class="btn-abrir-informe" onclick="abrirModalInforme()">📄 Informe</button>
+            </div>
             <span class="subtitulo" id="subtitulo-clase">Esperando selección...</span>
         </div>
 
@@ -344,22 +405,103 @@
         <button id="btn-abrir-ficha" onclick="abrirFicha()">📝 Abrir Ficha</button>
 
         <!-- Modal emergente Ficha -->
-        <div id="modal-ficha">
-            <div id="modal-content">
+        <div id="modal-ficha" class="modal-overlay">
+            <div class="modal-content">
                 <span class="close-btn" onclick="cerrarFicha()">&times;</span>
                 <h2 id="ficha-titulo">Ficha</h2>
-                <textarea id="ficha-texto" placeholder="Añade notas aquí..."></textarea>
+                <textarea id="ficha-texto" placeholder="Añade notas... Todo se guarda automáticamente."></textarea>
+                <button class="btn-modal-accion" onclick="cerrarFicha()">💾 Guardar y Cerrar</button>
+            </div>
+        </div>
+
+        <!-- Modal emergente Generar Informe -->
+        <div id="modal-informe" class="modal-overlay" style="z-index: 300;">
+            <div class="modal-content">
+                <span class="close-btn" onclick="cerrarModalInforme()">&times;</span>
+                <h2>Generar PDF</h2>
+                
+                <button class="btn-informe-opcion" onclick="generarInformeCurso()">📑 Informe de Todo el Curso</button>
+                
+                <button class="btn-informe-opcion" onclick="mostrarSelectAlumnos()">👤 Informe por Alumno</button>
+                <div id="div-select-alumnos" style="display: none; flex-direction: column; gap: 10px; margin-left: 15px;">
+                    <select id="select-alumno-informe" style="padding: 8px; border-radius: 5px; border: 1px solid #ff99cc; color:#00008B; font-weight:bold;"></select>
+                    <button class="btn-modal-accion" style="background-color: #28a745; padding: 8px;" onclick="generarInformeAlumno()">Generar PDF del Alumno</button>
+                </div>
+                
+                <button class="btn-informe-opcion" onclick="generarInformeGrupos()">👥 Informe de Grupos Manuales</button>
             </div>
         </div>
 
         <canvas id="miCanvas"></canvas>
     </main>
 
-    <script>
+    <!-- LIBRERÍAS DE BASE DE DATOS Y LÓGICA (TIPO MÓDULO) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variables de entorno para la nube
+        let auth, db, appId, currentUser;
+        
+        // Diccionario de Notas Ficha
+        const notasAlumnos = {};
+
+        // Inicialización de la base de datos en la nube
+        async function initFirebase() {
+            if (typeof __firebase_config === 'undefined') return;
+            
+            const firebaseConfig = JSON.parse(__firebase_config);
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    loadNotasFromFirestore();
+                }
+            });
+        }
+
+        initFirebase();
+
+        function loadNotasFromFirestore() {
+            if (!currentUser || !db) return;
+            const notasRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'notas_alumnos');
+            onSnapshot(notasRef, (snapshot) => {
+                snapshot.forEach(documento => {
+                    notasAlumnos[documento.id] = documento.data().texto;
+                });
+            }, (error) => {
+                console.error("Error cargando notas:", error);
+            });
+        }
+
+        async function saveNotaToFirestore(nombreGrupo, texto) {
+            if (!currentUser || !db) return;
+            const safeId = nombreGrupo.replace(/\//g, '-');
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'notas_alumnos', safeId);
+            try {
+                await setDoc(docRef, { texto: texto, updatedAt: new Date().toISOString() });
+            } catch (error) {
+                console.error("Error guardando nota:", error);
+            }
+        }
+
+
+        // --- LÓGICA PRINCIPAL DE LAS BOLITAS ---
+
         const canvas = document.getElementById('miCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Base de datos consolidada
         const datosCursos = {
             "I3A": ["Jorge", "Mario", "Maia", "Vega", "Laia", "Candela", "Eiden", "Valeria", "Serigne", "Luna", "Adariannys", "Erik", "Leo", "Julia", "Ángela"],
             "I3B": ["Ariana", "Román", "Mateo", "Gonzalo", "Illán", "Eva", "Nahia", "Pelayo", "Ari", "Iago", "Carla", "Nel", "Vera", "Tristán", "Chloe", "Eda"],
@@ -382,25 +524,23 @@
         let bolitas = [];
         const RADIO_BASE = 40; 
         
+        let cursoActualSeleccionado = "";
         let bolitaSeleccionada = null;
         let bolitaEnRetorno = null;
         let maxGrupo = 1;
         let temporizadorEstancamiento = 0; 
-        let spawnTimeout = null; // NUEVO: Control para la salida de bolitas una a una
+        let spawnTimeout = null; 
 
-        // Zonas Laterales (Aparcamiento)
+        // Zonas Laterales
         const ZONA_WIDTH = 90; 
         let zonaIzquierdaHabilitada = false;
         let zonaDerechaHabilitada = false;
 
-        // Variables de Arrastre y Pausa
         let isPaused = false;
         let bolitaArrastrada = null;
         let isDragging = false;
         let startX, startY;
 
-        // Diccionario de Notas Ficha
-        const notasAlumnos = {};
 
         function ajustarCanvas() {
             const container = document.getElementById('canvas-container');
@@ -416,7 +556,11 @@
             });
         });
 
-        function seleccionarCurso(curso, elementoTd) {
+        // -------------------------------------------------------------
+        // LOGICA DE INTERFAZ HTML EXPORTADA
+        // -------------------------------------------------------------
+        window.seleccionarCurso = function(curso, elementoTd) {
+            cursoActualSeleccionado = curso;
             document.querySelectorAll('.tabla-cursos td').forEach(td => td.classList.remove('activo'));
             if(elementoTd) elementoTd.classList.add('activo');
 
@@ -424,18 +568,21 @@
             document.getElementById('nombre-clase-titulo').innerText = curso; 
             document.getElementById('subtitulo-clase').innerText = "Haz clic en una bolita para verla en grande";
             
-            setGrupo(1); 
-            iniciar();
-        }
+            // Mostrar Botón de Informe
+            document.getElementById('btn-abrir-informe').style.display = 'block';
+            
+            window.setGrupo(1); 
+            window.reiniciarBolas();
+        };
 
-        function setGrupo(num) {
+        window.setGrupo = function(num) {
             maxGrupo = num;
             temporizadorEstancamiento = 0; 
             document.querySelectorAll('.grupo-botones button').forEach(btn => btn.classList.remove('activo'));
             document.getElementById('btn-' + num).classList.add('activo');
-        }
+        };
 
-        function toggleZona(lado) {
+        window.toggleZona = function(lado) {
             if (lado === 'izquierda') {
                 zonaIzquierdaHabilitada = !zonaIzquierdaHabilitada;
                 const btn = document.getElementById('btn-zona-izq');
@@ -467,15 +614,62 @@
                     bolitas.forEach(b => { if (b.enZona === 'derecha') b.enZona = false; });
                 }
             }
-        }
+        };
 
-        function reiniciarBolas() {
+        window.reiniciarBolas = function() {
             if (nombresActuales.length === 0) return;
-            setGrupo(1);
-            iniciar();
-        }
+            window.setGrupo(1);
+            
+            ajustarCanvas(); 
+            bolitas = [];
+            document.getElementById('btn-abrir-ficha').style.display = 'none';
+            bolitaSeleccionada = null;
+            bolitaEnRetorno = null;
 
-        function toggleStop() {
+            if (spawnTimeout) clearTimeout(spawnTimeout);
+
+            let limIzq = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
+            let limDer = zonaDerechaHabilitada ? ZONA_WIDTH : 0;
+
+            let index = 0;
+
+            function spawnNext() {
+                if (index >= nombresActuales.length) return;
+
+                let esquina = index % 4; 
+                let x, y;
+                let marginX = RADIO_BASE + 5;
+                let marginY = RADIO_BASE + 5;
+
+                if (esquina === 0) { 
+                    x = limIzq + marginX;
+                    y = marginY;
+                } else if (esquina === 1) { 
+                    x = canvas.width - limDer - marginX;
+                    y = marginY;
+                } else if (esquina === 2) { 
+                    x = limIzq + marginX;
+                    y = canvas.height - marginY;
+                } else { 
+                    x = canvas.width - limDer - marginX;
+                    y = canvas.height - marginY;
+                }
+
+                if (x < limIzq + RADIO_BASE) x = limIzq + RADIO_BASE;
+                if (x > canvas.width - limDer - RADIO_BASE) x = canvas.width - limDer - RADIO_BASE;
+                if (y < RADIO_BASE) y = RADIO_BASE;
+                if (y > canvas.height - RADIO_BASE) y = canvas.height - RADIO_BASE;
+
+                bolitas.push(new Bolita(x, y, RADIO_BASE, colorAleatorio(), [nombresActuales[index]]));
+                
+                index++;
+                spawnTimeout = setTimeout(spawnNext, 250); 
+            }
+
+            spawnNext();
+        };
+
+        window.toggleStop = function() {
             isPaused = !isPaused;
             const btn = document.getElementById('btn-stop');
             if (isPaused) {
@@ -487,21 +681,181 @@
                 btn.classList.remove('activo-stop');
                 document.getElementById('subtitulo-clase').innerText = "Haz clic en una bolita para verla en grande";
             }
-        }
+        };
 
-        function abrirFicha() {
+        // --- SISTEMA INTELIGENTE DE FICHAS ---
+        window.abrirFicha = function() {
             if (!bolitaSeleccionada) return;
             const nombreGrupo = bolitaSeleccionada.nombres.join(', ');
             document.getElementById('ficha-titulo').innerText = nombreGrupo;
-            document.getElementById('ficha-texto').value = notasAlumnos[nombreGrupo] || '';
+            
+            let textoExistente = notasAlumnos[nombreGrupo] || '';
+            
+            // Inteligencia de fechas y guiones
+            const hoy = new Date();
+            const fechaStr = hoy.toLocaleDateString('es-ES'); 
+            
+            let textoLimpio = textoExistente.trim();
+            if (textoLimpio === '') {
+                textoExistente = fechaStr + '\n- ';
+            } else {
+                if (!textoLimpio.includes(fechaStr)) {
+                    textoExistente = textoLimpio + '\n\n' + fechaStr + '\n- ';
+                } else if (!textoLimpio.endsWith('-')) {
+                    textoExistente = textoLimpio + '\n- ';
+                } else {
+                    textoExistente = textoLimpio + ' ';
+                }
+            }
+            
+            document.getElementById('ficha-texto').value = textoExistente;
+            
+            let esIndividual = bolitaSeleccionada.nombres.length === 1;
+            let esManual = bolitaSeleccionada.esManual;
+            
+            if (esIndividual || esManual) {
+                document.getElementById('ficha-texto').placeholder = "Añade notas... Todo se guarda permanentemente en la nube.";
+            } else {
+                document.getElementById('ficha-texto').placeholder = "⚠️ Modo Grupo Automático: Las notas aquí se guardarán solo durante esta sesión. (Júntalos arrastrándolos a mano en STOP para guardarlos para siempre).";
+            }
+
             document.getElementById('modal-ficha').style.display = 'flex';
+            
+            setTimeout(() => {
+                const textarea = document.getElementById('ficha-texto');
+                textarea.focus();
+                textarea.selectionStart = textarea.value.length;
+                textarea.selectionEnd = textarea.value.length;
+            }, 50);
+        };
+
+        window.cerrarFicha = function() {
+            const nombreGrupo = document.getElementById('ficha-titulo').innerText;
+            const textoActualizado = document.getElementById('ficha-texto').value;
+            
+            notasAlumnos[nombreGrupo] = textoActualizado;
+            
+            if (bolitaSeleccionada) {
+                let esIndividual = bolitaSeleccionada.nombres.length === 1;
+                let esManual = bolitaSeleccionada.esManual;
+                
+                if (esIndividual || esManual) {
+                    saveNotaToFirestore(nombreGrupo, textoActualizado);
+                }
+            }
+            document.getElementById('modal-ficha').style.display = 'none';
+        };
+
+        // --- SISTEMA DE GENERACIÓN DE INFORMES PDF ---
+        window.abrirModalInforme = function() {
+            document.getElementById('div-select-alumnos').style.display = 'none';
+            document.getElementById('modal-informe').style.display = 'flex';
+        };
+
+        window.cerrarModalInforme = function() {
+            document.getElementById('modal-informe').style.display = 'none';
+        };
+
+        window.mostrarSelectAlumnos = function() {
+            const select = document.getElementById('select-alumno-informe');
+            select.innerHTML = '';
+            
+            // Ordenar los nombres alfabéticamente teniendo en cuenta acentos en español
+            const nombresOrdenados = [...nombresActuales].sort((a, b) => a.localeCompare(b, 'es'));
+            
+            nombresOrdenados.forEach(nombre => {
+                const opt = document.createElement('option');
+                opt.value = nombre;
+                opt.innerText = nombre;
+                select.appendChild(opt);
+            });
+            document.getElementById('div-select-alumnos').style.display = 'flex';
+        };
+
+        function exportarPDF(nombreArchivo, tituloCabecera, secciones) {
+            // Requerimos que la librería jsPDF haya cargado
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 20;
+
+            // Título Principal
+            doc.setFontSize(18);
+            doc.setTextColor(255, 51, 153); // Rosa corporativo
+            doc.text(tituloCabecera, 10, y);
+            y += 12;
+
+            doc.setFontSize(12);
+
+            secciones.forEach(sec => {
+                if (y > 270) { doc.addPage(); y = 20; } // Salto de página
+                
+                // Nombre del Alumno o Grupo
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(0, 0, 139); // Azul oscuro
+                doc.text(sec.nombre, 10, y);
+                y += 7;
+
+                // Contenido de la ficha
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(0, 0, 0); // Negro para texto normal
+                
+                if (!sec.contenido || sec.contenido.trim() === '') {
+                    doc.text("Sin registros.", 10, y);
+                    y += 10;
+                } else {
+                    // Divide el texto respetando los saltos de línea de la caja de texto y ajustándolo al ancho
+                    const lineas = doc.splitTextToSize(sec.contenido, 180);
+                    lineas.forEach(linea => {
+                        if (y > 280) { doc.addPage(); y = 20; }
+                        doc.text(linea, 10, y);
+                        y += 7;
+                    });
+                    y += 5;
+                }
+                y += 5; // Separador entre estudiantes/grupos
+            });
+
+            doc.save(nombreArchivo + ".pdf");
+            window.cerrarModalInforme();
         }
 
-        function cerrarFicha() {
-            const nombreGrupo = document.getElementById('ficha-titulo').innerText;
-            notasAlumnos[nombreGrupo] = document.getElementById('ficha-texto').value;
-            document.getElementById('modal-ficha').style.display = 'none';
-        }
+        window.generarInformeCurso = function() {
+            if (!cursoActualSeleccionado) return;
+            const secciones = nombresActuales.map(nombre => ({
+                nombre: nombre,
+                contenido: notasAlumnos[nombre] || ''
+            }));
+            exportarPDF(cursoActualSeleccionado, "Informe de Curso: " + cursoActualSeleccionado, secciones);
+        };
+
+        window.generarInformeAlumno = function() {
+            const alumno = document.getElementById('select-alumno-informe').value;
+            if (!alumno) return;
+            exportarPDF(alumno, "Informe Alumno: " + alumno + " (Clase: " + cursoActualSeleccionado + ")", [{
+                nombre: alumno,
+                contenido: notasAlumnos[alumno] || ''
+            }]);
+        };
+
+        window.generarInformeGrupos = function() {
+            if (!cursoActualSeleccionado) return;
+            // Busca en la BBDD los grupos que tengan comas (varios miembros) y que pertenezcan a este curso
+            let gruposDelCurso = Object.keys(notasAlumnos).filter(k => k.includes(',') && k.split(', ').some(n => nombresActuales.includes(n)));
+            
+            let secciones = gruposDelCurso.map(g => ({
+                nombre: g,
+                contenido: notasAlumnos[g] || ''
+            }));
+
+            if (secciones.length === 0) {
+                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en este curso." }];
+            }
+            
+            exportarPDF("Grupos_" + cursoActualSeleccionado, "Informe Grupos Manuales: " + cursoActualSeleccionado, secciones);
+        };
+
+
+        // --- FÍSICAS DE LAS BOLITAS ---
 
         function colorAleatorio() {
             const colores = [
@@ -563,12 +917,11 @@
                 this.tiempoLleno = 0; 
                 this.forzarFusionCon = null; 
                 this.enZona = false; 
+                this.esManual = false; 
                 
-                // VELOCIDAD INCREMENTADA Y DIRIGIDA AL CENTRO DE INICIO
-                let velX = (Math.random() * 2.0) + 1.0; // Valores más rápidos: de 1.0 a 3.0
+                let velX = (Math.random() * 2.0) + 1.0; 
                 let velY = (Math.random() * 2.0) + 1.0;
                 
-                // Asegurar que viajen hacia el centro al nacer
                 if (x > canvas.width / 2) velX = -velX;
                 if (y > canvas.height / 2) velY = -velY;
 
@@ -661,6 +1014,7 @@
 
                             this.nombres = this.nombres.concat(otra.nombres);
                             this.masa = m1 + m2;
+                            this.esManual = false; 
 
                             if (this.masa === maxGrupo && this.tiempoLleno === 0) {
                                 this.tiempoLleno = Date.now() + Math.random();
@@ -757,7 +1111,6 @@
                             suelta.dx += (dx / dist) * 0.4;
                             suelta.dy += (dy / dist) * 0.4;
                             
-                            // Velocidad de atracción suave
                             let speed = Math.hypot(suelta.dx, suelta.dy);
                             if (speed > 5) {
                                 suelta.dx = (suelta.dx / speed) * 5;
@@ -779,7 +1132,6 @@
                 let anguloBase = Math.random() * Math.PI * 2;
                 for (let i = 0; i < cantidad; i++) {
                     let angulo = anguloBase + (Math.PI * 2 / cantidad) * i;
-                    // Explosiones más suaves también
                     let velocidadExplosion = 8; 
                     let spawnX = b.x + Math.cos(angulo) * 15;
                     let spawnY = b.y + Math.sin(angulo) * 15;
@@ -855,12 +1207,32 @@
                 if (!isDragging) {
                     manejarClick(mouseX, mouseY); 
                 } else {
-                    if (bolitaArrastrada.x < ZONA_WIDTH && zonaIzquierdaHabilitada) {
-                        bolitaArrastrada.enZona = 'izquierda';
-                    } else if (bolitaArrastrada.x > canvas.width - ZONA_WIDTH && zonaDerechaHabilitada) {
-                        bolitaArrastrada.enZona = 'derecha';
-                    } else {
-                        bolitaArrastrada.enZona = false;
+                    let fusionManual = false;
+                    for (let i = 0; i < bolitas.length; i++) {
+                        let otra = bolitas[i];
+                        if (otra !== bolitaArrastrada && !otra.marcadaParaBorrar) {
+                            const dist = Math.hypot(bolitaArrastrada.x - otra.x, bolitaArrastrada.y - otra.y);
+                            if (dist < (bolitaArrastrada.radio + otra.radio)) {
+                                otra.nombres = otra.nombres.concat(bolitaArrastrada.nombres);
+                                otra.masa = otra.nombres.length;
+                                otra.radioOriginal = RADIO_BASE + (otra.masa - 1) * 18;
+                                otra.radio = otra.radioOriginal;
+                                otra.esManual = true; 
+                                bolitaArrastrada.marcadaParaBorrar = true;
+                                fusionManual = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!fusionManual) {
+                        if (bolitaArrastrada.x < ZONA_WIDTH && zonaIzquierdaHabilitada) {
+                            bolitaArrastrada.enZona = 'izquierda';
+                        } else if (bolitaArrastrada.x > canvas.width - ZONA_WIDTH && zonaDerechaHabilitada) {
+                            bolitaArrastrada.enZona = 'derecha';
+                        } else {
+                            bolitaArrastrada.enZona = false;
+                        }
                     }
                 }
                 bolitaArrastrada = null;
@@ -885,62 +1257,6 @@
                     }
                 }
             }
-        }
-
-        function iniciar() {
-            ajustarCanvas(); 
-            bolitas = [];
-            document.getElementById('btn-abrir-ficha').style.display = 'none';
-            bolitaSeleccionada = null;
-            bolitaEnRetorno = null;
-
-            // Limpiamos la cola de salida si había otra clase saliendo
-            if (spawnTimeout) clearTimeout(spawnTimeout);
-
-            let limIzq = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
-            let limDer = zonaDerechaHabilitada ? ZONA_WIDTH : 0;
-
-            let index = 0;
-
-            // Función recursiva para que salgan una a una
-            function spawnNext() {
-                if (index >= nombresActuales.length) return;
-
-                let esquina = index % 4; // Distribuir de una en una por las 4 esquinas cíclicamente
-                let x, y;
-                
-                // Las colocamos exactamente en el extremo de las esquinas respetando el muro
-                let marginX = RADIO_BASE + 5;
-                let marginY = RADIO_BASE + 5;
-
-                if (esquina === 0) { // Arriba-Izquierda
-                    x = limIzq + marginX;
-                    y = marginY;
-                } else if (esquina === 1) { // Arriba-Derecha
-                    x = canvas.width - limDer - marginX;
-                    y = marginY;
-                } else if (esquina === 2) { // Abajo-Izquierda
-                    x = limIzq + marginX;
-                    y = canvas.height - marginY;
-                } else { // Abajo-Derecha
-                    x = canvas.width - limDer - marginX;
-                    y = canvas.height - marginY;
-                }
-
-                // Asegurarnos que nacen estrictamente dentro de su área permitida
-                if (x < limIzq + RADIO_BASE) x = limIzq + RADIO_BASE;
-                if (x > canvas.width - limDer - RADIO_BASE) x = canvas.width - limDer - RADIO_BASE;
-                if (y < RADIO_BASE) y = RADIO_BASE;
-                if (y > canvas.height - RADIO_BASE) y = canvas.height - RADIO_BASE;
-
-                bolitas.push(new Bolita(x, y, RADIO_BASE, colorAleatorio(), [nombresActuales[index]]));
-                
-                index++;
-                // Llama a la siguiente bolita en 250 milisegundos (efecto cascada)
-                spawnTimeout = setTimeout(spawnNext, 250); 
-            }
-
-            spawnNext();
         }
 
         function animar() {
