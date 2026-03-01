@@ -420,7 +420,7 @@
                 <span class="close-btn" onclick="cerrarModalInforme()">&times;</span>
                 <h2>Generar PDF</h2>
                 
-                <button class="btn-informe-opcion" onclick="generarInformeCurso()">📑 Informe de Todo el Curso</button>
+                <button class="btn-informe-opcion" onclick="generarInformeCurso()">📑 Informe de Todos los Seleccionados</button>
                 
                 <button class="btn-informe-opcion" onclick="mostrarSelectAlumnos()">👤 Informe por Alumno</button>
                 <div id="div-select-alumnos" style="display: none; flex-direction: column; gap: 10px; margin-left: 15px;">
@@ -435,67 +435,66 @@
         <canvas id="miCanvas"></canvas>
     </main>
 
-    <!-- LIBRERÍAS DE BASE DE DATOS Y LÓGICA (TIPO MÓDULO) -->
+    <!-- LÓGICA PRINCIPAL Y GUARDADO EN LA NUBE (FIREBASE PRIVADO) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Variables de entorno para la nube
-        let auth, db, appId, currentUser;
+        // --- TU CONFIGURACIÓN DE FIREBASE ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyA1i6ZX7hyg3oKJlTZWURhrNjGmiByDp4U",
+          authDomain: "poetaanton-bolitas.firebaseapp.com",
+          projectId: "poetaanton-bolitas",
+          storageBucket: "poetaanton-bolitas.firebasestorage.app",
+          messagingSenderId: "689573097515",
+          appId: "1:689573097515:web:9f62768f91748561453a6e",
+          measurementId: "G-HX84CE41RW"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let notasAlumnos = {};
+
+        // Iniciar Sesión Anónima para guardar datos
+        signInAnonymously(auth).catch((error) => {
+            console.error("Error al autenticar con Firebase:", error);
+        });
         
-        // Diccionario de Notas Ficha
-        const notasAlumnos = {};
-
-        // Inicialización de la base de datos en la nube
-        async function initFirebase() {
-            if (typeof __firebase_config === 'undefined') return;
-            
-            const firebaseConfig = JSON.parse(__firebase_config);
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    loadNotasFromFirestore();
-                }
-            });
-        }
-
-        initFirebase();
-
-        function loadNotasFromFirestore() {
-            if (!currentUser || !db) return;
-            const notasRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'notas_alumnos');
-            onSnapshot(notasRef, (snapshot) => {
-                snapshot.forEach(documento => {
-                    notasAlumnos[documento.id] = documento.data().texto;
+        // Escuchar datos en tiempo real cuando la sesión está lista
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                // Ruta en tu base de datos: coleccion "notas_clases" -> tu ID -> subcolección "fichas"
+                const notasRef = collection(db, 'notas_clases', user.uid, 'fichas');
+                onSnapshot(notasRef, (snapshot) => {
+                    notasAlumnos = {}; // Limpiar antes de recargar
+                    snapshot.forEach(documento => {
+                        notasAlumnos[documento.id] = documento.data().texto;
+                    });
+                }, (error) => {
+                    console.error("Error cargando notas de la nube:", error);
                 });
-            }, (error) => {
-                console.error("Error cargando notas:", error);
-            });
-        }
+            }
+        });
 
-        async function saveNotaToFirestore(nombreGrupo, texto) {
+        // Función para subir y guardar notas en la nube
+        async function guardarNotaEnNube(nombreGrupo, texto) {
             if (!currentUser || !db) return;
+            // Evita caracteres inválidos en el ID del documento
             const safeId = nombreGrupo.replace(/\//g, '-');
-            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'notas_alumnos', safeId);
+            const docRef = doc(db, 'notas_clases', currentUser.uid, 'fichas', safeId);
             try {
                 await setDoc(docRef, { texto: texto, updatedAt: new Date().toISOString() });
+                console.log("Ficha guardada correctamente en Firebase.");
             } catch (error) {
                 console.error("Error guardando nota:", error);
             }
         }
-
 
         // --- LÓGICA PRINCIPAL DE LAS BOLITAS ---
 
@@ -524,7 +523,7 @@
         let bolitas = [];
         const RADIO_BASE = 40; 
         
-        let cursoActualSeleccionado = "";
+        let cursosSeleccionados = []; // Array para guardar múltiples cursos
         let bolitaSeleccionada = null;
         let bolitaEnRetorno = null;
         let maxGrupo = 1;
@@ -560,16 +559,33 @@
         // LOGICA DE INTERFAZ HTML EXPORTADA
         // -------------------------------------------------------------
         window.seleccionarCurso = function(curso, elementoTd) {
-            cursoActualSeleccionado = curso;
-            document.querySelectorAll('.tabla-cursos td').forEach(td => td.classList.remove('activo'));
-            if(elementoTd) elementoTd.classList.add('activo');
+            // Alternar la clase activo en el botón que se ha pulsado
+            elementoTd.classList.toggle('activo');
 
-            nombresActuales = datosCursos[curso];
-            document.getElementById('nombre-clase-titulo').innerText = curso; 
-            document.getElementById('subtitulo-clase').innerText = "Haz clic en una bolita para verla en grande";
-            
-            // Mostrar Botón de Informe
-            document.getElementById('btn-abrir-informe').style.display = 'block';
+            // Añadir o quitar el curso de nuestra lista de seleccionados
+            if (elementoTd.classList.contains('activo')) {
+                cursosSeleccionados.push(curso);
+            } else {
+                cursosSeleccionados = cursosSeleccionados.filter(c => c !== curso);
+            }
+
+            // Actualizar la interfaz y la lista general de nombres
+            if (cursosSeleccionados.length === 0) {
+                document.getElementById('nombre-clase-titulo').innerText = "Selecciona un curso";
+                document.getElementById('subtitulo-clase').innerText = "Esperando selección...";
+                document.getElementById('btn-abrir-informe').style.display = 'none';
+                nombresActuales = [];
+            } else {
+                document.getElementById('nombre-clase-titulo').innerText = "Cursos: " + cursosSeleccionados.join(', '); 
+                document.getElementById('subtitulo-clase').innerText = "Haz clic en una bolita para verla en grande";
+                document.getElementById('btn-abrir-informe').style.display = 'block';
+                
+                // Juntar a todos los alumnos de todos los cursos elegidos
+                nombresActuales = [];
+                cursosSeleccionados.forEach(c => {
+                    nombresActuales = nombresActuales.concat(datosCursos[c]);
+                });
+            }
             
             window.setGrupo(1); 
             window.reiniciarBolas();
@@ -617,7 +633,6 @@
         };
 
         window.reiniciarBolas = function() {
-            if (nombresActuales.length === 0) return;
             window.setGrupo(1);
             
             ajustarCanvas(); 
@@ -627,6 +642,9 @@
             bolitaEnRetorno = null;
 
             if (spawnTimeout) clearTimeout(spawnTimeout);
+
+            // Si hemos deseleccionado todos los cursos, salimos después de limpiar la pantalla
+            if (nombresActuales.length === 0) return; 
 
             let limIzq = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
             let limDer = zonaDerechaHabilitada ? ZONA_WIDTH : 0;
@@ -740,7 +758,7 @@
                 let esManual = bolitaSeleccionada.esManual;
                 
                 if (esIndividual || esManual) {
-                    saveNotaToFirestore(nombreGrupo, textoActualizado);
+                    guardarNotaEnNube(nombreGrupo, textoActualizado);
                 }
             }
             document.getElementById('modal-ficha').style.display = 'none';
@@ -820,26 +838,29 @@
         }
 
         window.generarInformeCurso = function() {
-            if (!cursoActualSeleccionado) return;
+            if (cursosSeleccionados.length === 0) return;
+            const nombreCursos = cursosSeleccionados.join(', ');
             const secciones = nombresActuales.map(nombre => ({
                 nombre: nombre,
                 contenido: notasAlumnos[nombre] || ''
             }));
-            exportarPDF(cursoActualSeleccionado, "Informe de Curso: " + cursoActualSeleccionado, secciones);
+            exportarPDF("Cursos_" + nombreCursos.replace(/, /g, '_'), "Informe de Cursos: " + nombreCursos, secciones);
         };
 
         window.generarInformeAlumno = function() {
             const alumno = document.getElementById('select-alumno-informe').value;
             if (!alumno) return;
-            exportarPDF(alumno, "Informe Alumno: " + alumno + " (Clase: " + cursoActualSeleccionado + ")", [{
+            const nombreCursos = cursosSeleccionados.join(', ');
+            exportarPDF(alumno, "Informe Alumno: " + alumno + " (Clases: " + nombreCursos + ")", [{
                 nombre: alumno,
                 contenido: notasAlumnos[alumno] || ''
             }]);
         };
 
         window.generarInformeGrupos = function() {
-            if (!cursoActualSeleccionado) return;
-            // Busca en la BBDD los grupos que tengan comas (varios miembros) y que pertenezcan a este curso
+            if (cursosSeleccionados.length === 0) return;
+            const nombreCursos = cursosSeleccionados.join(', ');
+            // Busca en la BBDD los grupos que tengan comas (varios miembros) y que pertenezcan a los cursos activos
             let gruposDelCurso = Object.keys(notasAlumnos).filter(k => k.includes(',') && k.split(', ').some(n => nombresActuales.includes(n)));
             
             let secciones = gruposDelCurso.map(g => ({
@@ -848,10 +869,10 @@
             }));
 
             if (secciones.length === 0) {
-                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en este curso." }];
+                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en estos cursos." }];
             }
             
-            exportarPDF("Grupos_" + cursoActualSeleccionado, "Informe Grupos Manuales: " + cursoActualSeleccionado, secciones);
+            exportarPDF("Grupos_" + nombreCursos.replace(/, /g, '_'), "Informe Grupos Manuales: " + nombreCursos, secciones);
         };
 
 
