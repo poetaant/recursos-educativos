@@ -305,7 +305,6 @@
             transform: scale(1.2);
         }
 
-        /* Ahora es un div contenteditable para soportar múltiples colores */
         #ficha-texto {
             width: 100%;
             height: 150px;
@@ -315,16 +314,15 @@
             font-family: inherit;
             box-sizing: border-box;
             font-size: 14px;
-            font-weight: bold; /* TODO EL TEXTO EN NEGRITA */
+            font-weight: bold;
             overflow-y: auto;
             background: white;
             outline: none;
-            white-space: pre-wrap; /* Mantiene los saltos de línea */
+            white-space: pre-wrap; 
             color: #000000;
         }
         #ficha-texto:focus { border-color: #ff3399; }
         
-        /* Placeholder simulado para el div */
         #ficha-texto:empty:before {
             content: attr(data-placeholder);
             color: #999;
@@ -409,8 +407,8 @@
     <!-- Pantalla de Bloqueo por Contraseña -->
     <div id="login-overlay">
         <div class="login-box">
-            <h2>🔒 Acceso Restringido</h2>
-            <p style="color: #00008B; font-weight: 500;">Introduce la contraseña para acceder</p>
+            <h2>🔒 Acceso a tus Clases</h2>
+            <p style="color: #00008B; font-weight: 500;">Introduce la contraseña para ver las fichas</p>
             <input type="password" id="password-input" placeholder="Contraseña">
             <br>
             <button onclick="verificarPassword()">Entrar</button>
@@ -472,7 +470,6 @@
 
     <!-- Área del Canvas Derecho -->
     <main id="canvas-container">
-        <!-- Títulos Superiores y Botón de Informe -->
         <div class="titulo">
             <div class="titulo-superior">
                 <span id="nombre-clase-titulo">Selecciona un curso</span>
@@ -481,10 +478,9 @@
             <span class="subtitulo" id="subtitulo-clase">Esperando selección...</span>
         </div>
 
-        <!-- Botón flotante Ficha -->
         <button id="btn-abrir-ficha" onclick="abrirFicha()">📝 Abrir Ficha</button>
 
-        <!-- Modal emergente Ficha -->
+        <!-- Modal Ficha -->
         <div id="modal-ficha" class="modal-overlay">
             <div class="modal-content">
                 <span class="close-btn" onclick="cerrarFicha()">&times;</span>
@@ -492,31 +488,27 @@
                 
                 <div class="color-picker-container">
                     <span style="font-size: 14px; color: #00008B; font-weight: bold;">Color del texto:</span>
-                    <!-- Usamos onmousedown con preventDefault para no perder el foco de texto al pulsar el botón -->
                     <button id="btn-color-black" class="color-btn activo" style="background-color: black;" onmousedown="event.preventDefault(); cambiarColorNota('black')"></button>
                     <button id="btn-color-red" class="color-btn" style="background-color: #dc3545;" onmousedown="event.preventDefault(); cambiarColorNota('red')"></button>
                     <button id="btn-color-green" class="color-btn" style="background-color: #28a745;" onmousedown="event.preventDefault(); cambiarColorNota('green')"></button>
                 </div>
 
-                <div id="ficha-texto" contenteditable="true" data-placeholder="Añade notas... Todo se guarda automáticamente."></div>
+                <div id="ficha-texto" contenteditable="true" data-placeholder="Añade notas... Todo se guarda automáticamente en la nube."></div>
                 <button class="btn-modal-accion" onclick="cerrarFicha()">💾 Guardar y Cerrar</button>
             </div>
         </div>
 
-        <!-- Modal emergente Generar Informe -->
+        <!-- Modal Informes -->
         <div id="modal-informe" class="modal-overlay" style="z-index: 300;">
             <div class="modal-content">
                 <span class="close-btn" onclick="cerrarModalInforme()">&times;</span>
                 <h2>Generar PDF</h2>
-                
                 <button class="btn-informe-opcion" onclick="generarInformeCurso()">📑 Informe de Todos los Seleccionados</button>
-                
                 <button class="btn-informe-opcion" onclick="mostrarSelectAlumnos()">👤 Informe por Alumno</button>
                 <div id="div-select-alumnos" style="display: none; flex-direction: column; gap: 10px; margin-left: 15px;">
                     <select id="select-alumno-informe" style="padding: 8px; border-radius: 5px; border: 1px solid #ff99cc; color:#00008B; font-weight:bold;"></select>
                     <button class="btn-modal-accion" style="background-color: #28a745; padding: 8px;" onclick="generarInformeAlumno()">Generar PDF del Alumno</button>
                 </div>
-                
                 <button class="btn-informe-opcion" onclick="generarInformeGrupos()">👥 Informe de Grupos Manuales</button>
             </div>
         </div>
@@ -524,114 +516,91 @@
         <canvas id="miCanvas"></canvas>
     </main>
 
-    <!-- LÓGICA DE CONTRASEÑA -->
-    <script>
-        function verificarPassword() {
-            const pass = document.getElementById('password-input').value;
-            if (pass === 'padm2026') {
-                document.getElementById('login-overlay').style.display = 'none';
-                sessionStorage.setItem('auth_bolitas_acceso', 'true');
-            } else {
-                document.getElementById('login-error').style.display = 'block';
-                const box = document.querySelector('.login-box');
-                box.style.transform = 'translateX(10px)';
-                setTimeout(() => box.style.transform = 'translateX(-10px)', 50);
-                setTimeout(() => box.style.transform = 'translateX(10px)', 100);
-                setTimeout(() => box.style.transform = 'translateX(0)', 150);
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if (sessionStorage.getItem('auth_bolitas_acceso') === 'true') {
-                document.getElementById('login-overlay').style.display = 'none';
-            }
-            
-            document.getElementById('password-input').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    verificarPassword();
-                }
-            });
-        });
-    </script>
-
-    <!-- LÓGICA PRINCIPAL Y GUARDADO EN LA NUBE (FIREBASE) -->
+    <!-- INTEGRACIÓN CON FIREBASE CLOUD (TU PROYECTO) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Tus claves reales integradas
-        const miFirebaseConfig = {
-            apiKey: "AIzaSyA1i6ZX7hyg3oKJlTZWURhrNjGmiByDp4U",
-            authDomain: "poetaanton-bolitas.firebaseapp.com",
-            projectId: "poetaanton-bolitas",
-            storageBucket: "poetaanton-bolitas.firebasestorage.app",
-            messagingSenderId: "689573097515",
-            appId: "1:689573097515:web:9f62768f91748561453a6e",
-            measurementId: "G-HX84CE41RW"
+        // =========================================================================
+        // TU CONFIGURACIÓN FIREBASE
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAySQOD8QPy5I-_T8vrPUACMTDlg9-FMew",
+            authDomain: "bolitas-poetaanton-2026.firebaseapp.com",
+            projectId: "bolitas-poetaanton-2026",
+            storageBucket: "bolitas-poetaanton-2026.firebasestorage.app",
+            messagingSenderId: "85627304436",
+            appId: "1:85627304436:web:c834ec2f0b0183d213e1a1"
         };
-
-        const firebaseConfig = typeof __firebase_config !== 'undefined' && JSON.parse(__firebase_config).apiKey !== 'TU_API_KEY' ? JSON.parse(__firebase_config) : miFirebaseConfig;
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bolitas-cole-privado';
+        
+        // =========================================================================
+        // CORREO DE ACCESO (Asegúrate de crearlo en Firebase Authentication)
+        // =========================================================================
+        const CORREO_PROFESOR = "profe@colegio.com"; 
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let currentUser = null;
-        let notasAlumnos = {};
-
-        const initAuth = async () => {
-            try {
-                // Intenta usar el token del entorno si está disponible, si no, usa la cuenta anónima de tu Firebase
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && firebaseConfig !== miFirebaseConfig) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Error al autenticar con Firebase:", error);
-                await signInAnonymously(auth).catch(e => console.error("Fallo al iniciar sesión anónima:", e));
-            }
-        };
-
-        initAuth();
         
+        // Comprobar si el usuario ya inició sesión previamente en este navegador
         onAuthStateChanged(auth, (user) => {
-            currentUser = user;
             if (user) {
-                const notasRef = collection(db, 'artifacts', appId, 'users', user.uid, 'notas_alumnos');
+                currentUser = user;
+                document.getElementById('login-overlay').style.display = 'none'; // Ocultar login
+                
+                // Conectar en tiempo real a las notas de la nube
+                const notasRef = collection(db, 'usuarios', user.uid, 'fichas');
                 onSnapshot(notasRef, (snapshot) => {
-                    notasAlumnos = {}; 
-                    snapshot.forEach(documento => {
-                        let data = documento.data();
-                        notasAlumnos[documento.id] = {
-                            texto: data.texto || '',
-                            color: data.color || 'black'
-                        };
+                    window.notasAlumnos = {}; 
+                    snapshot.forEach(doc => {
+                        window.notasAlumnos[doc.id] = doc.data(); 
                     });
-                }, (error) => {
-                    console.error("Error cargando notas de tu nube:", error);
                 });
+            } else {
+                currentUser = null;
+                document.getElementById('login-overlay').style.display = 'flex'; // Mostrar login
             }
         });
 
-        async function guardarNotaEnNube(nombreGrupo, textoHTML) {
-            if (!currentUser || !db) return;
-            const safeId = nombreGrupo.replace(/\//g, '-');
-            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'notas_alumnos', safeId);
+        // Función llamada al hacer clic en "Entrar"
+        window.verificarPassword = async function() {
+            const pass = document.getElementById('password-input').value;
             try {
-                // Ahora guardamos directamente el HTML renderizado (que incluye los colores inline)
-                await setDoc(docRef, { texto: textoHTML, color: 'mixed', updatedAt: new Date().toISOString() });
-                console.log("Ficha guardada correctamente.");
+                // Iniciar sesión con el correo fijo y la contraseña escrita
+                await signInWithEmailAndPassword(auth, CORREO_PROFESOR, pass);
+                document.getElementById('login-error').style.display = 'none';
             } catch (error) {
-                console.error("Error guardando nota:", error);
+                console.error("Error de login:", error);
+                document.getElementById('login-error').style.display = 'block';
             }
-        }
+        };
+
+        // Permite loguearse pulsando "Enter"
+        document.getElementById('password-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                window.verificarPassword();
+            }
+        });
+
+        window.guardarNotaEnNube = async function(nombreGrupo, textoHtml) {
+            if (!currentUser) return;
+            const safeId = nombreGrupo.replace(/\//g, '-');
+            const docRef = doc(db, 'usuarios', currentUser.uid, 'fichas', safeId);
+            try {
+                await setDoc(docRef, { texto: textoHtml, updatedAt: new Date().toISOString() });
+            } catch(e) {
+                console.error("Error guardando en nube:", e);
+            }
+        };
+    </script>
 
 
-        // --- LÓGICA PRINCIPAL DE LAS BOLITAS ---
+    <!-- LÓGICA PRINCIPAL DE LAS BOLITAS (SCRIPT NORMAL) -->
+    <script>
+        window.notasAlumnos = {}; // Diccionario global gestionado por el módulo de Firebase
 
         const canvas = document.getElementById('miCanvas');
         const ctx = canvas.getContext('2d');
@@ -690,7 +659,7 @@
         });
 
         // -------------------------------------------------------------
-        // LOGICA DE INTERFAZ HTML EXPORTADA
+        // LOGICA DE INTERFAZ HTML
         // -------------------------------------------------------------
         window.seleccionarCurso = function(curso, elementoTd) {
             elementoTd.classList.toggle('activo');
@@ -830,7 +799,7 @@
             }
         };
 
-        // --- SISTEMA INTELIGENTE DE FICHAS MULTICOLOR ---
+        // --- SISTEMA INTELIGENTE DE FICHAS ---
         window.cambiarColorNota = function(color) {
             document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('activo'));
             document.getElementById('btn-color-' + color).classList.add('activo');
@@ -842,7 +811,6 @@
             if (color === 'red') hex = '#dc3545';
             if (color === 'green') hex = '#28a745';
             
-            // Ejecutar el comando para que lo que se escriba a continuación tome este color
             document.execCommand('styleWithCSS', false, true);
             document.execCommand('foreColor', false, hex);
         };
@@ -852,28 +820,13 @@
             const nombreGrupo = bolitaSeleccionada.nombres.join(', ');
             document.getElementById('ficha-titulo').innerText = nombreGrupo;
             
-            let datoG = notasAlumnos[nombreGrupo];
+            let datoG = window.notasAlumnos[nombreGrupo];
             let textoExistente = '';
-            let colorAntiguoGeneral = 'black';
             
             if (datoG) {
-                if (typeof datoG === 'string') {
-                    textoExistente = datoG; // Datos muy antiguos
-                } else {
-                    textoExistente = datoG.texto || ''; // Datos en HTML
-                    colorAntiguoGeneral = datoG.color || 'black';
-                }
+                textoExistente = datoG.texto || ''; 
             }
             
-            // Migración automática de texto antiguo sin formato a HTML compatible
-            if (textoExistente && !textoExistente.includes('<')) {
-                let colorHex = '#000000';
-                if(colorAntiguoGeneral === 'red') colorHex = '#dc3545';
-                if(colorAntiguoGeneral === 'green') colorHex = '#28a745';
-                textoExistente = `<span style="color: ${colorHex};">${textoExistente.replace(/\n/g, '<br>')}</span>`;
-            }
-            
-            // Inteligencia de fechas y guiones (añadir fecha automáticamente si no existe)
             const hoy = new Date();
             const fechaStr = hoy.toLocaleDateString('es-ES'); 
             
@@ -899,12 +852,11 @@
             if (esIndividual || esManual) {
                 document.getElementById('ficha-texto').setAttribute('data-placeholder', "Añade notas... Todo se guarda permanentemente en la nube.");
             } else {
-                document.getElementById('ficha-texto').setAttribute('data-placeholder', "⚠️ Modo Grupo Automático: Las notas aquí se guardarán solo durante esta sesión.");
+                document.getElementById('ficha-texto').setAttribute('data-placeholder', "⚠️ Modo Grupo Automático: Las notas aquí no se guardarán en la nube. (Júntalos arrastrándolos a mano en STOP para guardarlos para siempre).");
             }
 
             document.getElementById('modal-ficha').style.display = 'flex';
             
-            // Colocar el cursor al final del contenido
             setTimeout(() => {
                 const el = document.getElementById('ficha-texto');
                 el.focus();
@@ -921,22 +873,26 @@
 
         window.cerrarFicha = function() {
             const nombreGrupo = document.getElementById('ficha-titulo').innerText;
-            const textoActualizadoHTML = document.getElementById('ficha-texto').innerHTML;
+            // Se recoge el contenido HTML del div editable
+            const textoActualizado = document.getElementById('ficha-texto').innerHTML;
             
-            notasAlumnos[nombreGrupo] = { texto: textoActualizadoHTML, color: 'mixed' };
+            // Actualizar localmente para inmediatez
+            window.notasAlumnos[nombreGrupo] = { texto: textoActualizado };
             
             if (bolitaSeleccionada) {
                 let esIndividual = bolitaSeleccionada.nombres.length === 1;
                 let esManual = bolitaSeleccionada.esManual;
                 
                 if (esIndividual || esManual) {
-                    guardarNotaEnNube(nombreGrupo, textoActualizadoHTML);
+                    if(window.guardarNotaEnNube) {
+                        window.guardarNotaEnNube(nombreGrupo, textoActualizado);
+                    }
                 }
             }
             document.getElementById('modal-ficha').style.display = 'none';
         };
 
-        // --- SISTEMA DE GENERACIÓN DE INFORMES PDF AVANZADO ---
+        // --- SISTEMA DE GENERACIÓN DE INFORMES PDF ---
         window.abrirModalInforme = function() {
             document.getElementById('div-select-alumnos').style.display = 'none';
             document.getElementById('modal-informe').style.display = 'flex';
@@ -961,10 +917,8 @@
             document.getElementById('div-select-alumnos').style.display = 'flex';
         };
 
-        // Función personalizada para escribir HTML multicolor en jsPDF
         function renderRichTextToPDF(doc, htmlString, startX, startY, maxWidth) {
             const tempDiv = document.createElement('div');
-            // Reemplazar formatos de bloque por saltos de línea legibles
             let processedHtml = htmlString
                 .replace(/<div[^>]*>/gi, '\n')
                 .replace(/<\/div>/gi, '')
@@ -976,13 +930,12 @@
             
             const textNodes = [];
             
-            // Recorrer el DOM para extraer texto y sus colores
             function traverse(node, currentColor) {
-                if (node.nodeType === 3) { // Text node
+                if (node.nodeType === 3) { 
                     if (node.nodeValue) {
                         textNodes.push({ text: node.nodeValue, color: currentColor });
                     }
-                } else if (node.nodeType === 1) { // Element node
+                } else if (node.nodeType === 1) { 
                     let color = currentColor;
                     if (node.style && node.style.color) color = node.style.color;
                     else if (node.getAttribute('color')) color = node.getAttribute('color');
@@ -1000,13 +953,12 @@
             let currentY = startY;
             const lineHeight = 7;
             
-            doc.setFont("helvetica", "bold"); // Forzamos NEGRITA siempre
+            doc.setFont("helvetica", "bold"); 
             
             textNodes.forEach(segment => {
                 let r=0, g=0, b=0;
                 let c = segment.color.toLowerCase();
                 
-                // Mapear al color exacto (Rojo, Verde o Negro)
                 if (c.includes('dc3545') || c.includes('red') || c.includes('220, 53, 69') || c.includes('#ff0000')) { r=220; g=53; b=69; }
                 else if (c.includes('28a745') || c.includes('green') || c.includes('40, 167, 69') || c.includes('#008000')) { r=40; g=167; b=69; }
                 else { r=0; g=0; b=0; } 
@@ -1020,19 +972,16 @@
                         currentY += lineHeight;
                     }
                     
-                    // Separar por palabras preservando los espacios
                     const words = part.match(/(\s+|\S+)/g) || [];
                     words.forEach(word => {
                         if (word === '\n') return;
                         const wordWidth = doc.getTextWidth(word);
                         
-                        // Salto de línea automático
                         if (currentX + wordWidth > startX + maxWidth && word.trim() !== '') {
                             currentX = startX;
                             currentY += lineHeight;
                         }
                         
-                        // Salto de página
                         if (currentY > 280) { 
                             doc.addPage();
                             currentY = 20;
@@ -1040,7 +989,6 @@
                             doc.setFont("helvetica", "bold"); 
                         }
                         
-                        // Evitar pintar un espacio al inicio de una línea nueva
                         if (word.trim() === '' && currentX === startX) {
                             return; 
                         }
@@ -1081,7 +1029,6 @@
                     doc.text("Sin registros.", 10, y);
                     y += 10;
                 } else {
-                    // LLamamos a nuestro renderizador HTML multicolor en negrita
                     y = renderRichTextToPDF(doc, sec.contenido, 10, y, 180);
                     y += 10; 
                 }
@@ -1095,7 +1042,7 @@
             if (cursosSeleccionados.length === 0) return;
             const nombreCursos = cursosSeleccionados.join(', ');
             const secciones = nombresActuales.map(nombre => {
-                let n = notasAlumnos[nombre];
+                let n = window.notasAlumnos[nombre];
                 return {
                     nombre: nombre,
                     contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
@@ -1108,7 +1055,7 @@
             const alumno = document.getElementById('select-alumno-informe').value;
             if (!alumno) return;
             const nombreCursos = cursosSeleccionados.join(', ');
-            let n = notasAlumnos[alumno];
+            let n = window.notasAlumnos[alumno];
             exportarPDF(alumno, "Informe Alumno: " + alumno + " (Clases: " + nombreCursos + ")", [{
                 nombre: alumno,
                 contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
@@ -1118,10 +1065,10 @@
         window.generarInformeGrupos = function() {
             if (cursosSeleccionados.length === 0) return;
             const nombreCursos = cursosSeleccionados.join(', ');
-            let gruposDelCurso = Object.keys(notasAlumnos).filter(k => k.includes(',') && k.split(', ').some(n => nombresActuales.includes(n)));
+            let gruposDelCurso = Object.keys(window.notasAlumnos).filter(k => k.includes(',') && k.split(', ').some(n => nombresActuales.includes(n)));
             
             let secciones = gruposDelCurso.map(g => {
-                let n = notasAlumnos[g];
+                let n = window.notasAlumnos[g];
                 return {
                     nombre: g,
                     contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
