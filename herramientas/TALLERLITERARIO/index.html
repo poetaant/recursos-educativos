@@ -416,9 +416,11 @@ INSTRUCCIONES DE FORMATO ESTRICTAS:
 
 Escribe el texto directamente en español, sin introducciones ni comentarios adicionales.`;
 
+            // Integramos la instrucción del sistema directamente en el prompt para evitar rechazos de la API
+            const promptSeguro = "[INSTRUCCIÓN: Eres un asistente de escritura creativa altamente versátil. Sigues las instrucciones de formato al pie de la letra.]\n\n" + prompt;
+
             const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: "Eres un asistente de escritura creativa altamente versátil. Sigues las instrucciones de formato al pie de la letra." }] }
+                contents: [{ parts: [{ text: promptSeguro }] }]
             };
 
             let retries = 5;
@@ -433,7 +435,10 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                         body: JSON.stringify(payload)
                     });
 
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error?.message || `Error HTTP: ${response.status}`);
+                    }
                     
                     const data = await response.json();
                     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -447,12 +452,15 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                         els.resultActions.classList.remove('hidden');
                         success = true;
                     } else {
-                        throw new Error("Respuesta vacía de la API");
+                        let errorMsg = "Respuesta vacía de la API";
+                        if (data.promptFeedback?.blockReason) errorMsg = "Bloqueado por seguridad: " + data.promptFeedback.blockReason;
+                        else if (data.candidates?.[0]?.finishReason) errorMsg = "Generación detenida: " + data.candidates[0].finishReason;
+                        throw new Error(errorMsg);
                     }
                 } catch (err) {
                     retries--;
                     if (retries === 0) {
-                        showError("Hubo un error al generar el texto. Por favor, inténtalo de nuevo.");
+                        showError("Error al generar: " + err.message);
                         els.loadingState.classList.add('hidden');
                         els.emptyState.classList.remove('hidden');
                         console.error(err);
@@ -511,7 +519,10 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error?.message || `Error HTTP: ${response.status}`);
+                }
 
                 const data = await response.json();
                 const pcmData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
@@ -528,7 +539,7 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                 }
             } catch (err) {
                 console.error(err);
-                showError("Hubo un error al generar la pista de audio. Inténtalo de nuevo.");
+                showError("Error al generar audio: " + err.message);
             } finally {
                 // Restore UI
                 isGeneratingAudio = false;
