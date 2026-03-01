@@ -493,7 +493,7 @@
                     <button id="btn-color-green" class="color-btn" style="background-color: #28a745;" onmousedown="event.preventDefault(); cambiarColorNota('green')"></button>
                 </div>
 
-                <div id="ficha-texto" contenteditable="true" data-placeholder="Añade notas... Todo se guarda automáticamente en la nube."></div>
+                <div id="ficha-texto" contenteditable="true" data-placeholder="Añade notas... Todo se guarda automáticamente local y en la nube."></div>
                 <button class="btn-modal-accion" onclick="cerrarFicha()">💾 Guardar y Cerrar</button>
             </div>
         </div>
@@ -534,9 +534,6 @@
             appId: "1:85627304436:web:c834ec2f0b0183d213e1a1"
         };
         
-        // =========================================================================
-        // CORREO DE ACCESO (Asegúrate de crearlo en Firebase Authentication)
-        // =========================================================================
         const CORREO_PROFESOR = "profe@colegio.com"; 
 
         const app = initializeApp(firebaseConfig);
@@ -554,10 +551,15 @@
                 // Conectar en tiempo real a las notas de la nube
                 const notasRef = collection(db, 'usuarios', user.uid, 'fichas');
                 onSnapshot(notasRef, (snapshot) => {
-                    window.notasAlumnos = {}; 
-                    snapshot.forEach(doc => {
-                        window.notasAlumnos[doc.id] = doc.data(); 
+                    snapshot.forEach(documento => {
+                        // Combina lo que llegue de la nube con la memoria local
+                        window.notasAlumnos[documento.id] = documento.data(); 
                     });
+                    // Guardamos respaldo de la nube en LocalStorage
+                    localStorage.setItem('respaldo_bolitas_colegio', JSON.stringify(window.notasAlumnos));
+                }, (error) => {
+                    console.error("No se pudieron cargar los datos de Firebase:", error);
+                    alert("⚠️ No se pudieron cargar las notas de Firebase. Comprueba que has creado la base de datos Firestore y que las reglas de seguridad permiten lectura.");
                 });
             } else {
                 currentUser = null;
@@ -593,6 +595,8 @@
                 await setDoc(docRef, { texto: textoHtml, updatedAt: new Date().toISOString() });
             } catch(e) {
                 console.error("Error guardando en nube:", e);
+                // Si falla Firebase, avisamos al usuario (pero los datos ya estarán a salvo en local)
+                alert("⚠️ ¡Atención! Ocurrió un error guardando en Firebase (la nube).\n\nPosible causa: Aún no has activado la base de datos 'Firestore Database' en tu consola de Firebase o las reglas de seguridad están bloqueando la escritura.\n\nTus datos se han guardado LOCALMENTE en este ordenador de forma segura, pero no se sincronizarán hasta que arregles Firebase.");
             }
         };
     </script>
@@ -600,7 +604,8 @@
 
     <!-- LÓGICA PRINCIPAL DE LAS BOLITAS (SCRIPT NORMAL) -->
     <script>
-        window.notasAlumnos = {}; // Diccionario global gestionado por el módulo de Firebase
+        // Inicializamos cargando desde el respaldo Local por si Firebase tarda o falla
+        window.notasAlumnos = JSON.parse(localStorage.getItem('respaldo_bolitas_colegio')) || {};
 
         const canvas = document.getElementById('miCanvas');
         const ctx = canvas.getContext('2d');
@@ -846,15 +851,6 @@
             
             document.getElementById('ficha-texto').innerHTML = textoExistente;
             
-            let esIndividual = bolitaSeleccionada.nombres.length === 1;
-            let esManual = bolitaSeleccionada.esManual;
-            
-            if (esIndividual || esManual) {
-                document.getElementById('ficha-texto').setAttribute('data-placeholder', "Añade notas... Todo se guarda permanentemente en la nube.");
-            } else {
-                document.getElementById('ficha-texto').setAttribute('data-placeholder', "⚠️ Modo Grupo Automático: Las notas aquí no se guardarán en la nube. (Júntalos arrastrándolos a mano en STOP para guardarlos para siempre).");
-            }
-
             document.getElementById('modal-ficha').style.display = 'flex';
             
             setTimeout(() => {
@@ -873,22 +869,19 @@
 
         window.cerrarFicha = function() {
             const nombreGrupo = document.getElementById('ficha-titulo').innerText;
-            // Se recoge el contenido HTML del div editable
             const textoActualizado = document.getElementById('ficha-texto').innerHTML;
             
-            // Actualizar localmente para inmediatez
+            // 1. Guardado en RAM (inmediatez)
             window.notasAlumnos[nombreGrupo] = { texto: textoActualizado };
             
-            if (bolitaSeleccionada) {
-                let esIndividual = bolitaSeleccionada.nombres.length === 1;
-                let esManual = bolitaSeleccionada.esManual;
-                
-                if (esIndividual || esManual) {
-                    if(window.guardarNotaEnNube) {
-                        window.guardarNotaEnNube(nombreGrupo, textoActualizado);
-                    }
-                }
+            // 2. Guardado Seguro Local (Evita perder datos si Firebase falla)
+            localStorage.setItem('respaldo_bolitas_colegio', JSON.stringify(window.notasAlumnos));
+            
+            // 3. Intento de subida a la nube (ahora guarda a TODOS los alumnos y grupos, manuales o automáticos)
+            if (bolitaSeleccionada && window.guardarNotaEnNube) {
+                window.guardarNotaEnNube(nombreGrupo, textoActualizado);
             }
+
             document.getElementById('modal-ficha').style.display = 'none';
         };
 
@@ -1076,10 +1069,10 @@
             });
 
             if (secciones.length === 0) {
-                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en estos cursos." }];
+                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos en estos cursos." }];
             }
             
-            exportarPDF("Grupos_" + nombreCursos.replace(/, /g, '_'), "Informe Grupos Manuales: " + nombreCursos, secciones);
+            exportarPDF("Grupos_" + nombreCursos.replace(/, /g, '_'), "Informe Grupos: " + nombreCursos, secciones);
         };
 
 
