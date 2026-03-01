@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Versión 2.0 - Actualizada para API Pública -->
     <title>Taller Literario del Poeta</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -226,7 +227,7 @@
 
     <script>
         // --- CONFIGURACIÓN Y CONSTANTES ---
-        let apiKey = localStorage.getItem('gemini_api_key') || ""; // La clave se lee del navegador o queda vacía para Canvas
+        let apiKey = localStorage.getItem('gemini_api_key') || ""; 
         
         const CYCLES = [
             { id: 'primer', label: 'Primer Ciclo (5-7 años)' },
@@ -325,7 +326,7 @@
         function init() {
             renderCycles();
             renderFormats();
-            fillForm(RANDOM_TEMPLATES[0]); // Llenar con el primer template por defecto
+            fillForm(RANDOM_TEMPLATES[0]); 
             
             // Event Listeners
             els.btnRandom.addEventListener('click', handleRandomize);
@@ -346,7 +347,7 @@
             els.btnSaveSettings.addEventListener('click', () => {
                 const newKey = els.inApiKey.value.trim();
                 localStorage.setItem('gemini_api_key', newKey);
-                apiKey = newKey; // Actualiza la variable en ejecución
+                apiKey = newKey; 
                 els.settingsModal.classList.add('hidden');
             });
 
@@ -378,7 +379,7 @@
                     <span class="font-medium text-sm text-center">${f.label}</span>
                 </button>
             `).join('');
-            lucide.createIcons(); // Recargar iconos después de modificar innerHTML
+            lucide.createIcons();
         }
 
         // --- MANEJADORES DE ESTADO LOCAL ---
@@ -391,7 +392,6 @@
             currentFormat = id;
             renderFormats();
             
-            // Actualizar texto del botón de audio según formato
             const audioText = document.getElementById('btn-audio-text');
             if(audioText) {
                 audioText.innerText = (currentFormat === 'cancion') ? 'Cantar canción' : 'Recitar texto';
@@ -424,10 +424,13 @@
 
         // --- FUNCIONES DE IA (TEXTO Y AUDIO) ---
         async function generateText() {
+            if (!apiKey) {
+                showError("Por favor, introduce tu API Key en la rueda dentada de arriba a la derecha.");
+                return;
+            }
             if (isGenerating) return;
             isGenerating = true;
             
-            // UI State
             els.btnGenerate.disabled = true;
             els.btnGenerate.classList.add('opacity-70', 'cursor-not-allowed');
             els.btnGenerate.querySelector('.icon-default').classList.add('hidden');
@@ -474,7 +477,6 @@ INSTRUCCIONES DE FORMATO ESTRICTAS:
 
 Escribe el texto directamente en español, sin introducciones ni comentarios adicionales.`;
 
-            // Integramos la instrucción del sistema directamente en el prompt para evitar rechazos de la API
             const promptSeguro = "[INSTRUCCIÓN: Eres un asistente de escritura creativa altamente versátil. Sigues las instrucciones de formato al pie de la letra.]\n\n" + prompt;
 
             const payload = {
@@ -487,7 +489,8 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
 
             while (retries > 0 && !success) {
                 try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    // HEMOS CAMBIADO EL MODELO A GEMINI-2.0-FLASH PARA MAYOR COMPATIBILIDAD PÚBLICA
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -503,7 +506,7 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                     
                     if (text) {
                         generatedTextData = text;
-                        els.generatedContent.innerText = text; // Usamos innerText para preservar los saltos de línea (whitespace-pre-wrap lo formatea en CSS)
+                        els.generatedContent.innerText = text; 
                         
                         els.loadingState.classList.add('hidden');
                         els.generatedContent.classList.remove('hidden');
@@ -529,7 +532,6 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                 }
             }
             
-            // Restore UI
             isGenerating = false;
             els.btnGenerate.disabled = false;
             els.btnGenerate.classList.remove('opacity-70', 'cursor-not-allowed');
@@ -539,11 +541,14 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
         }
 
         async function generateAudio() {
+            if (!apiKey) {
+                showError("Por favor, introduce tu API Key en la rueda dentada de arriba a la derecha.");
+                return;
+            }
             if (!generatedTextData || isGeneratingAudio) return;
             isGeneratingAudio = true;
             hideError();
 
-            // UI State
             els.btnAudio.disabled = true;
             els.btnAudio.classList.add('opacity-50');
             els.btnAudio.querySelector('.icon-default').classList.add('hidden');
@@ -597,9 +602,8 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                 }
             } catch (err) {
                 console.error(err);
-                showError("Error al generar audio: " + err.message);
+                showError("Error al generar audio: El modelo de Voz (TTS) puede que no esté activado para API Keys públicas todavía. Detalle: " + err.message);
             } finally {
-                // Restore UI
                 isGeneratingAudio = false;
                 els.btnAudio.disabled = false;
                 els.btnAudio.classList.remove('opacity-50');
@@ -672,7 +676,6 @@ Escribe el texto directamente en español, sin introducciones ni comentarios adi
                     .then(showSuccess)
                     .catch(err => console.error('Error al copiar', err));
             } else {
-                // Fallback para iframe sin permisos
                 const textArea = document.createElement("textarea");
                 textArea.value = generatedTextData;
                 document.body.appendChild(textArea);
