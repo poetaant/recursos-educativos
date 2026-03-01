@@ -200,7 +200,7 @@
             font-weight: bold;
             text-align: left;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
-            pointer-events: auto; /* Permite hacer clic en botones dentro */
+            pointer-events: auto; 
             z-index: 10;
             display: flex;
             flex-direction: column;
@@ -305,16 +305,31 @@
             transform: scale(1.2);
         }
 
+        /* Ahora es un div contenteditable para soportar múltiples colores */
         #ficha-texto {
             width: 100%;
             height: 150px;
-            resize: none;
             padding: 10px;
             border: 2px solid #ffb3d9;
             border-radius: 8px;
             font-family: inherit;
             box-sizing: border-box;
             font-size: 14px;
+            font-weight: bold; /* TODO EL TEXTO EN NEGRITA */
+            overflow-y: auto;
+            background: white;
+            outline: none;
+            white-space: pre-wrap; /* Mantiene los saltos de línea */
+            color: #000000;
+        }
+        #ficha-texto:focus { border-color: #ff3399; }
+        
+        /* Placeholder simulado para el div */
+        #ficha-texto:empty:before {
+            content: attr(data-placeholder);
+            color: #999;
+            font-weight: normal;
+            pointer-events: none;
         }
 
         .close-btn {
@@ -477,12 +492,13 @@
                 
                 <div class="color-picker-container">
                     <span style="font-size: 14px; color: #00008B; font-weight: bold;">Color del texto:</span>
-                    <button id="btn-color-black" class="color-btn activo" style="background-color: black;" onclick="cambiarColorNota('black')"></button>
-                    <button id="btn-color-red" class="color-btn" style="background-color: #dc3545;" onclick="cambiarColorNota('red')"></button>
-                    <button id="btn-color-green" class="color-btn" style="background-color: #28a745;" onclick="cambiarColorNota('green')"></button>
+                    <!-- Usamos onmousedown con preventDefault para no perder el foco de texto al pulsar el botón -->
+                    <button id="btn-color-black" class="color-btn activo" style="background-color: black;" onmousedown="event.preventDefault(); cambiarColorNota('black')"></button>
+                    <button id="btn-color-red" class="color-btn" style="background-color: #dc3545;" onmousedown="event.preventDefault(); cambiarColorNota('red')"></button>
+                    <button id="btn-color-green" class="color-btn" style="background-color: #28a745;" onmousedown="event.preventDefault(); cambiarColorNota('green')"></button>
                 </div>
 
-                <textarea id="ficha-texto" placeholder="Añade notas... Todo se guarda automáticamente."></textarea>
+                <div id="ficha-texto" contenteditable="true" data-placeholder="Añade notas... Todo se guarda automáticamente."></div>
                 <button class="btn-modal-accion" onclick="cerrarFicha()">💾 Guardar y Cerrar</button>
             </div>
         </div>
@@ -517,7 +533,6 @@
                 sessionStorage.setItem('auth_bolitas_acceso', 'true');
             } else {
                 document.getElementById('login-error').style.display = 'block';
-                // Animación de temblor en caso de error
                 const box = document.querySelector('.login-box');
                 box.style.transform = 'translateX(10px)';
                 setTimeout(() => box.style.transform = 'translateX(-10px)', 50);
@@ -527,12 +542,10 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Si ya se ha metido la clave en esta sesión, no se vuelve a pedir
             if (sessionStorage.getItem('auth_bolitas_acceso') === 'true') {
                 document.getElementById('login-overlay').style.display = 'none';
             }
             
-            // Permitir pulsar Enter para acceder directamente
             document.getElementById('password-input').addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     verificarPassword();
@@ -541,24 +554,27 @@
         });
     </script>
 
-    <!-- LÓGICA PRINCIPAL Y GUARDADO EN LA NUBE (FIREBASE PRIVADO) -->
+    <!-- LÓGICA PRINCIPAL Y GUARDADO EN LA NUBE (FIREBASE) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- TU CONFIGURACIÓN DE FIREBASE ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyA1i6ZX7hyg3oKJlTZWURhrNjGmiByDp4U",
-          authDomain: "poetaanton-bolitas.firebaseapp.com",
-          projectId: "poetaanton-bolitas",
-          storageBucket: "poetaanton-bolitas.firebasestorage.app",
-          messagingSenderId: "689573097515",
-          appId: "1:689573097515:web:9f62768f91748561453a6e",
-          measurementId: "G-HX84CE41RW"
+        // Tus claves reales integradas
+        const miFirebaseConfig = {
+            apiKey: "AIzaSyA1i6ZX7hyg3oKJlTZWURhrNjGmiByDp4U",
+            authDomain: "poetaanton-bolitas.firebaseapp.com",
+            projectId: "poetaanton-bolitas",
+            storageBucket: "poetaanton-bolitas.firebasestorage.app",
+            messagingSenderId: "689573097515",
+            appId: "1:689573097515:web:9f62768f91748561453a6e",
+            measurementId: "G-HX84CE41RW"
         };
 
-        // Inicializar Firebase
+        const firebaseConfig = typeof __firebase_config !== 'undefined' && JSON.parse(__firebase_config).apiKey !== 'TU_API_KEY' ? JSON.parse(__firebase_config) : miFirebaseConfig;
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bolitas-cole-privado';
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -566,19 +582,28 @@
         let currentUser = null;
         let notasAlumnos = {};
 
-        // Iniciar Sesión Anónima para guardar datos
-        signInAnonymously(auth).catch((error) => {
-            console.error("Error al autenticar con Firebase:", error);
-        });
+        const initAuth = async () => {
+            try {
+                // Intenta usar el token del entorno si está disponible, si no, usa la cuenta anónima de tu Firebase
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && firebaseConfig !== miFirebaseConfig) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error al autenticar con Firebase:", error);
+                await signInAnonymously(auth).catch(e => console.error("Fallo al iniciar sesión anónima:", e));
+            }
+        };
+
+        initAuth();
         
-        // Escuchar datos en tiempo real cuando la sesión está lista
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
-                // Ruta en tu base de datos: coleccion "notas_clases" -> tu ID -> subcolección "fichas"
-                const notasRef = collection(db, 'notas_clases', user.uid, 'fichas');
+                const notasRef = collection(db, 'artifacts', appId, 'users', user.uid, 'notas_alumnos');
                 onSnapshot(notasRef, (snapshot) => {
-                    notasAlumnos = {}; // Limpiar antes de recargar
+                    notasAlumnos = {}; 
                     snapshot.forEach(documento => {
                         let data = documento.data();
                         notasAlumnos[documento.id] = {
@@ -587,24 +612,24 @@
                         };
                     });
                 }, (error) => {
-                    console.error("Error cargando notas de la nube:", error);
+                    console.error("Error cargando notas de tu nube:", error);
                 });
             }
         });
 
-        // Función para subir y guardar notas en la nube
-        async function guardarNotaEnNube(nombreGrupo, texto, colorElegido) {
+        async function guardarNotaEnNube(nombreGrupo, textoHTML) {
             if (!currentUser || !db) return;
-            // Evita caracteres inválidos en el ID del documento
             const safeId = nombreGrupo.replace(/\//g, '-');
-            const docRef = doc(db, 'notas_clases', currentUser.uid, 'fichas', safeId);
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'notas_alumnos', safeId);
             try {
-                await setDoc(docRef, { texto: texto, color: colorElegido, updatedAt: new Date().toISOString() });
-                console.log("Ficha guardada correctamente en Firebase.");
+                // Ahora guardamos directamente el HTML renderizado (que incluye los colores inline)
+                await setDoc(docRef, { texto: textoHTML, color: 'mixed', updatedAt: new Date().toISOString() });
+                console.log("Ficha guardada correctamente.");
             } catch (error) {
                 console.error("Error guardando nota:", error);
             }
         }
+
 
         // --- LÓGICA PRINCIPAL DE LAS BOLITAS ---
 
@@ -633,14 +658,13 @@
         let bolitas = [];
         const RADIO_BASE = 40; 
         
-        let cursosSeleccionados = []; // Array para guardar múltiples cursos
+        let cursosSeleccionados = []; 
         let bolitaSeleccionada = null;
         let bolitaEnRetorno = null;
         let maxGrupo = 1;
         let temporizadorEstancamiento = 0; 
         let spawnTimeout = null; 
 
-        // Zonas Laterales
         const ZONA_WIDTH = 90; 
         let zonaIzquierdaHabilitada = false;
         let zonaDerechaHabilitada = false;
@@ -669,17 +693,14 @@
         // LOGICA DE INTERFAZ HTML EXPORTADA
         // -------------------------------------------------------------
         window.seleccionarCurso = function(curso, elementoTd) {
-            // Alternar la clase activo en el botón que se ha pulsado
             elementoTd.classList.toggle('activo');
 
-            // Añadir o quitar el curso de nuestra lista de seleccionados
             if (elementoTd.classList.contains('activo')) {
                 cursosSeleccionados.push(curso);
             } else {
                 cursosSeleccionados = cursosSeleccionados.filter(c => c !== curso);
             }
 
-            // Actualizar la interfaz y la lista general de nombres
             if (cursosSeleccionados.length === 0) {
                 document.getElementById('nombre-clase-titulo').innerText = "Selecciona un curso";
                 document.getElementById('subtitulo-clase').innerText = "Esperando selección...";
@@ -690,7 +711,6 @@
                 document.getElementById('subtitulo-clase').innerText = "Haz clic en una bolita para verla en grande";
                 document.getElementById('btn-abrir-informe').style.display = 'block';
                 
-                // Juntar a todos los alumnos de todos los cursos elegidos
                 nombresActuales = [];
                 cursosSeleccionados.forEach(c => {
                     nombresActuales = nombresActuales.concat(datosCursos[c]);
@@ -753,7 +773,6 @@
 
             if (spawnTimeout) clearTimeout(spawnTimeout);
 
-            // Si hemos deseleccionado todos los cursos, salimos después de limpiar la pantalla
             if (nombresActuales.length === 0) return; 
 
             let limIzq = zonaIzquierdaHabilitada ? ZONA_WIDTH : 0;
@@ -811,17 +830,21 @@
             }
         };
 
-        // --- SISTEMA INTELIGENTE DE FICHAS ---
+        // --- SISTEMA INTELIGENTE DE FICHAS MULTICOLOR ---
         window.cambiarColorNota = function(color) {
-            // Actualizar botones
             document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('activo'));
             document.getElementById('btn-color-' + color).classList.add('activo');
             
-            // Cambiar color del textarea
-            const textarea = document.getElementById('ficha-texto');
-            if (color === 'red') textarea.style.color = '#dc3545';
-            else if (color === 'green') textarea.style.color = '#28a745';
-            else textarea.style.color = 'black';
+            const editor = document.getElementById('ficha-texto');
+            editor.focus();
+            
+            let hex = '#000000';
+            if (color === 'red') hex = '#dc3545';
+            if (color === 'green') hex = '#28a745';
+            
+            // Ejecutar el comando para que lo que se escriba a continuación tome este color
+            document.execCommand('styleWithCSS', false, true);
+            document.execCommand('foreColor', false, hex);
         };
 
         window.abrirFicha = function() {
@@ -831,78 +854,89 @@
             
             let datoG = notasAlumnos[nombreGrupo];
             let textoExistente = '';
-            let colorExistente = 'black';
+            let colorAntiguoGeneral = 'black';
             
             if (datoG) {
                 if (typeof datoG === 'string') {
-                    textoExistente = datoG;
+                    textoExistente = datoG; // Datos muy antiguos
                 } else {
-                    textoExistente = datoG.texto || '';
-                    colorExistente = datoG.color || 'black';
+                    textoExistente = datoG.texto || ''; // Datos en HTML
+                    colorAntiguoGeneral = datoG.color || 'black';
                 }
             }
             
-            // Inteligencia de fechas y guiones
+            // Migración automática de texto antiguo sin formato a HTML compatible
+            if (textoExistente && !textoExistente.includes('<')) {
+                let colorHex = '#000000';
+                if(colorAntiguoGeneral === 'red') colorHex = '#dc3545';
+                if(colorAntiguoGeneral === 'green') colorHex = '#28a745';
+                textoExistente = `<span style="color: ${colorHex};">${textoExistente.replace(/\n/g, '<br>')}</span>`;
+            }
+            
+            // Inteligencia de fechas y guiones (añadir fecha automáticamente si no existe)
             const hoy = new Date();
             const fechaStr = hoy.toLocaleDateString('es-ES'); 
             
-            let textoLimpio = textoExistente.trim();
-            if (textoLimpio === '') {
-                textoExistente = fechaStr + '\n- ';
+            let tempDiv = document.createElement('div');
+            tempDiv.innerHTML = textoExistente.trim();
+            let textContent = (tempDiv.innerText || tempDiv.textContent).trim();
+            
+            if (textContent === '') {
+                textoExistente = `<span style="color: #000000;">${fechaStr}<br>- </span>`;
             } else {
-                if (!textoLimpio.includes(fechaStr)) {
-                    textoExistente = textoLimpio + '\n\n' + fechaStr + '\n- ';
-                } else if (!textoLimpio.endsWith('-')) {
-                    textoExistente = textoLimpio + '\n- ';
-                } else {
-                    textoExistente = textoLimpio + ' ';
+                if (!textContent.includes(fechaStr)) {
+                    textoExistente = textoExistente.trim() + `<br><br><span style="color: #000000;">${fechaStr}<br>- </span>`;
+                } else if (!textContent.endsWith('-')) {
+                    textoExistente = textoExistente.trim() + `<br><span style="color: #000000;">- </span>`;
                 }
             }
             
-            document.getElementById('ficha-texto').value = textoExistente;
-            window.cambiarColorNota(colorExistente);
+            document.getElementById('ficha-texto').innerHTML = textoExistente;
             
             let esIndividual = bolitaSeleccionada.nombres.length === 1;
             let esManual = bolitaSeleccionada.esManual;
             
             if (esIndividual || esManual) {
-                document.getElementById('ficha-texto').placeholder = "Añade notas... Todo se guarda permanentemente en la nube.";
+                document.getElementById('ficha-texto').setAttribute('data-placeholder', "Añade notas... Todo se guarda permanentemente en la nube.");
             } else {
-                document.getElementById('ficha-texto').placeholder = "⚠️ Modo Grupo Automático: Las notas aquí se guardarán solo durante esta sesión. (Júntalos arrastrándolos a mano en STOP para guardarlos para siempre).";
+                document.getElementById('ficha-texto').setAttribute('data-placeholder', "⚠️ Modo Grupo Automático: Las notas aquí se guardarán solo durante esta sesión.");
             }
 
             document.getElementById('modal-ficha').style.display = 'flex';
             
+            // Colocar el cursor al final del contenido
             setTimeout(() => {
-                const textarea = document.getElementById('ficha-texto');
-                textarea.focus();
-                textarea.selectionStart = textarea.value.length;
-                textarea.selectionEnd = textarea.value.length;
+                const el = document.getElementById('ficha-texto');
+                el.focus();
+                if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+                    var range = document.createRange();
+                    range.selectNodeContents(el);
+                    range.collapse(false);
+                    var sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
             }, 50);
         };
 
         window.cerrarFicha = function() {
             const nombreGrupo = document.getElementById('ficha-titulo').innerText;
-            const textoActualizado = document.getElementById('ficha-texto').value;
+            const textoActualizadoHTML = document.getElementById('ficha-texto').innerHTML;
             
-            let colorElegido = 'black';
-            if (document.getElementById('btn-color-red').classList.contains('activo')) colorElegido = 'red';
-            if (document.getElementById('btn-color-green').classList.contains('activo')) colorElegido = 'green';
-            
-            notasAlumnos[nombreGrupo] = { texto: textoActualizado, color: colorElegido };
+            notasAlumnos[nombreGrupo] = { texto: textoActualizadoHTML, color: 'mixed' };
             
             if (bolitaSeleccionada) {
                 let esIndividual = bolitaSeleccionada.nombres.length === 1;
                 let esManual = bolitaSeleccionada.esManual;
                 
                 if (esIndividual || esManual) {
-                    guardarNotaEnNube(nombreGrupo, textoActualizado, colorElegido);
+                    guardarNotaEnNube(nombreGrupo, textoActualizadoHTML);
                 }
             }
             document.getElementById('modal-ficha').style.display = 'none';
         };
 
-        // --- SISTEMA DE GENERACIÓN DE INFORMES PDF ---
+        // --- SISTEMA DE GENERACIÓN DE INFORMES PDF AVANZADO ---
         window.abrirModalInforme = function() {
             document.getElementById('div-select-alumnos').style.display = 'none';
             document.getElementById('modal-informe').style.display = 'flex';
@@ -916,7 +950,6 @@
             const select = document.getElementById('select-alumno-informe');
             select.innerHTML = '';
             
-            // Ordenar los nombres alfabéticamente teniendo en cuenta acentos en español
             const nombresOrdenados = [...nombresActuales].sort((a, b) => a.localeCompare(b, 'es'));
             
             nombresOrdenados.forEach(nombre => {
@@ -928,52 +961,130 @@
             document.getElementById('div-select-alumnos').style.display = 'flex';
         };
 
+        // Función personalizada para escribir HTML multicolor en jsPDF
+        function renderRichTextToPDF(doc, htmlString, startX, startY, maxWidth) {
+            const tempDiv = document.createElement('div');
+            // Reemplazar formatos de bloque por saltos de línea legibles
+            let processedHtml = htmlString
+                .replace(/<div[^>]*>/gi, '\n')
+                .replace(/<\/div>/gi, '')
+                .replace(/<p[^>]*>/gi, '\n')
+                .replace(/<\/p>/gi, '')
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/&nbsp;/gi, ' ');
+            tempDiv.innerHTML = processedHtml;
+            
+            const textNodes = [];
+            
+            // Recorrer el DOM para extraer texto y sus colores
+            function traverse(node, currentColor) {
+                if (node.nodeType === 3) { // Text node
+                    if (node.nodeValue) {
+                        textNodes.push({ text: node.nodeValue, color: currentColor });
+                    }
+                } else if (node.nodeType === 1) { // Element node
+                    let color = currentColor;
+                    if (node.style && node.style.color) color = node.style.color;
+                    else if (node.getAttribute('color')) color = node.getAttribute('color');
+                    else if (node.tagName && node.tagName.toLowerCase() === 'font' && node.color) color = node.color;
+                    
+                    for (let child of node.childNodes) {
+                        traverse(child, color);
+                    }
+                }
+            }
+            
+            traverse(tempDiv, '#000000');
+            
+            let currentX = startX;
+            let currentY = startY;
+            const lineHeight = 7;
+            
+            doc.setFont("helvetica", "bold"); // Forzamos NEGRITA siempre
+            
+            textNodes.forEach(segment => {
+                let r=0, g=0, b=0;
+                let c = segment.color.toLowerCase();
+                
+                // Mapear al color exacto (Rojo, Verde o Negro)
+                if (c.includes('dc3545') || c.includes('red') || c.includes('220, 53, 69') || c.includes('#ff0000')) { r=220; g=53; b=69; }
+                else if (c.includes('28a745') || c.includes('green') || c.includes('40, 167, 69') || c.includes('#008000')) { r=40; g=167; b=69; }
+                else { r=0; g=0; b=0; } 
+                
+                doc.setTextColor(r, g, b);
+                
+                const parts = segment.text.split('\n');
+                parts.forEach((part, index) => {
+                    if (index > 0) {
+                        currentX = startX;
+                        currentY += lineHeight;
+                    }
+                    
+                    // Separar por palabras preservando los espacios
+                    const words = part.match(/(\s+|\S+)/g) || [];
+                    words.forEach(word => {
+                        if (word === '\n') return;
+                        const wordWidth = doc.getTextWidth(word);
+                        
+                        // Salto de línea automático
+                        if (currentX + wordWidth > startX + maxWidth && word.trim() !== '') {
+                            currentX = startX;
+                            currentY += lineHeight;
+                        }
+                        
+                        // Salto de página
+                        if (currentY > 280) { 
+                            doc.addPage();
+                            currentY = 20;
+                            currentX = startX;
+                            doc.setFont("helvetica", "bold"); 
+                        }
+                        
+                        // Evitar pintar un espacio al inicio de una línea nueva
+                        if (word.trim() === '' && currentX === startX) {
+                            return; 
+                        }
+                        
+                        doc.text(word, currentX, currentY);
+                        currentX += wordWidth;
+                    });
+                });
+            });
+            
+            return currentY;
+        }
+
         function exportarPDF(nombreArchivo, tituloCabecera, secciones) {
-            // Requerimos que la librería jsPDF haya cargado
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             let y = 20;
 
-            // Título Principal
             doc.setFontSize(18);
-            doc.setTextColor(255, 51, 153); // Rosa corporativo
+            doc.setTextColor(255, 51, 153); 
+            doc.setFont("helvetica", "bold");
             doc.text(tituloCabecera, 10, y);
             y += 12;
 
             doc.setFontSize(12);
 
             secciones.forEach(sec => {
-                if (y > 270) { doc.addPage(); y = 20; } // Salto de página
+                if (y > 270) { doc.addPage(); y = 20; } 
                 
-                // Nombre del Alumno o Grupo
                 doc.setFont("helvetica", "bold");
-                doc.setTextColor(0, 0, 139); // Azul oscuro
+                doc.setTextColor(0, 0, 139); 
                 doc.text(sec.nombre, 10, y);
                 y += 7;
 
-                // Contenido de la ficha
-                doc.setFont("helvetica", "normal");
-                
                 if (!sec.contenido || sec.contenido.trim() === '') {
-                    doc.setTextColor(0, 0, 0); // Negro para texto vacío
+                    doc.setTextColor(0, 0, 0); 
+                    doc.setFont("helvetica", "bold");
                     doc.text("Sin registros.", 10, y);
                     y += 10;
                 } else {
-                    // Aplicar el color guardado en la ficha
-                    if (sec.color === 'red') doc.setTextColor(220, 53, 69); // Rojo
-                    else if (sec.color === 'green') doc.setTextColor(40, 167, 69); // Verde
-                    else doc.setTextColor(0, 0, 0); // Negro por defecto
-
-                    // Divide el texto respetando los saltos de línea de la caja de texto y ajustándolo al ancho
-                    const lineas = doc.splitTextToSize(sec.contenido, 180);
-                    lineas.forEach(linea => {
-                        if (y > 280) { doc.addPage(); y = 20; }
-                        doc.text(linea, 10, y);
-                        y += 7;
-                    });
-                    y += 5;
+                    // LLamamos a nuestro renderizador HTML multicolor en negrita
+                    y = renderRichTextToPDF(doc, sec.contenido, 10, y, 180);
+                    y += 10; 
                 }
-                y += 5; // Separador entre estudiantes/grupos
             });
 
             doc.save(nombreArchivo + ".pdf");
@@ -987,8 +1098,7 @@
                 let n = notasAlumnos[nombre];
                 return {
                     nombre: nombre,
-                    contenido: n ? (n.texto !== undefined ? n.texto : n) : '',
-                    color: n ? (n.color || 'black') : 'black'
+                    contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
                 };
             });
             exportarPDF("Cursos_" + nombreCursos.replace(/, /g, '_'), "Informe de Cursos: " + nombreCursos, secciones);
@@ -1001,28 +1111,25 @@
             let n = notasAlumnos[alumno];
             exportarPDF(alumno, "Informe Alumno: " + alumno + " (Clases: " + nombreCursos + ")", [{
                 nombre: alumno,
-                contenido: n ? (n.texto !== undefined ? n.texto : n) : '',
-                color: n ? (n.color || 'black') : 'black'
+                contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
             }]);
         };
 
         window.generarInformeGrupos = function() {
             if (cursosSeleccionados.length === 0) return;
             const nombreCursos = cursosSeleccionados.join(', ');
-            // Busca en la BBDD los grupos que tengan comas (varios miembros) y que pertenezcan a los cursos activos
             let gruposDelCurso = Object.keys(notasAlumnos).filter(k => k.includes(',') && k.split(', ').some(n => nombresActuales.includes(n)));
             
             let secciones = gruposDelCurso.map(g => {
                 let n = notasAlumnos[g];
                 return {
                     nombre: g,
-                    contenido: n ? (n.texto !== undefined ? n.texto : n) : '',
-                    color: n ? (n.color || 'black') : 'black'
+                    contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
                 };
             });
 
             if (secciones.length === 0) {
-                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en estos cursos.", color: "black" }];
+                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en estos cursos." }];
             }
             
             exportarPDF("Grupos_" + nombreCursos.replace(/, /g, '_'), "Informe Grupos Manuales: " + nombreCursos, secciones);
