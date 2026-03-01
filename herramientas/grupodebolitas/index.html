@@ -283,6 +283,28 @@
 
         .modal-content h2 { margin: 0; color: #ff3399; }
         
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: -5px;
+            margin-bottom: -5px;
+        }
+        .color-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .color-btn:hover { transform: scale(1.1); }
+        .color-btn.activo {
+            border-color: #ff3399;
+            box-shadow: 0 0 8px rgba(255,51,153,0.6);
+            transform: scale(1.2);
+        }
+
         #ficha-texto {
             width: 100%;
             height: 150px;
@@ -334,9 +356,52 @@
         }
         .btn-informe-opcion:hover { background-color: #ffe6f2; color: #ff3399; }
 
+        /* Pantalla de Login */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(44, 62, 80, 0.95);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-box {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            border: 6px solid #ff66b2;
+        }
+        .login-box h2 { color: #ff3399; margin-top: 0; font-size: 24px; }
+        .login-box input {
+            padding: 12px; margin: 15px 0; border-radius: 8px; border: 2px solid #ff99cc;
+            font-size: 16px; width: 80%; outline: none; text-align: center;
+        }
+        .login-box input:focus { border-color: #ff3399; }
+        .login-box button {
+            background-color: #ff66b2; color: white; border: none; padding: 12px 25px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.2s;
+        }
+        .login-box button:hover { background-color: #ff3399; }
+        #login-error { color: #dc3545; margin-top: 10px; display: none; font-weight: bold; font-size: 14px;}
+
     </style>
 </head>
 <body>
+
+    <!-- Pantalla de Bloqueo por Contraseña -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>🔒 Acceso Restringido</h2>
+            <p style="color: #00008B; font-weight: 500;">Introduce la contraseña para acceder</p>
+            <input type="password" id="password-input" placeholder="Contraseña">
+            <br>
+            <button onclick="verificarPassword()">Entrar</button>
+            <p id="login-error">❌ Contraseña incorrecta</p>
+        </div>
+    </div>
 
     <!-- Panel Lateral Izquierdo -->
     <aside class="sidebar" id="panel-sidebar">
@@ -409,6 +474,14 @@
             <div class="modal-content">
                 <span class="close-btn" onclick="cerrarFicha()">&times;</span>
                 <h2 id="ficha-titulo">Ficha</h2>
+                
+                <div class="color-picker-container">
+                    <span style="font-size: 14px; color: #00008B; font-weight: bold;">Color del texto:</span>
+                    <button id="btn-color-black" class="color-btn activo" style="background-color: black;" onclick="cambiarColorNota('black')"></button>
+                    <button id="btn-color-red" class="color-btn" style="background-color: #dc3545;" onclick="cambiarColorNota('red')"></button>
+                    <button id="btn-color-green" class="color-btn" style="background-color: #28a745;" onclick="cambiarColorNota('green')"></button>
+                </div>
+
                 <textarea id="ficha-texto" placeholder="Añade notas... Todo se guarda automáticamente."></textarea>
                 <button class="btn-modal-accion" onclick="cerrarFicha()">💾 Guardar y Cerrar</button>
             </div>
@@ -434,6 +507,39 @@
 
         <canvas id="miCanvas"></canvas>
     </main>
+
+    <!-- LÓGICA DE CONTRASEÑA -->
+    <script>
+        function verificarPassword() {
+            const pass = document.getElementById('password-input').value;
+            if (pass === 'padm2026') {
+                document.getElementById('login-overlay').style.display = 'none';
+                sessionStorage.setItem('auth_bolitas_acceso', 'true');
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+                // Animación de temblor en caso de error
+                const box = document.querySelector('.login-box');
+                box.style.transform = 'translateX(10px)';
+                setTimeout(() => box.style.transform = 'translateX(-10px)', 50);
+                setTimeout(() => box.style.transform = 'translateX(10px)', 100);
+                setTimeout(() => box.style.transform = 'translateX(0)', 150);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Si ya se ha metido la clave en esta sesión, no se vuelve a pedir
+            if (sessionStorage.getItem('auth_bolitas_acceso') === 'true') {
+                document.getElementById('login-overlay').style.display = 'none';
+            }
+            
+            // Permitir pulsar Enter para acceder directamente
+            document.getElementById('password-input').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    verificarPassword();
+                }
+            });
+        });
+    </script>
 
     <!-- LÓGICA PRINCIPAL Y GUARDADO EN LA NUBE (FIREBASE PRIVADO) -->
     <script type="module">
@@ -474,7 +580,11 @@
                 onSnapshot(notasRef, (snapshot) => {
                     notasAlumnos = {}; // Limpiar antes de recargar
                     snapshot.forEach(documento => {
-                        notasAlumnos[documento.id] = documento.data().texto;
+                        let data = documento.data();
+                        notasAlumnos[documento.id] = {
+                            texto: data.texto || '',
+                            color: data.color || 'black'
+                        };
                     });
                 }, (error) => {
                     console.error("Error cargando notas de la nube:", error);
@@ -483,13 +593,13 @@
         });
 
         // Función para subir y guardar notas en la nube
-        async function guardarNotaEnNube(nombreGrupo, texto) {
+        async function guardarNotaEnNube(nombreGrupo, texto, colorElegido) {
             if (!currentUser || !db) return;
             // Evita caracteres inválidos en el ID del documento
             const safeId = nombreGrupo.replace(/\//g, '-');
             const docRef = doc(db, 'notas_clases', currentUser.uid, 'fichas', safeId);
             try {
-                await setDoc(docRef, { texto: texto, updatedAt: new Date().toISOString() });
+                await setDoc(docRef, { texto: texto, color: colorElegido, updatedAt: new Date().toISOString() });
                 console.log("Ficha guardada correctamente en Firebase.");
             } catch (error) {
                 console.error("Error guardando nota:", error);
@@ -702,12 +812,35 @@
         };
 
         // --- SISTEMA INTELIGENTE DE FICHAS ---
+        window.cambiarColorNota = function(color) {
+            // Actualizar botones
+            document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('activo'));
+            document.getElementById('btn-color-' + color).classList.add('activo');
+            
+            // Cambiar color del textarea
+            const textarea = document.getElementById('ficha-texto');
+            if (color === 'red') textarea.style.color = '#dc3545';
+            else if (color === 'green') textarea.style.color = '#28a745';
+            else textarea.style.color = 'black';
+        };
+
         window.abrirFicha = function() {
             if (!bolitaSeleccionada) return;
             const nombreGrupo = bolitaSeleccionada.nombres.join(', ');
             document.getElementById('ficha-titulo').innerText = nombreGrupo;
             
-            let textoExistente = notasAlumnos[nombreGrupo] || '';
+            let datoG = notasAlumnos[nombreGrupo];
+            let textoExistente = '';
+            let colorExistente = 'black';
+            
+            if (datoG) {
+                if (typeof datoG === 'string') {
+                    textoExistente = datoG;
+                } else {
+                    textoExistente = datoG.texto || '';
+                    colorExistente = datoG.color || 'black';
+                }
+            }
             
             // Inteligencia de fechas y guiones
             const hoy = new Date();
@@ -727,6 +860,7 @@
             }
             
             document.getElementById('ficha-texto').value = textoExistente;
+            window.cambiarColorNota(colorExistente);
             
             let esIndividual = bolitaSeleccionada.nombres.length === 1;
             let esManual = bolitaSeleccionada.esManual;
@@ -751,14 +885,18 @@
             const nombreGrupo = document.getElementById('ficha-titulo').innerText;
             const textoActualizado = document.getElementById('ficha-texto').value;
             
-            notasAlumnos[nombreGrupo] = textoActualizado;
+            let colorElegido = 'black';
+            if (document.getElementById('btn-color-red').classList.contains('activo')) colorElegido = 'red';
+            if (document.getElementById('btn-color-green').classList.contains('activo')) colorElegido = 'green';
+            
+            notasAlumnos[nombreGrupo] = { texto: textoActualizado, color: colorElegido };
             
             if (bolitaSeleccionada) {
                 let esIndividual = bolitaSeleccionada.nombres.length === 1;
                 let esManual = bolitaSeleccionada.esManual;
                 
                 if (esIndividual || esManual) {
-                    guardarNotaEnNube(nombreGrupo, textoActualizado);
+                    guardarNotaEnNube(nombreGrupo, textoActualizado, colorElegido);
                 }
             }
             document.getElementById('modal-ficha').style.display = 'none';
@@ -815,12 +953,17 @@
 
                 // Contenido de la ficha
                 doc.setFont("helvetica", "normal");
-                doc.setTextColor(0, 0, 0); // Negro para texto normal
                 
                 if (!sec.contenido || sec.contenido.trim() === '') {
+                    doc.setTextColor(0, 0, 0); // Negro para texto vacío
                     doc.text("Sin registros.", 10, y);
                     y += 10;
                 } else {
+                    // Aplicar el color guardado en la ficha
+                    if (sec.color === 'red') doc.setTextColor(220, 53, 69); // Rojo
+                    else if (sec.color === 'green') doc.setTextColor(40, 167, 69); // Verde
+                    else doc.setTextColor(0, 0, 0); // Negro por defecto
+
                     // Divide el texto respetando los saltos de línea de la caja de texto y ajustándolo al ancho
                     const lineas = doc.splitTextToSize(sec.contenido, 180);
                     lineas.forEach(linea => {
@@ -840,10 +983,14 @@
         window.generarInformeCurso = function() {
             if (cursosSeleccionados.length === 0) return;
             const nombreCursos = cursosSeleccionados.join(', ');
-            const secciones = nombresActuales.map(nombre => ({
-                nombre: nombre,
-                contenido: notasAlumnos[nombre] || ''
-            }));
+            const secciones = nombresActuales.map(nombre => {
+                let n = notasAlumnos[nombre];
+                return {
+                    nombre: nombre,
+                    contenido: n ? (n.texto !== undefined ? n.texto : n) : '',
+                    color: n ? (n.color || 'black') : 'black'
+                };
+            });
             exportarPDF("Cursos_" + nombreCursos.replace(/, /g, '_'), "Informe de Cursos: " + nombreCursos, secciones);
         };
 
@@ -851,9 +998,11 @@
             const alumno = document.getElementById('select-alumno-informe').value;
             if (!alumno) return;
             const nombreCursos = cursosSeleccionados.join(', ');
+            let n = notasAlumnos[alumno];
             exportarPDF(alumno, "Informe Alumno: " + alumno + " (Clases: " + nombreCursos + ")", [{
                 nombre: alumno,
-                contenido: notasAlumnos[alumno] || ''
+                contenido: n ? (n.texto !== undefined ? n.texto : n) : '',
+                color: n ? (n.color || 'black') : 'black'
             }]);
         };
 
@@ -863,13 +1012,17 @@
             // Busca en la BBDD los grupos que tengan comas (varios miembros) y que pertenezcan a los cursos activos
             let gruposDelCurso = Object.keys(notasAlumnos).filter(k => k.includes(',') && k.split(', ').some(n => nombresActuales.includes(n)));
             
-            let secciones = gruposDelCurso.map(g => ({
-                nombre: g,
-                contenido: notasAlumnos[g] || ''
-            }));
+            let secciones = gruposDelCurso.map(g => {
+                let n = notasAlumnos[g];
+                return {
+                    nombre: g,
+                    contenido: n ? (n.texto !== undefined ? n.texto : n) : '',
+                    color: n ? (n.color || 'black') : 'black'
+                };
+            });
 
             if (secciones.length === 0) {
-                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en estos cursos." }];
+                secciones = [{ nombre: "Aviso", contenido: "No hay notas guardadas para grupos manuales en estos cursos.", color: "black" }];
             }
             
             exportarPDF("Grupos_" + nombreCursos.replace(/, /g, '_'), "Informe Grupos Manuales: " + nombreCursos, secciones);
