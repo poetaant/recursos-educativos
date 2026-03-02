@@ -32,9 +32,9 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- ICONOS SVG (Reemplazo de lucide-react para un solo archivo) ---
+        // --- ICONOS SVG ---
         const Icon = ({ children, className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {children}
@@ -45,6 +45,7 @@
         const ChevronRight = ({ className }) => <Icon className={className}><polyline points="9 18 15 12 9 6"></polyline></Icon>;
         const ArrowDown = ({ className }) => <Icon className={className}><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></Icon>;
         const HelpCircle = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></Icon>;
+        const RefreshCw = ({ className }) => <Icon className={className}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></Icon>;
 
         // --- UTILS & MATH GENERATORS ---
         const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -58,7 +59,6 @@
 
         // --- COMPONENTS ---
 
-        // Generic single digit input box
         const DigitInput = ({ value, onChange, className = "", isSmall = false, readOnly = false, id, isHelped = false }) => {
             return (
                 <input
@@ -69,12 +69,13 @@
                 onChange={(e) => {
                     const val = e.target.value.replace(/[^0-9]/g, '');
                     onChange(val);
-                    // Auto-focus next if typed
                     if (val !== '' && id) {
-                    const parts = id.split('-');
-                    const nextId = `${parts[0]}-${parts[1]}-${parseInt(parts[2]) + 1}`;
-                    const nextEl = document.getElementById(nextId);
-                    if (nextEl) nextEl.focus();
+                        const parts = id.split('-');
+                        const lastIdx = parts.length - 1;
+                        parts[lastIdx] = parseInt(parts[lastIdx]) + 1;
+                        const nextId = parts.join('-');
+                        const nextEl = document.getElementById(nextId);
+                        if (nextEl) nextEl.focus();
                     }
                 }}
                 readOnly={readOnly}
@@ -88,7 +89,7 @@
 
         // --- OPERATION BOARDS ---
 
-        const AdditionBoard = ({ config, isManual, onNext }) => {
+        const AdditionBoard = ({ config, isManual, onNext, autoSolve }) => {
             const [addends, setAddends] = useState([]);
             const [setupMode, setSetupMode] = useState(isManual);
             const [inputs, setInputs] = useState({});
@@ -112,6 +113,52 @@
                 }
             }, [config, isManual]);
 
+            const maxLen = Math.max(...addends.map(a => String(a).length), 1);
+            const cols = maxLen + 2; 
+            const maxPower = maxLen; 
+
+            // AUTO SOLVER COMPLETAMENTE REVISADO
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && addends.length > 0) {
+                        const newInputs = {};
+                        const newCarries = {};
+                        
+                        // 1. Calculamos el resultado exacto como string
+                        const expectedStr = String(addends.reduce((acc, curr) => acc + (parseInt(curr, 10) || 0), 0));
+                        
+                        // 2. Colocamos los números en sus cajas exactas (de derecha a izquierda)
+                        for (let i = 0; i < expectedStr.length; i++) {
+                            newInputs[`res-${i}`] = expectedStr[expectedStr.length - 1 - i];
+                        }
+
+                        // 3. Calculamos las llevadas visuales
+                        let currentCarry = 0;
+                        for (let power = 0; power <= maxPower; power++) {
+                            if (currentCarry > 0 && power > 0 && power < maxLen) {
+                                newCarries[`c-${power}`] = String(currentCarry);
+                            }
+                            let colSum = currentCarry;
+                            addends.forEach(addend => {
+                                const numStr = String(addend);
+                                const charIdx = numStr.length - 1 - power;
+                                if (charIdx >= 0 && charIdx < numStr.length) {
+                                    colSum += parseInt(numStr[charIdx], 10) || 0;
+                                }
+                            });
+                            currentCarry = Math.floor(colSum / 10);
+                        }
+
+                        setInputs({...newInputs});
+                        setCarries({...newCarries});
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, addends, maxPower, maxLen]);
+
             const resetState = () => {
                 if (!isManual) setSetupMode(false);
                 setInputs({});
@@ -120,64 +167,50 @@
                 setStatus('playing');
             }
 
-            const maxLen = Math.max(...addends.map(a => String(a).length), 1);
-            const cols = maxLen + 1; 
-
             const handleHelp = () => {
+                const expectedStr = String(addends.reduce((acc, curr) => acc + (parseInt(curr, 10) || 0), 0));
                 let currentCarry = 0;
-                const expectedSum = addends.reduce((acc, curr) => acc + parseInt(curr || 0, 10), 0);
-                const expectedStr = String(expectedSum);
-                const requiredPadding = cols - expectedStr.length;
-
-                // Procesamos de derecha a izquierda columna por columna
-                for (let cIndex = cols - 2; cIndex >= 0; cIndex--) {
                 
-                // 1. Si hay llevada generada, la colocamos arriba de esta columna primero
-                if (currentCarry > 0) {
-                    const carryKey = `c-${cIndex}`;
-                    if (carries[carryKey] !== String(currentCarry)) {
-                    setCarries(prev => ({...prev, [carryKey]: String(currentCarry)}));
-                    setHelpedFields(prev => ({...prev, [carryKey]: true}));
-                    return;
+                for (let power = 0; power <= maxPower; power++) {
+                    // Ayudar con la llevada primero
+                    if (currentCarry > 0 && power > 0 && power < maxLen) {
+                        const carryKey = `c-${power}`;
+                        if (carries[carryKey] !== String(currentCarry)) {
+                            setCarries(prev => ({...prev, [carryKey]: String(currentCarry)}));
+                            setHelpedFields({ [carryKey]: true });
+                            return;
+                        }
                     }
-                }
 
-                // Calculamos la suma de esta columna más la llevada
-                let colSum = currentCarry;
-                addends.forEach(addend => {
-                    const numStr = String(addend);
-                    const padding = cols - numStr.length;
-                    const charIdx = (cIndex + 1) - padding;
-                    if (charIdx >= 0 && charIdx < numStr.length) {
-                    colSum += parseInt(numStr[charIdx], 10);
+                    // Sumar columna para arrastrar la llevada
+                    let colSum = currentCarry;
+                    addends.forEach(addend => {
+                        const numStr = String(addend);
+                        const charIdx = numStr.length - 1 - power;
+                        if (charIdx >= 0 && charIdx < numStr.length) {
+                            colSum += parseInt(numStr[charIdx], 10) || 0;
+                        }
+                    });
+                    currentCarry = Math.floor(colSum / 10);
+
+                    // Ayudar con el resultado de la columna
+                    if (power < expectedStr.length) {
+                        const expectedChar = expectedStr[expectedStr.length - 1 - power];
+                        const resKey = `res-${power}`;
+                        if (inputs[resKey] !== expectedChar) {
+                            setInputs(prev => ({...prev, [resKey]: expectedChar}));
+                            setHelpedFields({ [resKey]: true });
+                            return;
+                        }
                     }
-                });
-
-                const expectedResDigit = String(colSum % 10);
-                const nextCarry = Math.floor(colSum / 10);
-
-                const actualCol = cIndex + 1;
-                
-                // 2. Comprobamos el resultado de la columna
-                if (actualCol >= requiredPadding) {
-                    const resKey = `res-${cIndex + 1}`;
-                    if (inputs[resKey] !== expectedResDigit) {
-                    setInputs(prev => ({...prev, [resKey]: expectedResDigit}));
-                    setHelpedFields(prev => ({...prev, [resKey]: true}));
-                    return;
-                    }
-                }
-
-                currentCarry = nextCarry;
                 }
             };
 
             const checkResult = () => {
-                const sum = addends.reduce((acc, curr) => acc + parseInt(curr || 0, 10), 0);
-                const expectedStr = String(sum);
+                const sum = addends.reduce((acc, curr) => acc + (parseInt(curr, 10) || 0), 0);
                 let userStr = '';
-                for (let i = cols - 1; i >= cols - expectedStr.length; i--) {
-                userStr = (inputs[`res-${i}`] || '0') + userStr;
+                for (let power = maxPower; power >= 0; power--) {
+                    userStr += (inputs[`res-${power}`] || '0');
                 }
                 if (parseInt(userStr, 10) === sum) setStatus('correct');
                 else setStatus('incorrect');
@@ -218,40 +251,45 @@
                 <div className="flex flex-col items-center">
                 <div className="bg-white p-8 rounded-xl shadow-lg border-2 border-blue-100 relative">
                     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+                    
                     {/* Carries Row */}
                     <div className="col-span-1"></div>
-                    {Array.from({ length: cols - 1 }).map((_, i) => (
-                        <div key={`carry-${i}`} className="flex justify-center mb-2">
-                        <DigitInput
-                            isSmall
-                            value={carries[`c-${i}`] || ''}
-                            onChange={(v) => setCarries({ ...carries, [`c-${i}`]: v })}
-                            className="bg-yellow-50 border-yellow-300 text-yellow-700"
-                            isHelped={helpedFields[`c-${i}`]}
-                        />
-                        </div>
-                    ))}
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        return (
+                            <div key={`carry-${power}`} className="flex justify-center mb-2">
+                            {power > 0 && power < maxLen && (
+                                <DigitInput
+                                    isSmall
+                                    value={carries[`c-${power}`] || ''}
+                                    onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
+                                    className="bg-yellow-50 border-yellow-300 text-yellow-700"
+                                    isHelped={helpedFields[`c-${power}`]}
+                                />
+                            )}
+                            </div>
+                        );
+                    })}
 
                     {/* Addends */}
                     {addends.map((addend, rIndex) => {
                         const numStr = String(addend);
-                        const padding = cols - numStr.length;
                         return (
                         <React.Fragment key={`row-${rIndex}`}>
                             <div className="flex items-center justify-center font-bold text-2xl text-blue-500">
-                            {rIndex === addends.length - 1 ? '+' : ''}
+                                {rIndex === addends.length - 1 ? '+' : ''}
                             </div>
                             {Array.from({ length: cols - 1 }).map((_, cIndex) => {
-                            const actualCol = cIndex + 1;
-                            const charIdx = actualCol - padding;
-                            const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
-                            return (
-                                <div key={`c-${rIndex}-${cIndex}`} className="flex justify-center">
-                                <div className="w-10 h-12 flex items-center justify-center text-3xl font-mono">
-                                    {char}
-                                </div>
-                                </div>
-                            );
+                                const power = cols - 2 - cIndex;
+                                const charIdx = numStr.length - 1 - power;
+                                const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
+                                return (
+                                    <div key={`c-${rIndex}-${power}`} className="flex justify-center">
+                                    <div className="w-10 h-12 flex items-center justify-center text-3xl font-mono">
+                                        {char}
+                                    </div>
+                                    </div>
+                                );
                             })}
                         </React.Fragment>
                         );
@@ -262,17 +300,21 @@
 
                     {/* Result Row */}
                     <div className="col-span-1"></div>
-                    {Array.from({ length: cols - 1 }).map((_, i) => (
-                        <div key={`res-${i}`} className="flex justify-center">
-                        <DigitInput
-                            id={`add-res-${i}`}
-                            value={inputs[`res-${i+1}`] || ''}
-                            onChange={(v) => setInputs({ ...inputs, [`res-${i+1}`]: v })}
-                            className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
-                            isHelped={helpedFields[`res-${i+1}`]}
-                        />
-                        </div>
-                    ))}
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        return (
+                            <div key={`res-${power}`} className="flex justify-center">
+                            <DigitInput
+                                id={`add-res-${cIndex}`}
+                                value={inputs[`res-${power}`] || ''}
+                                onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
+                                isHelped={helpedFields[`res-${power}`]}
+                            />
+                            </div>
+                        );
+                    })}
+
                     </div>
                 </div>
 
@@ -296,7 +338,7 @@
             );
         };
 
-        const SubtractionBoard = ({ config, isManual, onNext }) => {
+        const SubtractionBoard = ({ config, isManual, onNext, autoSolve }) => {
             const [minuend, setMinuend] = useState('');
             const [subtrahend, setSubtrahend] = useState('');
             const [setupMode, setSetupMode] = useState(isManual);
@@ -321,6 +363,52 @@
                 }
             }, [config, isManual]);
 
+            const cols = Math.max(minuend.length, subtrahend.length) + 1;
+            const maxPower = cols - 2;
+
+            // AUTO SOLVER REVISADO
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && minuend && subtrahend) {
+                        const newInputs = {};
+                        const newCarries = {};
+                        
+                        // Resultado perfecto exacto
+                        const expectedStr = String(parseInt(minuend || 0, 10) - parseInt(subtrahend || 0, 10));
+                        for (let i = 0; i < expectedStr.length; i++) {
+                            newInputs[`res-${i}`] = expectedStr[expectedStr.length - 1 - i];
+                        }
+
+                        // Llevadas visuales
+                        let currentCarry = 0;
+                        for (let power = 0; power <= maxPower; power++) {
+                            if (currentCarry > 0 && power > 0) {
+                                newCarries[`c-${power}`] = String(currentCarry);
+                            }
+                            const charIdxM = minuend.length - 1 - power;
+                            const topDigit = charIdxM >= 0 && charIdxM < minuend.length ? (parseInt(minuend[charIdxM], 10) || 0) : 0;
+                            const charIdxS = subtrahend.length - 1 - power;
+                            const botDigitBase = charIdxS >= 0 && charIdxS < subtrahend.length ? (parseInt(subtrahend[charIdxS], 10) || 0) : 0;
+                            
+                            const bottomDigit = botDigitBase + currentCarry;
+                            let resDigit = topDigit - bottomDigit;
+                            let nextCarry = 0;
+                            if (resDigit < 0) {
+                                nextCarry = 1;
+                            }
+                            currentCarry = nextCarry;
+                        }
+
+                        setInputs({...newInputs});
+                        setCarries({...newCarries});
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, minuend, subtrahend, maxPower]);
+
             const resetState = () => {
                 if (!isManual) setSetupMode(false);
                 setInputs({});
@@ -329,63 +417,50 @@
                 setStatus('playing');
             };
 
-            const cols = Math.max(minuend.length, subtrahend.length) + 1;
-
             const handleHelp = () => {
+                const expectedStr = String(parseInt(minuend || 0, 10) - parseInt(subtrahend || 0, 10));
                 let currentCarry = 0;
-                const expectedStr = String(parseInt(minuend || 0) - parseInt(subtrahend || 0));
-                const requiredPadding = cols - expectedStr.length;
-
-                for (let cIndex = cols - 2; cIndex >= 0; cIndex--) {
                 
-                // 1. Ayudar primero con la llevada abajo si hay una arrastrada
-                if (currentCarry > 0) {
-                    const carryKey = `c-${cIndex}`;
-                    if (carries[carryKey] !== String(currentCarry)) {
-                        setCarries(prev => ({...prev, [carryKey]: String(currentCarry)}));
-                        setHelpedFields(prev => ({...prev, [carryKey]: true}));
-                        return;
+                for (let power = 0; power <= maxPower; power++) {
+                    // Ayudar llevada
+                    if (currentCarry > 0 && power > 0) {
+                        const carryKey = `c-${power}`;
+                        if (carries[carryKey] !== String(currentCarry)) {
+                            setCarries(prev => ({...prev, [carryKey]: String(currentCarry)}));
+                            setHelpedFields({ [carryKey]: true });
+                            return;
+                        }
                     }
-                }
 
-                const actualCol = cIndex + 1;
-                const paddingM = cols - minuend.length;
-                const charIdxM = actualCol - paddingM;
-                const topDigit = charIdxM >= 0 && charIdxM < minuend.length ? parseInt(minuend[charIdxM], 10) : 0;
-                
-                const paddingS = cols - subtrahend.length;
-                const charIdxS = actualCol - paddingS;
-                const botDigitBase = charIdxS >= 0 && charIdxS < subtrahend.length ? parseInt(subtrahend[charIdxS], 10) : 0;
-                
-                const bottomDigit = botDigitBase + currentCarry;
-                
-                let resDigit = topDigit - bottomDigit;
-                let nextCarry = 0;
-                if (resDigit < 0) {
-                    resDigit += 10;
-                    nextCarry = 1;
-                }
-                
-                // 2. Ayudar rellenando el resultado de esta columna si hace falta
-                if (actualCol >= requiredPadding) {
-                    const resKey = `res-${cIndex + 1}`;
-                    if (inputs[resKey] !== String(resDigit)) {
-                        setInputs(prev => ({...prev, [resKey]: String(resDigit)}));
-                        setHelpedFields(prev => ({...prev, [resKey]: true}));
-                        return;
+                    const charIdxM = minuend.length - 1 - power;
+                    const topDigit = charIdxM >= 0 && charIdxM < minuend.length ? (parseInt(minuend[charIdxM], 10) || 0) : 0;
+                    const charIdxS = subtrahend.length - 1 - power;
+                    const botDigitBase = charIdxS >= 0 && charIdxS < subtrahend.length ? (parseInt(subtrahend[charIdxS], 10) || 0) : 0;
+                    
+                    const bottomDigit = botDigitBase + currentCarry;
+                    let resDigit = topDigit - bottomDigit;
+                    let nextCarry = 0;
+                    if (resDigit < 0) { nextCarry = 1; }
+
+                    // Ayudar resultado actual
+                    if (power < expectedStr.length) {
+                        const expectedChar = expectedStr[expectedStr.length - 1 - power];
+                        const resKey = `res-${power}`;
+                        if (inputs[resKey] !== expectedChar) {
+                            setInputs(prev => ({...prev, [resKey]: expectedChar}));
+                            setHelpedFields({ [resKey]: true });
+                            return;
+                        }
                     }
-                }
-                
-                currentCarry = nextCarry;
+                    currentCarry = nextCarry;
                 }
             };
 
             const checkResult = () => {
-                const res = parseInt(minuend) - parseInt(subtrahend);
-                const expectedStr = String(res);
+                const res = parseInt(minuend, 10) - parseInt(subtrahend, 10);
                 let userStr = '';
-                for (let i = cols - 1; i >= cols - expectedStr.length; i--) {
-                userStr = (inputs[`res-${i}`] || '0') + userStr;
+                for (let power = maxPower; power >= 0; power--) {
+                    userStr += (inputs[`res-${power}`] || '0');
                 }
                 if (parseInt(userStr, 10) === res) setStatus('correct');
                 else setStatus('incorrect');
@@ -405,7 +480,7 @@
                     </div>
                     <button 
                     onClick={() => {
-                        if (minuend && subtrahend && parseInt(minuend) >= parseInt(subtrahend)) setSetupMode(false);
+                        if (minuend && subtrahend && parseInt(minuend, 10) >= parseInt(subtrahend, 10)) setSetupMode(false);
                         else alert("Por favor, asegúrate de que el minuendo sea mayor o igual al sustraendo.");
                     }}
                     className="bg-blue-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-600 flex items-center"
@@ -417,32 +492,31 @@
             }
 
             const renderRow = (numStr, isSubtrahend = false) => {
-                const padding = cols - numStr.length;
                 return (
                 <React.Fragment>
                     <div className="flex items-center justify-center font-bold text-2xl text-red-500">
                     {isSubtrahend ? '-' : ''}
                     </div>
                     {Array.from({ length: cols - 1 }).map((_, cIndex) => {
-                    const actualCol = cIndex + 1;
-                    const charIdx = actualCol - padding;
-                    const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
-                    return (
-                        <div key={`c-${cIndex}`} className="flex flex-col items-center justify-center relative h-16">
-                        <div className="text-3xl font-mono leading-none">{char}</div>
-                        {isSubtrahend && charIdx >= -1 && charIdx < numStr.length && (
-                            <div className="absolute -bottom-4 -left-2">
-                            <DigitInput
-                                isSmall
-                                value={carries[`c-${cIndex}`] || ''}
-                                onChange={(v) => setCarries({ ...carries, [`c-${cIndex}`]: v })}
-                                className="bg-orange-50 border-orange-300 text-orange-700 text-xs w-5 h-6"
-                                isHelped={helpedFields[`c-${cIndex}`]}
-                            />
+                        const power = cols - 2 - cIndex;
+                        const charIdx = numStr.length - 1 - power;
+                        const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
+                        return (
+                            <div key={`c-${power}`} className="flex flex-col items-center justify-center relative h-16">
+                            <div className="text-3xl font-mono leading-none">{char}</div>
+                            {isSubtrahend && charIdx >= -1 && charIdx < numStr.length && power > 0 && (
+                                <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2">
+                                <DigitInput
+                                    isSmall
+                                    value={carries[`c-${power}`] || ''}
+                                    onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
+                                    className="bg-orange-50 border-orange-300 text-orange-700 text-xs w-5 h-6"
+                                    isHelped={helpedFields[`c-${power}`]}
+                                />
+                                </div>
+                            )}
                             </div>
-                        )}
-                        </div>
-                    );
+                        );
                     })}
                 </React.Fragment>
                 );
@@ -458,17 +532,20 @@
                     <div className={`col-span-${cols} border-b-4 border-black mt-4 mb-2`}></div>
 
                     <div className="col-span-1"></div>
-                    {Array.from({ length: cols - 1 }).map((_, i) => (
-                        <div key={`res-${i}`} className="flex justify-center">
-                        <DigitInput
-                            id={`sub-res-${i}`}
-                            value={inputs[`res-${i+1}`] || ''}
-                            onChange={(v) => setInputs({ ...inputs, [`res-${i+1}`]: v })}
-                            className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
-                            isHelped={helpedFields[`res-${i+1}`]}
-                        />
-                        </div>
-                    ))}
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        return (
+                            <div key={`res-${power}`} className="flex justify-center">
+                            <DigitInput
+                                id={`sub-res-${cIndex}`}
+                                value={inputs[`res-${power}`] || ''}
+                                onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
+                                isHelped={helpedFields[`res-${power}`]}
+                            />
+                            </div>
+                        );
+                    })}
                     </div>
                 </div>
 
@@ -491,7 +568,7 @@
             );
         };
 
-        const MultiplicationBoard = ({ config, isManual, onNext }) => {
+        const MultiplicationBoard = ({ config, isManual, onNext, autoSolve }) => {
             const [multiplicand, setMultiplicand] = useState('');
             const [multiplier, setMultiplier] = useState('');
             const [setupMode, setSetupMode] = useState(isManual);
@@ -510,6 +587,62 @@
                 }
             }, [config, isManual]);
 
+            const L = multiplicand.length;
+            const M = multiplier.length;
+            const cols = L + M + 2;
+            const numPartials = multiplier.length;
+
+            // AUTO SOLVER
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && multiplicand && multiplier) {
+                        const m1 = parseInt(multiplicand || 0, 10);
+                        const m2Str = String(multiplier || 0);
+                        const newInputs = {};
+                        const newCarries = {};
+                        
+                        if (m2Str.length > 1) {
+                            for (let rIndex = 0; rIndex < m2Str.length; rIndex++) {
+                                const digit = parseInt(m2Str[m2Str.length - 1 - rIndex], 10) || 0;
+                                const pStr = digit === 0 ? '0'.repeat(String(m1).length) : String(m1 * digit);
+                                for (let j = 0; j < pStr.length; j++) {
+                                    const char = pStr[pStr.length - 1 - j];
+                                    const power = rIndex + j;
+                                    newInputs[`p-${rIndex}-${power}`] = char;
+                                }
+                            }
+                        }
+                        const totalStr = String(m1 * (parseInt(multiplier, 10) || 0));
+                        for(let j = 0; j < totalStr.length; j++){
+                            const char = totalStr[totalStr.length - 1 - j];
+                            newInputs[`res-${j}`] = char;
+                        }
+
+                        if (m2Str.length > 0) {
+                            const firstDigit = parseInt(m2Str[m2Str.length - 1], 10) || 0;
+                            let carry = 0;
+                            const m1Str = String(m1);
+                            for (let i = m1Str.length - 1; i >= 0; i--) {
+                                const topDigit = parseInt(m1Str[i], 10) || 0;
+                                const prod = topDigit * firstDigit + carry;
+                                carry = Math.floor(prod / 10);
+                                const power = m1Str.length - 1 - i + 1;
+                                if (carry > 0 && power < L) {
+                                    newCarries[`c-${power}`] = String(carry);
+                                }
+                            }
+                        }
+
+                        setInputs({...newInputs});
+                        setCarries({...newCarries});
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, multiplicand, multiplier, L]);
+
             const setMinuendOrMul = () => {
                 setMultiplicand(String(generateNumber(config.digitsMultiplicand)));
                 setMultiplier(String(generateNumber(config.digitsMultiplier)));
@@ -524,54 +657,48 @@
                 setStatus('playing');
             }
 
-            const cols = multiplicand.length + multiplier.length + 1;
-            const numPartials = multiplier.length;
-
             const clearCarries = () => setCarries({});
 
             const handleHelp = () => {
-                const m1 = parseInt(multiplicand || 0);
+                const m1 = parseInt(multiplicand || 0, 10);
                 const m2Str = String(multiplier || 0);
 
-                // Check partials first (from top to bottom, right to left)
                 if (m2Str.length > 1) {
-                for (let r = 0; r < m2Str.length; r++) {
-                    const digit = parseInt(m2Str[m2Str.length - 1 - r]);
-                    const pStr = String(m1 * digit);
-                    for (let j = 0; j < pStr.length; j++) {
-                    const c = (cols - 2 - r) - j;
-                    const key = `p-${r}-${c}`;
-                    const expectedChar = pStr[pStr.length - 1 - j];
-                    if (inputs[key] !== expectedChar) {
-                        setInputs(prev => ({...prev, [key]: expectedChar}));
-                        setHelpedFields(prev => ({...prev, [key]: true}));
-                        return;
+                    for (let rIndex = 0; rIndex < m2Str.length; rIndex++) {
+                        const digit = parseInt(m2Str[m2Str.length - 1 - rIndex], 10) || 0;
+                        const pStr = digit === 0 ? '0'.repeat(String(m1).length) : String(m1 * digit);
+                        for (let j = 0; j < pStr.length; j++) {
+                            const power = rIndex + j;
+                            const expectedChar = pStr[pStr.length - 1 - j];
+                            const key = `p-${rIndex}-${power}`;
+                            if (inputs[key] !== expectedChar) {
+                                setInputs(prev => ({...prev, [key]: expectedChar}));
+                                setHelpedFields({ [key]: true });
+                                return;
+                            }
+                        }
                     }
-                    }
-                }
                 }
 
-                // Check final result
-                const totalStr = String(m1 * parseInt(multiplier || 0));
+                const totalStr = String(m1 * (parseInt(multiplier, 10) || 0));
                 for(let j = 0; j < totalStr.length; j++){
-                const key = `res-${cols - 1 - j}`; 
-                const expectedChar = totalStr[totalStr.length - 1 - j];
-                if (inputs[key] !== expectedChar) {
-                    setInputs(prev => ({...prev, [key]: expectedChar}));
-                    setHelpedFields(prev => ({...prev, [key]: true}));
-                    return;
-                }
+                    const key = `res-${j}`; 
+                    const expectedChar = totalStr[totalStr.length - 1 - j];
+                    if (inputs[key] !== expectedChar) {
+                        setInputs(prev => ({...prev, [key]: expectedChar}));
+                        setHelpedFields({ [key]: true });
+                        return;
+                    }
                 }
             };
 
             const checkResult = () => {
-                const m1 = parseInt(multiplicand);
-                const m2 = parseInt(multiplier);
-                const expectedTotalStr = String(m1 * m2);
+                const m1 = parseInt(multiplicand, 10);
+                const m2 = parseInt(multiplier, 10);
                 
                 let userTotalStr = '';
-                for (let i = cols - 1; i >= cols - expectedTotalStr.length; i--) {
-                userTotalStr = (inputs[`res-${i}`] || '0') + userTotalStr;
+                for (let power = L + M; power >= 0; power--) {
+                    userTotalStr += (inputs[`res-${power}`] || '0');
                 }
 
                 if (parseInt(userTotalStr, 10) === m1 * m2) setStatus('correct');
@@ -606,21 +733,20 @@
             }
 
             const renderTopNumber = (numStr, sign) => {
-                const padding = cols - numStr.length;
                 return (
                 <React.Fragment>
                     <div className="flex items-center justify-center font-bold text-2xl text-purple-500">
                     {sign}
                     </div>
                     {Array.from({ length: cols - 1 }).map((_, cIndex) => {
-                    const actualCol = cIndex + 1;
-                    const charIdx = actualCol - padding;
-                    const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
-                    return (
-                        <div key={`top-${cIndex}`} className="flex justify-center items-center h-12 text-3xl font-mono">
-                        {char}
-                        </div>
-                    );
+                        const power = cols - 2 - cIndex;
+                        const charIdx = numStr.length - 1 - power;
+                        const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
+                        return (
+                            <div key={`top-${power}`} className="flex justify-center items-center h-12 text-3xl font-mono">
+                                {char}
+                            </div>
+                        );
                     })}
                 </React.Fragment>
                 );
@@ -639,16 +765,21 @@
                     <div className="grid gap-y-2 gap-x-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
                     
                     <div className="col-span-1"></div>
-                    {Array.from({ length: cols - 1 }).map((_, i) => (
-                        <div key={`carry-${i}`} className="flex justify-center mb-2">
-                        <DigitInput
-                            isSmall
-                            value={carries[`c-${i}`] || ''}
-                            onChange={(v) => setCarries({ ...carries, [`c-${i}`]: v })}
-                            className="bg-yellow-50 border-yellow-300 text-yellow-700"
-                        />
-                        </div>
-                    ))}
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        return (
+                            <div key={`carry-${power}`} className="flex justify-center mb-2">
+                            {power > 0 && power < L && (
+                                <DigitInput
+                                    isSmall
+                                    value={carries[`c-${power}`] || ''}
+                                    onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
+                                    className="bg-yellow-50 border-yellow-300 text-yellow-700"
+                                />
+                            )}
+                            </div>
+                        );
+                    })}
 
                     {renderTopNumber(multiplicand, '')}
                     {renderTopNumber(multiplier, '×')}
@@ -661,17 +792,19 @@
                             {rIndex === numPartials - 1 ? '+' : ''}
                         </div>
                         {Array.from({ length: cols - 1 }).map((_, cIndex) => {
-                            const isBlank = cIndex > (cols - 2 - rIndex);
-                            if (isBlank) return <div key={`p-${rIndex}-${cIndex}`} className="w-10 h-12"></div>;
+                            const power = cols - 2 - cIndex;
+                            const isInput = power >= rIndex && power <= rIndex + L;
+                            
+                            if (!isInput) return <div key={`p-${rIndex}-${power}`} className="w-10 h-12"></div>;
                             
                             return (
-                            <div key={`p-${rIndex}-${cIndex}`} className="flex justify-center">
+                            <div key={`p-${rIndex}-${power}`} className="flex justify-center">
                                 <DigitInput
                                 id={`mul-p-${rIndex}-${cIndex}`}
-                                value={inputs[`p-${rIndex}-${cIndex}`] || ''}
-                                onChange={(v) => setInputs({ ...inputs, [`p-${rIndex}-${cIndex}`]: v })}
+                                value={inputs[`p-${rIndex}-${power}`] || ''}
+                                onChange={(v) => setInputs({ ...inputs, [`p-${rIndex}-${power}`]: v })}
                                 className="bg-blue-50 border-blue-200"
-                                isHelped={helpedFields[`p-${rIndex}-${cIndex}`]}
+                                isHelped={helpedFields[`p-${rIndex}-${power}`]}
                                 />
                             </div>
                             );
@@ -682,17 +815,20 @@
                     {numPartials > 1 && <div className={`col-span-${cols} border-b-4 border-black my-2`}></div>}
 
                     <div className="col-span-1"></div>
-                    {Array.from({ length: cols - 1 }).map((_, i) => (
-                        <div key={`res-${i}`} className="flex justify-center">
-                        <DigitInput
-                            id={`mul-res-${i}`}
-                            value={inputs[`res-${i+1}`] || ''}
-                            onChange={(v) => setInputs({ ...inputs, [`res-${i+1}`]: v })}
-                            className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-gray-50 border-gray-300 font-bold'}
-                            isHelped={helpedFields[`res-${i+1}`]}
-                        />
-                        </div>
-                    ))}
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        return (
+                            <div key={`res-${power}`} className="flex justify-center">
+                            <DigitInput
+                                id={`mul-res-${cIndex}`}
+                                value={inputs[`res-${power}`] || ''}
+                                onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-gray-50 border-gray-300 font-bold'}
+                                isHelped={helpedFields[`res-${power}`]}
+                            />
+                            </div>
+                        );
+                    })}
 
                     </div>
                 </div>
@@ -718,7 +854,7 @@
 
 
         // --- DIVISION COMPONENT ---
-        const DivisionBoard = ({ config, isManual, onNext }) => {
+        const DivisionBoard = ({ config, isManual, onNext, autoSolve }) => {
             const [dividend, setDividend] = useState('');
             const [divisor, setDivisor] = useState('');
             const [setupMode, setSetupMode] = useState(isManual);
@@ -747,8 +883,68 @@
                 }
             }, [config, isManual]);
 
+            // AUTO SOLVER REVISADO
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && dividend && divisor) {
+                        const D = String(dividend);
+                        const d = parseInt(divisor, 10);
+                        if(d === 0) return;
+
+                        let correctLen = 1;
+                        while (parseInt(D.substring(0, correctLen), 10) < d && correctLen < D.length) {
+                            correctLen++;
+                        }
+                        setArcLen(correctLen); 
+                        
+                        let currentVal = parseInt(D.substring(0, correctLen), 10);
+                        const totalSteps = D.length - correctLen + 1;
+                        
+                        const newRows = [];
+                        const newQ = [];
+
+                        for (let step = 0; step < totalSteps; step++) {
+                            const qDigit = Math.floor(currentVal / d);
+                            newQ[step] = String(qDigit);
+                            
+                            const rem = currentVal % d;
+                            const remStr = String(rem);
+                            
+                            const remainderInputs = {};
+                            for (let i = 0; i < remStr.length; i++) {
+                                const c = (correctLen - 1 + step) - i;
+                                remainderInputs[c] = remStr[remStr.length - 1 - i];
+                            }
+                            
+                            let droppedChar = null;
+                            let dropColIndex = null;
+                            if (step < totalSteps - 1) {
+                                dropColIndex = correctLen + step;
+                                droppedChar = D[dropColIndex];
+                                remainderInputs[dropColIndex] = droppedChar; 
+                                currentVal = parseInt(remStr + droppedChar, 10);
+                            }
+
+                            newRows.push({
+                                remainderInputs,
+                                droppedChar,
+                                dropColIndex,
+                            });
+                        }
+                        
+                        setStepRows([...newRows]);
+                        setQuotientInputs([...newQ]);
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, dividend, divisor]);
+
+
             const resetBoard = () => {
-                setSetupMode(false);
+                if (!isManual) setSetupMode(false);
                 setArcLen(0);
                 setStepRows([]);
                 setQuotientInputs([]);
@@ -766,8 +962,8 @@
                 for (let i = 0; i < totalSteps; i++) {
                 newRows.push({
                     remainderInputs: {},
-                    droppedChar: i > 0 ? dividend[len - 1 + i] : null,
-                    dropColIndex: i > 0 ? len - 1 + i : null,
+                    droppedChar: i < totalSteps - 1 ? dividend[len + i] : null,
+                    dropColIndex: i < totalSteps - 1 ? len + i : null,
                 });
                 }
                 setStepRows(newRows);
@@ -790,9 +986,9 @@
                 const expRem = {};
                 const expQ = {};
                 const D = String(dividend);
-                const d = parseInt(divisor);
+                const d = parseInt(divisor, 10);
                 
-                let currentVal = parseInt(D.substring(0, arcLen));
+                let currentVal = parseInt(D.substring(0, arcLen), 10);
                 
                 for (let step = 0; step < D.length - arcLen + 1; step++) {
                 const qDigit = Math.floor(currentVal / d);
@@ -808,7 +1004,7 @@
                 if (step < D.length - arcLen) {
                     const dropCol = arcLen + step;
                     const dropChar = D[dropCol];
-                    currentVal = parseInt(remStr + dropChar);
+                    currentVal = parseInt(remStr + dropChar, 10);
                 }
                 }
                 return { expRem, expQ };
@@ -817,7 +1013,7 @@
             const handleHelp = () => {
                 if (arcLen === 0) {
                 let len = 1;
-                while (parseInt(dividend.substring(0, len)) < parseInt(divisor) && len < dividend.length) len++;
+                while (parseInt(dividend.substring(0, len), 10) < parseInt(divisor, 10) && len < dividend.length) len++;
                 selectArc(len);
                 return;
                 }
@@ -848,10 +1044,10 @@
                 if (step < totalSteps - 1) {
                     const dropCol = arcLen + step;
                     const expDrop = dividend[dropCol];
-                    const actualVal = stepRows[step+1]?.remainderInputs[dropCol];
+                    const actualVal = stepRows[step]?.remainderInputs[dropCol];
                     if (actualVal !== expDrop) {
-                        handleRemainderChange(step+1, dropCol, expDrop);
-                        setHelpedFields(prev => ({...prev, [`rem-${step+1}-${dropCol}`]: true}));
+                        handleRemainderChange(step, dropCol, expDrop);
+                        setHelpedFields(prev => ({...prev, [`rem-${step}-${dropCol}`]: true}));
                         return;
                     }
                 }
@@ -859,19 +1055,19 @@
             };
 
             const checkResult = () => {
-                const expectedQ = String(Math.floor(parseInt(dividend) / parseInt(divisor)));
-                const expectedRemStr = String(parseInt(dividend) % parseInt(divisor));
+                const expectedQ = String(Math.floor(parseInt(dividend, 10) / parseInt(divisor, 10)));
+                const expectedRemStr = String(parseInt(dividend, 10) % parseInt(divisor, 10));
 
                 const userQ = quotientInputs.join('');
                 const lastRow = stepRows[stepRows.length - 1];
 
                 const userRemStr = Object.keys(lastRow.remainderInputs)
-                    .sort((a,b) => parseInt(a) - parseInt(b))
+                    .sort((a,b) => parseInt(a, 10) - parseInt(b, 10))
                     .map(k => lastRow.remainderInputs[k])
                     .join('');
 
                 const isQCorrect = userQ === expectedQ;
-                const isRemCorrect = userRemStr !== '' && parseInt(userRemStr) === parseInt(expectedRemStr);
+                const isRemCorrect = userRemStr !== '' && parseInt(userRemStr, 10) === parseInt(expectedRemStr, 10);
 
                 if (isQCorrect && isRemCorrect) setStatus('correct');
                 else setStatus('incorrect');
@@ -879,7 +1075,7 @@
 
             const renderArc = () => {
                 if (arcLen === 0) return null;
-                const widthPerChar = 32; 
+                const widthPerChar = 40; 
                 const width = arcLen * widthPerChar;
                 return (
                 <svg className="absolute -top-3 left-0" width={width} height="16" style={{ pointerEvents: 'none' }}>
@@ -902,7 +1098,7 @@
                     </div>
                     <button 
                     onClick={() => {
-                        if (dividend && divisor && parseInt(divisor) > 0) {
+                        if (dividend && divisor && parseInt(divisor, 10) > 0) {
                         setSetupMode(false);
                         resetBoard();
                         } else alert("Números inválidos. Asegúrate de que el divisor no sea 0.");
@@ -941,9 +1137,9 @@
                         <div className="flex relative mb-2">
                             {renderArc()}
                             {dividend.split('').map((char, i) => (
-                            <div key={i} className="w-8 h-10 flex items-center justify-center text-3xl font-mono font-bold tracking-widest relative">
+                            <div key={i} className="w-10 h-12 flex items-center justify-center text-3xl font-mono font-bold tracking-widest relative">
                                 {char}
-                                {stepRows.some((r, rIdx) => rIdx > 0 && r.dropColIndex === i) && (
+                                {stepRows.some((r) => r.dropColIndex === i) && (
                                 <ArrowDown className="absolute -bottom-6 text-orange-500 h-6 w-6 z-10" />
                                 )}
                             </div>
@@ -954,13 +1150,13 @@
                             <div key={`rem-row-${rIndex}`} className="flex mt-1 relative">
                             
                             {Array.from({ length: dividend.length }).map((_, cIndex) => {
-                                const maxActiveCol = arcLen - 1 + rIndex; 
+                                const maxActiveCol = row.dropColIndex !== null ? row.dropColIndex : (arcLen - 1 + rIndex); 
                                 
                                 if (cIndex <= maxActiveCol) {
                                 // CASILLA DE BAJADA MANUAL
                                 if (row.droppedChar && cIndex === row.dropColIndex) {
                                     return (
-                                    <div key={`rem-${rIndex}-${cIndex}`} className="w-8 h-10 ml-1 relative">
+                                    <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
                                         <DigitInput
                                             isSmall
                                             readOnly={status === 'correct'}
@@ -975,7 +1171,7 @@
 
                                 // CASILLA DE RESTO NORMAL
                                 return (
-                                    <div key={`rem-${rIndex}-${cIndex}`} className="w-8 h-10 ml-1 relative">
+                                    <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
                                     <DigitInput
                                         isSmall
                                         readOnly={status === 'correct'}
@@ -988,7 +1184,7 @@
                                 );
                                 }
                                 
-                                return <div key={`rem-${rIndex}-${cIndex}`} className="w-8 h-10 ml-1"></div>;
+                                return <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12"></div>;
                             })}
 
                             {status === 'correct' && rIndex === stepRows.length - 1 && (
@@ -1039,7 +1235,7 @@
                         {Array.from({ length: 9 }).map((_, i) => (
                             <div key={i} className="font-mono text-lg text-yellow-900 flex justify-between">
                             <span>{showTableFor} × {i + 1}</span>
-                            <span className="font-bold ml-2 text-yellow-700">= {parseInt(showTableFor) * (i + 1)}</span>
+                            <span className="font-bold ml-2 text-yellow-700">= {parseInt(showTableFor, 10) * (i + 1)}</span>
                             </div>
                         ))}
                         </div>
@@ -1059,6 +1255,11 @@
                         <HelpCircle className="mr-2" /> Ayuda
                     </button>
                     )}
+                    {status === 'incorrect' && (
+                    <button onClick={resetBoard} className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 flex items-center shadow-md">
+                        <RefreshCw className="mr-2" /> Elegir otro arco
+                    </button>
+                    )}
                     {status === 'playing' || status === 'incorrect' ? (
                     <button onClick={checkResult} className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 shadow-md">
                         Comprobar Operación
@@ -1070,7 +1271,7 @@
                 </div>
 
                 {status === 'correct' && <p className="mt-4 text-green-600 font-bold text-xl animate-bounce">¡División completada correctamente!</p>}
-                {status === 'incorrect' && <p className="mt-4 text-red-500 font-bold text-xl">Hay algún fallo en la operación. Revisa los restos o el cociente.</p>}
+                {status === 'incorrect' && <p className="mt-4 text-red-500 font-bold text-xl">Hay algún fallo. Revisa la operación o elige otro arco para empezar de nuevo.</p>}
                 </div>
             );
         };
@@ -1082,8 +1283,10 @@
             const [mode, setMode] = useState('auto'); 
             const [level, setLevel] = useState(3);
             const [refreshKey, setRefreshKey] = useState(0);
+            const [autoSolveCount, setAutoSolveCount] = useState(0);
 
-            const getConfig = () => {
+            // AQUÍ ESTÁ LA MAGIA: Memorizamos la configuración para que no resetee los números al usar el truco
+            const config = useMemo(() => {
                 switch(level) {
                 case 1: return { numAddends: 2, maxDigits: 1, digitsMin: 1, digitsSub: 1, digitsMultiplicand: 1, digitsMultiplier: 1, digitsDividend: 2, digitsDivisor: 1 };
                 case 2: return { numAddends: 2, maxDigits: 2, digitsMin: 2, digitsSub: 2, digitsMultiplicand: 2, digitsMultiplier: 1, digitsDividend: 3, digitsDivisor: 1 };
@@ -1093,10 +1296,22 @@
                 case 6: return { numAddends: 4, maxDigits: 6, digitsMin: 6, digitsSub: 6, digitsMultiplicand: 4, digitsMultiplier: 3, digitsDividend: 5, digitsDivisor: 3 };
                 default: return { numAddends: 2, maxDigits: 2, digitsMin: 2, digitsSub: 2, digitsMultiplicand: 2, digitsMultiplier: 1, digitsDividend: 2, digitsDivisor: 1 };
                 }
-            };
+            }, [level]);
 
             const nextOperation = () => {
                 setRefreshKey(prev => prev + 1);
+                setAutoSolveCount(0); // Reiniciamos el truco en cada operación
+            };
+
+            const handlePoetClick = () => {
+                const pwd = prompt("Introduce la contraseña del poeta:");
+                if (pwd === "padm2026") {
+                    setAutoSolveCount(prev => prev + 1);
+                } else if (pwd && pwd.toLowerCase() === "salir") {
+                    setHasStarted(false);
+                } else if (pwd !== null && pwd !== "") {
+                    alert("Contraseña incorrecta.");
+                }
             };
 
             const activeClasses = "bg-white text-blue-600 shadow-sm rounded-lg font-bold";
@@ -1127,7 +1342,11 @@
                 <div className="max-w-4xl mx-auto">
                     
                     <header className="text-center mb-8">
-                    <h1 className="text-4xl font-extrabold text-blue-600 drop-shadow-sm mb-2">
+                    <h1 
+                        className="text-4xl font-extrabold text-blue-600 drop-shadow-sm mb-2 cursor-pointer hover:text-blue-700 transition-colors"
+                        onClick={() => setHasStarted(false)}
+                        title="Haz clic para volver a la portada"
+                    >
                         Máquina de Operaciones
                     </h1>
                     <p className="text-gray-600 font-medium">Practica matemáticas paso a paso</p>
@@ -1136,20 +1355,20 @@
                     <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap gap-4 items-center justify-between border border-gray-200">
                     
                     <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button onClick={() => setOperation('add')} className={`px-4 py-2 ${operation === 'add' ? activeClasses : inactiveClasses}`}>Suma</button>
-                        <button onClick={() => setOperation('sub')} className={`px-4 py-2 ${operation === 'sub' ? activeClasses : inactiveClasses}`}>Resta</button>
-                        <button onClick={() => setOperation('mul')} className={`px-4 py-2 ${operation === 'mul' ? activeClasses : inactiveClasses}`}>Multiplicación</button>
-                        <button onClick={() => setOperation('div')} className={`px-4 py-2 ${operation === 'div' ? activeClasses : inactiveClasses}`}>División</button>
+                        <button onClick={() => { setOperation('add'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'add' ? activeClasses : inactiveClasses}`}>Suma</button>
+                        <button onClick={() => { setOperation('sub'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'sub' ? activeClasses : inactiveClasses}`}>Resta</button>
+                        <button onClick={() => { setOperation('mul'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'mul' ? activeClasses : inactiveClasses}`}>Multiplicación</button>
+                        <button onClick={() => { setOperation('div'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'div' ? activeClasses : inactiveClasses}`}>División</button>
                     </div>
 
-                    {/* Imagen del poeta entre División y Nivel */}
+                    {/* Imagen del poeta con la función de contraseña mágica */}
                     <img 
                         src="poeta2.jpg" 
                         alt="Poeta calculador" 
                         onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/100x100/e2e8f0/1e40af?text=Poeta"; }}
                         className="h-24 w-auto object-contain rounded-lg shadow-md cursor-pointer hover:scale-105 transition-transform"
-                        onClick={() => setHasStarted(false)}
-                        title="Volver a la portada"
+                        onClick={handlePoetClick}
+                        title="Opciones mágicas"
                     />
 
                     <div className="flex items-center space-x-4">
@@ -1157,7 +1376,7 @@
                         <span className="text-gray-700 font-bold text-sm">Nivel:</span>
                         <select 
                             value={level} 
-                            onChange={(e) => setLevel(parseInt(e.target.value))}
+                            onChange={(e) => { setLevel(parseInt(e.target.value)); setAutoSolveCount(0); }}
                             disabled={mode === 'manual'}
                             className="border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-200"
                         >
@@ -1166,18 +1385,18 @@
                         </div>
 
                         <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button onClick={() => setMode('auto')} className={`px-3 py-1 text-sm ${mode === 'auto' ? activeClasses : inactiveClasses}`}>Auto</button>
-                        <button onClick={() => setMode('manual')} className={`px-3 py-1 text-sm ${mode === 'manual' ? activeClasses : inactiveClasses}`}>Manual</button>
+                        <button onClick={() => { setMode('auto'); setAutoSolveCount(0); }} className={`px-3 py-1 text-sm ${mode === 'auto' ? activeClasses : inactiveClasses}`}>Auto</button>
+                        <button onClick={() => { setMode('manual'); setAutoSolveCount(0); }} className={`px-3 py-1 text-sm ${mode === 'manual' ? activeClasses : inactiveClasses}`}>Manual</button>
                         </div>
                     </div>
 
                     </div>
 
                     <main className="min-h-[500px] flex items-center justify-center py-8">
-                    {operation === 'add' && <AdditionBoard key={`add-${refreshKey}`} config={getConfig()} isManual={mode === 'manual'} onNext={nextOperation} />}
-                    {operation === 'sub' && <SubtractionBoard key={`sub-${refreshKey}`} config={getConfig()} isManual={mode === 'manual'} onNext={nextOperation} />}
-                    {operation === 'mul' && <MultiplicationBoard key={`mul-${refreshKey}`} config={getConfig()} isManual={mode === 'manual'} onNext={nextOperation} />}
-                    {operation === 'div' && <DivisionBoard key={`div-${refreshKey}`} config={getConfig()} isManual={mode === 'manual'} onNext={nextOperation} />}
+                    {operation === 'add' && <AdditionBoard key={`add-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                    {operation === 'sub' && <SubtractionBoard key={`sub-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                    {operation === 'mul' && <MultiplicationBoard key={`mul-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                    {operation === 'div' && <DivisionBoard key={`div-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
                     </main>
 
                 </div>
