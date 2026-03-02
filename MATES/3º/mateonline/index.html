@@ -1,584 +1,568 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, doc, setDoc, updateDoc, onSnapshot, getDoc } from 'firebase/firestore';
-import { Trophy, Swords, Users, LogOut, CheckCircle2, Loader2, Play, AlertCircle } from 'lucide-react';
-
-// ==========================================
-// CONFIGURACIÓN FIREBASE
-// ==========================================
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-// ==========================================
-// GENERADOR DEL ALGORITMO DE DIVISIÓN
-// ==========================================
-// Crea una división exacta y calcula todos los pasos intermedios esperados
-const createProblem = () => {
-  const divisor = Math.floor(Math.random() * 8) + 2; // Divisor de 1 cifra (2 al 9)
-  const q = Math.floor(Math.random() * 899) + 100; // Cociente de 3 cifras (100 al 999)
-  const dividend = q * divisor;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duelo de Divisiones Online</title>
   
-  const divStr = dividend.toString();
-  const qStr = q.toString();
-  const steps = [];
+  <!-- Tailwind CSS para los estilos -->
+  <script src="https://cdn.tailwindcss.com"></script>
   
-  let currentWorking;
-  let divIndex = 0;
+  <!-- React y ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   
-  // Determinamos si empezamos tomando 1 o 2 cifras del dividendo
-  if (parseInt(divStr[0]) < divisor) {
-    currentWorking = parseInt(divStr[0] + divStr[1]);
-    divIndex = 1;
-  } else {
-    currentWorking = parseInt(divStr[0]);
-    divIndex = 0;
-  }
-  
-  // Calculamos cada paso del algoritmo tradicional
-  for (let i = 0; i < qStr.length; i++) {
-    const expectedQ = parseInt(qStr[i]);
-    const rem = currentWorking % divisor;
+  <!-- Babel para poder leer JSX dentro del navegador -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-900 m-0 p-0 text-white font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel" data-type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+    import { getFirestore, doc, setDoc, updateDoc, onSnapshot, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+    const { useState, useEffect, useRef } = React;
+
+    // ==========================================
+    // ICONOS (Reemplazo de Lucide para HTML puro)
+    // ==========================================
+    const Trophy = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>;
+    const Swords = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>;
+    const Users = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+    const LogOut = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
+    const CheckCircle2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
+    const Loader2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
+    const Play = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="6 3 20 12 6 21 6 3"/></svg>;
+    const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>;
+
+    // ==========================================
+    // CONFIGURACIÓN FIREBASE
+    // ==========================================
+    const firebaseConfig = typeof __firebase_config !== 'undefined' 
+        ? JSON.parse(__firebase_config) 
+        : { projectId: "demo-project" }; // Respaldo por si se abre fuera de la plataforma
     
-    let nextWorkingStr = rem.toString();
-    // Si quedan números por bajar, lo añadimos al resto
-    if (divIndex + 1 < divStr.length) {
-      nextWorkingStr += divStr[divIndex + 1];
-      divIndex++;
-    } else {
-      nextWorkingStr = rem.toString(); // Último resto (debería ser 0)
-    }
-    
-    steps.push({
-      qDigit: expectedQ,
-      nextLine: parseInt(nextWorkingStr) // ParseInt para limpiar ceros a la izquierda (ej. "06" -> 6)
-    });
-    
-    currentWorking = parseInt(nextWorkingStr);
-  }
-  
-  return { dividend, divisor, steps, quotient: q };
-};
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-const PUNTOS_PARA_GANAR = 3;
-
-// ==========================================
-// COMPONENTE PRINCIPAL
-// ==========================================
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [matchId, setMatchId] = useState(null);
-  const [matchData, setMatchData] = useState(null);
-  const [joinCode, setJoinCode] = useState('');
-  const [joinError, setJoinError] = useState('');
-
-  // 1. Inicializar Autenticación
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (error) {
-        console.error("Error en auth:", error);
-      }
-    };
-    initAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // 2. Escuchar cambios en la partida de Firestore
-  useEffect(() => {
-    if (!user || !matchId) return;
-    
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
-    const unsubscribe = onSnapshot(docRef, 
-      (snap) => {
-        if (snap.exists()) {
-          setMatchData(snap.data());
-        } else {
-          setMatchData(null);
-          setMatchId(null);
-        }
-      },
-      (error) => console.error("Error al escuchar partida:", error)
-    );
-
-    return () => unsubscribe();
-  }, [user, matchId]);
-
-  // ==========================================
-  // ACCIONES DEL LOBBY
-  // ==========================================
-  const createMatch = async () => {
-    if (!user) return;
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', code);
-    
-    await setDoc(docRef, {
-      status: 'waiting', // waiting, playing, gameover
-      host: user.uid,
-      players: {
-        [user.uid]: { score: 0, progress: 0, joinedAt: Date.now(), isHost: true }
-      },
-      currentProblem: createProblem(),
-      winner: null
-    });
-    setMatchId(code);
-    setJoinError('');
-  };
-
-  const joinMatch = async (e) => {
-    e.preventDefault();
-    setJoinError('');
-    if (!user || !joinCode.trim()) return;
-    
-    const code = joinCode.trim().toUpperCase();
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', code);
-    
-    try {
-      const snap = await getDoc(docRef);
-      if (!snap.exists()) {
-        setJoinError("La sala no existe.");
-        return;
+    // ==========================================
+    // GENERADOR DEL ALGORITMO DE DIVISIÓN
+    // ==========================================
+    const createProblem = () => {
+      const divisor = Math.floor(Math.random() * 8) + 2;
+      const q = Math.floor(Math.random() * 899) + 100;
+      const dividend = q * divisor;
+      
+      const divStr = dividend.toString();
+      const qStr = q.toString();
+      const steps = [];
+      
+      let currentWorking;
+      let divIndex = 0;
+      
+      if (parseInt(divStr[0]) < divisor) {
+        currentWorking = parseInt(divStr[0] + divStr[1]);
+        divIndex = 1;
+      } else {
+        currentWorking = parseInt(divStr[0]);
+        divIndex = 0;
       }
       
-      const data = snap.data();
-      if (data.status !== 'waiting' && !data.players[user.uid]) {
-        setJoinError("La partida ya está en curso.");
-        return;
-      }
-      
-      if (Object.keys(data.players).length >= 4 && !data.players[user.uid]) {
-        setJoinError("La sala está llena (máximo 4 jugadores).");
-        return;
-      }
-
-      // Añadimos al jugador si no estaba en la sala
-      if (!data.players[user.uid]) {
-        await updateDoc(docRef, {
-          [`players.${user.uid}`]: { score: 0, progress: 0, joinedAt: Date.now(), isHost: false }
+      for (let i = 0; i < qStr.length; i++) {
+        const expectedQ = parseInt(qStr[i]);
+        const rem = currentWorking % divisor;
+        
+        let nextWorkingStr = rem.toString();
+        if (divIndex + 1 < divStr.length) {
+          nextWorkingStr += divStr[divIndex + 1];
+          divIndex++;
+        } else {
+          nextWorkingStr = rem.toString();
+        }
+        
+        steps.push({
+          qDigit: expectedQ,
+          nextLine: parseInt(nextWorkingStr)
         });
+        
+        currentWorking = parseInt(nextWorkingStr);
       }
-      setMatchId(code);
-    } catch (error) {
-      console.error("Error al unirse:", error);
-      setJoinError("Hubo un error al unirse.");
-    }
-  };
+      
+      return { dividend, divisor, steps, quotient: q };
+    };
 
-  const startMatch = async () => {
-    if (!matchData || matchData.host !== user.uid) return;
-    const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
-    await updateDoc(matchRef, { status: 'playing' });
-  };
+    const PUNTOS_PARA_GANAR = 3;
 
-  const leaveMatch = () => {
-    setMatchId(null);
-    setMatchData(null);
-    setJoinCode('');
-    setJoinError('');
-  };
+    // ==========================================
+    // COMPONENTE: PLANILLA (Algoritmo visual)
+    // ==========================================
+    const Planilla = ({ problem, progress, isMe, onInput, colorClass }) => {
+      const inputRef = useRef(null);
+      
+      useEffect(() => {
+        if (isMe && inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, [progress, isMe]);
 
-  // ==========================================
-  // LÓGICA DEL JUEGO
-  // ==========================================
-  const handleInput = async (e) => {
-    if (!matchData || matchData.status !== 'playing') return;
-    
-    const val = parseInt(e.target.value);
-    if (isNaN(val)) return;
+      if (!problem) return null;
 
-    const myPlayer = matchData.players[user.uid];
-    if (!myPlayer) return;
+      const totalSteps = problem.steps.length * 2;
+      const qDigitsCompleted = [];
+      const remaindersCompleted = [];
 
-    const myProgress = myPlayer.progress;
-    const problem = matchData.currentProblem;
-    const totalSteps = problem.steps.length * 2;
-    
-    const stepIndex = Math.floor(myProgress / 2);
-    const isQStep = myProgress % 2 === 0;
-    
-    const expectedVal = isQStep ? problem.steps[stepIndex].qDigit : problem.steps[stepIndex].nextLine;
+      for (let i = 0; i < progress; i++) {
+        const stepIndex = Math.floor(i / 2);
+        if (i % 2 === 0) {
+          qDigitsCompleted.push(problem.steps[stepIndex].qDigit);
+        } else {
+          remaindersCompleted.push(problem.steps[stepIndex].nextLine);
+        }
+      }
 
-    if (val === expectedVal) {
-      e.target.value = ''; // Limpiamos el input porque acertó
-      const newProgress = myProgress + 1;
-      const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
+      const isQInputNext = progress % 2 === 0 && progress < totalSteps;
+      const isRemInputNext = progress % 2 !== 0 && progress < totalSteps;
 
-      if (newProgress >= totalSteps) {
-        // ¡Completó la división entera! Gana un punto
-        const newScore = myPlayer.score + 1;
-        const updates = {
-          [`players.${user.uid}.score`]: newScore
+      return (
+        <div className="font-mono text-xl md:text-3xl lg:text-4xl select-none relative w-full flex flex-col items-center" onClick={() => isMe && inputRef.current?.focus()}>
+          
+          <div className="flex border-b-4 border-slate-500 pb-2 mb-2 w-full justify-center">
+            <div className="w-20 md:w-32 lg:w-40 text-right pr-2 md:pr-4 tracking-widest text-white">
+              {problem.dividend}
+            </div>
+            <div className="w-12 md:w-20 lg:w-24 pl-2 md:pl-4 border-l-4 border-slate-500 font-black text-white bg-slate-900/50 rounded-tr-lg">
+              {problem.divisor}
+            </div>
+          </div>
+          
+          <div className="flex w-full justify-center">
+            <div className="w-20 md:w-32 lg:w-40 flex flex-col items-end pr-2 md:pr-4 space-y-2 md:space-y-4 pt-2">
+              {remaindersCompleted.map((rem, idx) => (
+                <div key={`rem-${idx}`} className="tracking-widest text-slate-300">
+                  {rem}
+                </div>
+              ))}
+              {isRemInputNext && (
+                <div className="h-[28px] md:h-[40px] lg:h-[48px] flex items-center">
+                  {isMe ? (
+                    <input 
+                      ref={inputRef}
+                      type="number"
+                      onChange={onInput}
+                      className={`w-12 md:w-20 lg:w-24 bg-slate-900 ${colorClass} font-bold border-b-4 border-current outline-none text-right tracking-widest px-1`}
+                      placeholder="?"
+                    />
+                  ) : (
+                    <span className={`${colorClass} animate-pulse opacity-50`}>...</span>
+                  )}
+                </div>
+              )}
+              {progress === totalSteps && (
+                <div className="text-green-400 font-black flex items-center gap-2 mt-4 text-sm md:text-lg lg:text-xl">
+                  <CheckCircle2 className="w-5 h-5" /> ¡Fin!
+                </div>
+              )}
+            </div>
+            
+            <div className="w-12 md:w-20 lg:w-24 pl-2 md:pl-4 border-l-4 border-slate-500 pt-2 flex items-start">
+              <div className={`tracking-widest flex items-center ${colorClass} font-bold bg-slate-900/50 px-1 rounded`}>
+                {qDigitsCompleted.join('')}
+                {isQInputNext && (
+                  <span className="inline-block ml-1">
+                    {isMe ? (
+                      <input 
+                        ref={inputRef}
+                        type="number"
+                        onChange={onInput}
+                        className={`w-6 md:w-8 lg:w-10 bg-slate-900 ${colorClass} font-bold border-b-4 border-current outline-none text-center`}
+                        placeholder="?"
+                      />
+                    ) : (
+                      <span className={`${colorClass} animate-pulse opacity-50`}>_</span>
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {isMe && progress < totalSteps && (
+            <div className="mt-8 text-center text-xs md:text-sm lg:text-base text-slate-400 font-sans">
+              {isQInputNext 
+                ? "Paso 1: Siguiente número del cociente" 
+                : "Paso 2: Escribe el resto (y baja)"}
+            </div>
+          )}
+
+        </div>
+      );
+    };
+
+    // ==========================================
+    // COMPONENTE PRINCIPAL (App)
+    // ==========================================
+    function App() {
+      const [user, setUser] = useState(null);
+      const [authLoading, setAuthLoading] = useState(true);
+      const [matchId, setMatchId] = useState(null);
+      const [matchData, setMatchData] = useState(null);
+      const [joinCode, setJoinCode] = useState('');
+      const [joinError, setJoinError] = useState('');
+
+      useEffect(() => {
+        const initAuth = async () => {
+          try {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+              await signInAnonymously(auth);
+            }
+          } catch (error) {
+            console.error("Error en auth:", error);
+          }
         };
+        initAuth();
 
-        // Resetear progreso de todos los jugadores para el siguiente problema
+        const unsubscribe = onAuthStateChanged(auth, (u) => {
+          setUser(u);
+          setAuthLoading(false);
+        });
+        return () => unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        if (!user || !matchId) return;
+        
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
+        const unsubscribe = onSnapshot(docRef, 
+          (snap) => {
+            if (snap.exists()) {
+              setMatchData(snap.data());
+            } else {
+              setMatchData(null);
+              setMatchId(null);
+            }
+          },
+          (error) => console.error("Error al escuchar partida:", error)
+        );
+
+        return () => unsubscribe();
+      }, [user, matchId]);
+
+      const createMatch = async () => {
+        if (!user) return;
+        const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', code);
+        
+        await setDoc(docRef, {
+          status: 'waiting', 
+          host: user.uid,
+          players: {
+            [user.uid]: { score: 0, progress: 0, joinedAt: Date.now(), isHost: true }
+          },
+          currentProblem: createProblem(),
+          winner: null
+        });
+        setMatchId(code);
+        setJoinError('');
+      };
+
+      const joinMatch = async (e) => {
+        e.preventDefault();
+        setJoinError('');
+        if (!user || !joinCode.trim()) return;
+        
+        const code = joinCode.trim().toUpperCase();
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', code);
+        
+        try {
+          const snap = await getDoc(docRef);
+          if (!snap.exists()) {
+            setJoinError("La sala no existe.");
+            return;
+          }
+          
+          const data = snap.data();
+          if (data.status !== 'waiting' && !data.players[user.uid]) {
+            setJoinError("La partida ya está en curso.");
+            return;
+          }
+          
+          if (Object.keys(data.players).length >= 4 && !data.players[user.uid]) {
+            setJoinError("La sala está llena.");
+            return;
+          }
+
+          if (!data.players[user.uid]) {
+            await updateDoc(docRef, {
+              [`players.${user.uid}`]: { score: 0, progress: 0, joinedAt: Date.now(), isHost: false }
+            });
+          }
+          setMatchId(code);
+        } catch (error) {
+          console.error("Error al unirse:", error);
+          setJoinError("Hubo un error al unirse.");
+        }
+      };
+
+      const startMatch = async () => {
+        if (!matchData || matchData.host !== user.uid) return;
+        const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
+        await updateDoc(matchRef, { status: 'playing' });
+      };
+
+      const leaveMatch = () => {
+        setMatchId(null);
+        setMatchData(null);
+        setJoinCode('');
+        setJoinError('');
+      };
+
+      const handleInput = async (e) => {
+        if (!matchData || matchData.status !== 'playing') return;
+        
+        const val = parseInt(e.target.value);
+        if (isNaN(val)) return;
+
+        const myPlayer = matchData.players[user.uid];
+        if (!myPlayer) return;
+
+        const myProgress = myPlayer.progress;
+        const problem = matchData.currentProblem;
+        const totalSteps = problem.steps.length * 2;
+        
+        const stepIndex = Math.floor(myProgress / 2);
+        const isQStep = myProgress % 2 === 0;
+        
+        const expectedVal = isQStep ? problem.steps[stepIndex].qDigit : problem.steps[stepIndex].nextLine;
+
+        if (val === expectedVal) {
+          e.target.value = ''; 
+          const newProgress = myProgress + 1;
+          const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
+
+          if (newProgress >= totalSteps) {
+            const newScore = myPlayer.score + 1;
+            const updates = { [`players.${user.uid}.score`]: newScore };
+
+            Object.keys(matchData.players).forEach(uid => {
+              updates[`players.${uid}.progress`] = 0;
+            });
+
+            if (newScore >= PUNTOS_PARA_GANAR) {
+              updates.status = 'gameover';
+              updates.winner = user.uid;
+            } else {
+              updates.currentProblem = createProblem();
+            }
+            await updateDoc(matchRef, updates);
+          } else {
+            await updateDoc(matchRef, {
+              [`players.${user.uid}.progress`]: newProgress
+            });
+          }
+        }
+      };
+
+      const playAgain = async () => {
+        if (!matchData || matchData.host !== user.uid) return;
+        const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
+        
+        const updates = {
+          status: 'waiting', 
+          currentProblem: createProblem(),
+          winner: null
+        };
+        
         Object.keys(matchData.players).forEach(uid => {
+          updates[`players.${uid}.score`] = 0;
           updates[`players.${uid}.progress`] = 0;
         });
 
-        if (newScore >= PUNTOS_PARA_GANAR) {
-          updates.status = 'gameover';
-          updates.winner = user.uid;
-        } else {
-          updates.currentProblem = createProblem();
-        }
         await updateDoc(matchRef, updates);
-      } else {
-        // Solo avanza un paso en su propia planilla
-        await updateDoc(matchRef, {
-          [`players.${user.uid}.progress`]: newProgress
-        });
+      };
+
+      if (authLoading) {
+        return (
+          <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+            <Loader2 className="w-12 h-12 animate-spin text-blue-500 mb-4" />
+            <h2 className="text-xl font-bold">Conectando...</h2>
+          </div>
+        );
       }
-    }
-  };
 
-  const playAgain = async () => {
-    if (!matchData || matchData.host !== user.uid) return;
-    const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'divisiones_online', matchId);
-    
-    const updates = {
-      status: 'waiting', // Volvemos a la sala de espera
-      currentProblem: createProblem(),
-      winner: null
-    };
-    
-    Object.keys(matchData.players).forEach(uid => {
-      updates[`players.${uid}.score`] = 0;
-      updates[`players.${uid}.progress`] = 0;
-    });
+      const playersList = matchData ? Object.entries(matchData.players)
+        .map(([uid, data]) => ({ uid, ...data }))
+        .sort((a, b) => a.joinedAt - b.joinedAt) : [];
 
-    await updateDoc(matchRef, updates);
-  };
+      const amIHost = matchData?.host === user?.uid;
 
-  // ==========================================
-  // VISTAS
-  // ==========================================
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-12 h-12 animate-spin text-blue-500 mb-4" />
-        <h2 className="text-xl font-bold">Conectando al servidor...</h2>
-      </div>
-    );
-  }
-
-  // Obtenemos jugadores ordenados por orden de llegada
-  const playersList = matchData ? Object.entries(matchData.players)
-    .map(([uid, data]) => ({ uid, ...data }))
-    .sort((a, b) => a.joinedAt - b.joinedAt) : [];
-
-  const amIHost = matchData?.host === user?.uid;
-
-  // VISTA: LOBBY INICIAL
-  if (!matchData) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
-        <Swords className="w-24 h-24 text-blue-400 mb-6" />
-        <h1 className="text-4xl md:text-6xl font-black mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-          Duelo de Divisiones
-        </h1>
-        <h2 className="text-xl md:text-2xl text-slate-400 mb-12 font-light tracking-widest text-center">
-          MULTIJUGADOR (Hasta 4)
-        </h2>
-
-        <div className="flex flex-col md:flex-row gap-8 w-full max-w-3xl">
-          {/* Crear Sala */}
-          <div className="flex-1 bg-slate-800/50 p-8 rounded-3xl border border-slate-700 flex flex-col items-center">
-            <h3 className="text-2xl font-bold mb-4 text-emerald-400">Nueva Partida</h3>
-            <p className="text-slate-400 mb-8 text-center">Crea una sala e invita a tus amigos (hasta 4 jugadores).</p>
-            <button 
-              onClick={createMatch}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-xl transition-colors"
-            >
-              Crear Sala
-            </button>
-          </div>
-
-          {/* Unirse a Sala */}
-          <div className="flex-1 bg-slate-800/50 p-8 rounded-3xl border border-slate-700 flex flex-col items-center">
-            <h3 className="text-2xl font-bold mb-4 text-blue-400">Unirse a Partida</h3>
-            <p className="text-slate-400 mb-4 text-center">Introduce el código de la sala para unirte.</p>
-            <form onSubmit={joinMatch} className="w-full flex flex-col gap-4">
-              <input 
-                type="text" 
-                placeholder="CÓDIGO (ej. A7B2)" 
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                maxLength={4}
-                className="w-full p-4 bg-slate-900 border-2 border-slate-700 rounded-xl text-center text-2xl font-mono uppercase focus:border-blue-500 outline-none transition-colors"
-              />
-              {joinError && (
-                <div className="flex items-center gap-2 text-rose-500 text-sm bg-rose-500/10 p-2 rounded">
-                  <AlertCircle className="w-4 h-4 shrink-0" /> {joinError}
-                </div>
-              )}
-              <button 
-                type="submit"
-                className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-xl transition-colors"
-              >
-                Unirse
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // VISTA: ESPERANDO JUGADORES (LOBBY INTERNO)
-  if (matchData.status === 'waiting') {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
-        <Users className="w-24 h-24 text-emerald-400 mb-8 animate-pulse" />
-        <h2 className="text-3xl font-bold mb-4">Sala de Espera</h2>
-        <p className="text-slate-400 text-xl mb-4 text-center max-w-md">
-          Comparte este código con tus amigos:
-        </p>
-        <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-6 mb-8 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-          <span className="text-6xl md:text-8xl font-black font-mono tracking-[0.5em] ml-[0.5em] text-emerald-400">
-            {matchId}
-          </span>
-        </div>
-
-        <div className="mb-12 bg-slate-800/50 p-6 rounded-2xl w-full max-w-md border border-slate-700">
-          <h3 className="text-center font-bold mb-4 text-slate-300">Jugadores conectados ({playersList.length}/4)</h3>
-          <div className="space-y-2">
-            {playersList.map((p, index) => (
-              <div key={p.uid} className="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700">
-                <span className="font-bold flex items-center gap-2">
-                  Jugador {index + 1} {p.uid === user.uid && <span className="text-emerald-400 text-sm">(Tú)</span>}
-                </span>
-                {p.isHost && <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-1 rounded">Anfitrión</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {amIHost ? (
-          <button 
-            onClick={startMatch} 
-            disabled={playersList.length < 2}
-            className="flex items-center gap-3 bg-emerald-600 disabled:bg-slate-700 hover:bg-emerald-500 disabled:hover:bg-slate-700 disabled:opacity-50 text-white px-8 py-4 rounded-full text-2xl font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg mb-6"
-          >
-            <Play className="fill-current" />
-            Comenzar Partida
-          </button>
-        ) : (
-          <p className="text-xl text-amber-400 animate-pulse mb-6">Esperando a que el anfitrión inicie...</p>
-        )}
-
-        <button onClick={leaveMatch} className="flex items-center gap-2 text-slate-500 hover:text-slate-300">
-          <LogOut className="w-5 h-5" /> Salir de la sala
-        </button>
-      </div>
-    );
-  }
-
-  // Paleta de colores para los hasta 4 jugadores
-  const playerColors = [
-    { border: 'border-emerald-500', text: 'text-emerald-500', bg: 'bg-emerald-900/20', icon: 'text-emerald-400' },
-    { border: 'border-blue-500', text: 'text-blue-500', bg: 'bg-blue-900/20', icon: 'text-blue-400' },
-    { border: 'border-rose-500', text: 'text-rose-500', bg: 'bg-rose-900/20', icon: 'text-rose-400' },
-    { border: 'border-amber-500', text: 'text-amber-500', bg: 'bg-amber-900/20', icon: 'text-amber-400' },
-  ];
-
-  // VISTA: PANTALLA DE JUEGO (O GAMEOVER)
-  return (
-    <div className="min-h-screen bg-slate-900 flex flex-col font-sans text-white">
-      
-      {/* Cabecera / Marcador Dinámico */}
-      <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center shadow-lg z-10 overflow-x-auto">
-        <button onClick={leaveMatch} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors shrink-0">
-          <LogOut className="w-6 h-6" />
-        </button>
-        
-        <div className="flex items-center gap-4 md:gap-8 mx-4">
-          {playersList.map((p, idx) => (
-            <div key={`score-${p.uid}`} className={`flex flex-col items-center min-w-[80px] px-4 py-2 rounded-xl ${p.uid === user.uid ? 'bg-slate-800' : ''}`}>
-              <span className={`text-sm font-bold tracking-wider ${playerColors[idx].text}`}>
-                {p.uid === user.uid ? 'TÚ' : `J${idx + 1}`}
-              </span>
-              <span className="text-2xl md:text-4xl font-black">{p.score}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="w-10 shrink-0"></div> {/* Spacer balance */}
-      </div>
-
-      {/* Contenido Principal (Grilla de Planillas) */}
-      <div className="flex-1 relative overflow-auto p-4 flex flex-col">
-        
-        {matchData.status === 'gameover' && (
-          <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
-            <Trophy className="w-32 h-32 text-yellow-400 mb-6 animate-bounce" />
-            <h1 className="text-5xl md:text-7xl font-black mb-4">
-              {matchData.winner === user.uid ? '¡HAS GANADO!' : '¡FIN DEL JUEGO!'}
+      if (!matchData) {
+        return (
+          <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
+            <Swords className="w-24 h-24 text-blue-400 mb-6" />
+            <h1 className="text-4xl md:text-6xl font-black mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+              Duelo de Divisiones
             </h1>
-            <p className="text-2xl text-slate-300 mb-12">
-              El ganador es el Jugador {playersList.findIndex(p => p.uid === matchData.winner) + 1}
-            </p>
+            <h2 className="text-xl md:text-2xl text-slate-400 mb-12 font-light tracking-widest text-center">
+              MULTIJUGADOR (Hasta 4)
+            </h2>
+
+            <div className="flex flex-col md:flex-row gap-8 w-full max-w-3xl">
+              <div className="flex-1 bg-slate-800/50 p-8 rounded-3xl border border-slate-700 flex flex-col items-center">
+                <h3 className="text-2xl font-bold mb-4 text-emerald-400">Nueva Partida</h3>
+                <p className="text-slate-400 mb-8 text-center">Crea una sala e invita a tus amigos (hasta 4).</p>
+                <button onClick={createMatch} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-xl transition-colors">
+                  Crear Sala
+                </button>
+              </div>
+
+              <div className="flex-1 bg-slate-800/50 p-8 rounded-3xl border border-slate-700 flex flex-col items-center">
+                <h3 className="text-2xl font-bold mb-4 text-blue-400">Unirse a Partida</h3>
+                <p className="text-slate-400 mb-4 text-center">Introduce el código para unirte.</p>
+                <form onSubmit={joinMatch} className="w-full flex flex-col gap-4">
+                  <input type="text" placeholder="CÓDIGO (ej. A7B2)" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} maxLength={4} className="w-full p-4 bg-slate-900 border-2 border-slate-700 rounded-xl text-center text-2xl font-mono uppercase focus:border-blue-500 outline-none transition-colors" />
+                  {joinError && (
+                    <div className="flex items-center gap-2 text-rose-500 text-sm bg-rose-500/10 p-2 rounded">
+                      <AlertCircle className="w-4 h-4 shrink-0" /> {joinError}
+                    </div>
+                  )}
+                  <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-xl transition-colors">
+                    Unirse
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (matchData.status === 'waiting') {
+        return (
+          <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
+            <Users className="w-24 h-24 text-emerald-400 mb-8 animate-pulse" />
+            <h2 className="text-3xl font-bold mb-4">Sala de Espera</h2>
+            <p className="text-slate-400 text-xl mb-4 text-center">Comparte este código:</p>
+            <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-6 mb-8 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+              <span className="text-6xl md:text-8xl font-black font-mono tracking-[0.5em] ml-[0.5em] text-emerald-400">{matchId}</span>
+            </div>
+
+            <div className="mb-12 bg-slate-800/50 p-6 rounded-2xl w-full max-w-md border border-slate-700">
+              <h3 className="text-center font-bold mb-4 text-slate-300">Jugadores ({playersList.length}/4)</h3>
+              <div className="space-y-2">
+                {playersList.map((p, index) => (
+                  <div key={p.uid} className="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700">
+                    <span className="font-bold flex items-center gap-2">
+                      Jugador {index + 1} {p.uid === user.uid && <span className="text-emerald-400 text-sm">(Tú)</span>}
+                    </span>
+                    {p.isHost && <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-1 rounded">Anfitrión</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {amIHost ? (
-              <button onClick={playAgain} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-full text-2xl font-bold transition-transform hover:scale-105 active:scale-95">
-                Volver a la Sala
+              <button onClick={startMatch} disabled={playersList.length < 2} className="flex items-center gap-3 bg-emerald-600 disabled:bg-slate-700 hover:bg-emerald-500 disabled:hover:bg-slate-700 disabled:opacity-50 text-white px-8 py-4 rounded-full text-2xl font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg mb-6">
+                <Play className="w-6 h-6 fill-current" /> Comenzar Partida
               </button>
             ) : (
-              <p className="text-xl text-slate-400 animate-pulse">Esperando a que el anfitrión prepare la revancha...</p>
+              <p className="text-xl text-amber-400 animate-pulse mb-6">Esperando al anfitrión...</p>
             )}
-          </div>
-        )}
 
-        {/* Grilla dinámica según cantidad de jugadores */}
-        <div className={`grid gap-4 flex-1 ${playersList.length > 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
-          {playersList.map((p, idx) => {
-            const isMe = p.uid === user.uid;
-            const colors = playerColors[idx];
-            
-            return (
-              <div key={p.uid} className={`flex flex-col items-center p-4 md:p-6 rounded-3xl border-2 ${colors.border} ${isMe ? 'bg-slate-800' : colors.bg} relative overflow-hidden shadow-lg`}>
-                <div className="w-full max-w-md flex flex-col h-full">
-                  <h3 className={`${colors.text} font-bold mb-6 text-lg md:text-xl flex items-center justify-between`}>
-                    <span className="flex items-center gap-2">
-                      {isMe ? <CheckCircle2 className="w-6 h-6" /> : <Users className="w-6 h-6" />} 
-                      {isMe ? 'Tu Planilla' : `Planilla J${idx + 1}`}
-                    </span>
-                    {isMe && <span className="text-xs bg-slate-700 text-white px-2 py-1 rounded-full uppercase tracking-wider">Tu Turno</span>}
-                  </h3>
-                  
-                  <div className={`flex-1 flex items-center justify-center ${!isMe ? 'opacity-80 pointer-events-none' : ''}`}>
-                    <Planilla 
-                      problem={matchData.currentProblem} 
-                      progress={p.progress} 
-                      isMe={isMe} 
-                      onInput={handleInput} 
-                      colorClass={colors.text}
-                    />
-                  </div>
+            <button onClick={leaveMatch} className="flex items-center gap-2 text-slate-500 hover:text-slate-300">
+              <LogOut className="w-5 h-5" /> Salir de la sala
+            </button>
+          </div>
+        );
+      }
+
+      const playerColors = [
+        { border: 'border-emerald-500', text: 'text-emerald-500', bg: 'bg-emerald-900/20' },
+        { border: 'border-blue-500', text: 'text-blue-500', bg: 'bg-blue-900/20' },
+        { border: 'border-rose-500', text: 'text-rose-500', bg: 'bg-rose-900/20' },
+        { border: 'border-amber-500', text: 'text-amber-500', bg: 'bg-amber-900/20' },
+      ];
+
+      return (
+        <div className="min-h-screen bg-slate-900 flex flex-col font-sans text-white">
+          <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center shadow-lg z-10 overflow-x-auto">
+            <button onClick={leaveMatch} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors shrink-0">
+              <LogOut className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-2 md:gap-8 mx-2 md:mx-4">
+              {playersList.map((p, idx) => (
+                <div key={`score-${p.uid}`} className={`flex flex-col items-center min-w-[60px] md:min-w-[80px] px-2 py-2 rounded-xl ${p.uid === user.uid ? 'bg-slate-800' : ''}`}>
+                  <span className={`text-xs md:text-sm font-bold tracking-wider ${playerColors[idx].text}`}>
+                    {p.uid === user.uid ? 'TÚ' : `J${idx + 1}`}
+                  </span>
+                  <span className="text-xl md:text-4xl font-black">{p.score}</span>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
-// COMPONENTE: PLANILLA (Algoritmo visual)
-// ==========================================
-const Planilla = ({ problem, progress, isMe, onInput, colorClass }) => {
-  const inputRef = useRef(null);
-  
-  useEffect(() => {
-    if (isMe && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [progress, isMe]);
-
-  if (!problem) return null;
-
-  const totalSteps = problem.steps.length * 2;
-  const qDigitsCompleted = [];
-  const remaindersCompleted = [];
-
-  for (let i = 0; i < progress; i++) {
-    const stepIndex = Math.floor(i / 2);
-    if (i % 2 === 0) {
-      qDigitsCompleted.push(problem.steps[stepIndex].qDigit);
-    } else {
-      remaindersCompleted.push(problem.steps[stepIndex].nextLine);
-    }
-  }
-
-  const isQInputNext = progress % 2 === 0 && progress < totalSteps;
-  const isRemInputNext = progress % 2 !== 0 && progress < totalSteps;
-
-  return (
-    <div className="font-mono text-2xl md:text-4xl select-none relative w-full flex flex-col items-center" onClick={() => isMe && inputRef.current?.focus()}>
-      
-      <div className="flex border-b-4 border-slate-500 pb-2 mb-2 w-full justify-center">
-        <div className="w-24 md:w-40 text-right pr-2 md:pr-4 tracking-widest text-white">
-          {problem.dividend}
-        </div>
-        <div className="w-16 md:w-24 pl-2 md:pl-4 border-l-4 border-slate-500 font-black text-white bg-slate-900/50 rounded-tr-lg">
-          {problem.divisor}
-        </div>
-      </div>
-      
-      <div className="flex w-full justify-center">
-        <div className="w-24 md:w-40 flex flex-col items-end pr-2 md:pr-4 space-y-2 md:space-y-4 pt-2">
-          {remaindersCompleted.map((rem, idx) => (
-            <div key={`rem-${idx}`} className="tracking-widest text-slate-300">
-              {rem}
+              ))}
             </div>
-          ))}
-          {isRemInputNext && (
-            <div className="h-[32px] md:h-[48px] flex items-center">
-              {isMe ? (
-                <input 
-                  ref={inputRef}
-                  type="number"
-                  onChange={onInput}
-                  className={`w-16 md:w-24 bg-slate-900 ${colorClass} font-bold border-b-4 border-current outline-none text-right tracking-widest px-1`}
-                  placeholder="?"
-                />
-              ) : (
-                <span className={`${colorClass} animate-pulse opacity-50`}>...</span>
-              )}
-            </div>
-          )}
-          {progress === totalSteps && (
-            <div className="text-green-400 font-black flex items-center gap-2 mt-4 text-lg md:text-xl">
-              <CheckCircle2 /> ¡Fin!
-            </div>
-          )}
-        </div>
-        
-        <div className="w-16 md:w-24 pl-2 md:pl-4 border-l-4 border-slate-500 pt-2 flex items-start">
-          <div className={`tracking-widest flex items-center ${colorClass} font-bold bg-slate-900/50 px-1 rounded`}>
-            {qDigitsCompleted.join('')}
-            {isQInputNext && (
-              <span className="inline-block ml-1">
-                {isMe ? (
-                  <input 
-                    ref={inputRef}
-                    type="number"
-                    onChange={onInput}
-                    className={`w-8 md:w-10 bg-slate-900 ${colorClass} font-bold border-b-4 border-current outline-none text-center`}
-                    placeholder="?"
-                  />
+            <div className="w-10 shrink-0"></div>
+          </div>
+
+          <div className="flex-1 relative overflow-auto p-2 md:p-4 flex flex-col">
+            {matchData.status === 'gameover' && (
+              <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
+                <Trophy className="w-24 h-24 md:w-32 md:h-32 text-yellow-400 mb-6 animate-bounce" />
+                <h1 className="text-4xl md:text-7xl font-black mb-4">
+                  {matchData.winner === user.uid ? '¡HAS GANADO!' : '¡FIN DEL JUEGO!'}
+                </h1>
+                <p className="text-xl md:text-2xl text-slate-300 mb-12">
+                  El ganador es el Jugador {playersList.findIndex(p => p.uid === matchData.winner) + 1}
+                </p>
+                {amIHost ? (
+                  <button onClick={playAgain} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-full text-xl md:text-2xl font-bold transition-transform hover:scale-105 active:scale-95">
+                    Volver a la Sala
+                  </button>
                 ) : (
-                  <span className={`${colorClass} animate-pulse opacity-50`}>_</span>
+                  <p className="text-lg md:text-xl text-slate-400 animate-pulse">Esperando al anfitrión...</p>
                 )}
-              </span>
+              </div>
             )}
+
+            <div className={`grid gap-2 md:gap-4 flex-1 ${playersList.length > 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
+              {playersList.map((p, idx) => {
+                const isMe = p.uid === user.uid;
+                const colors = playerColors[idx];
+                
+                return (
+                  <div key={p.uid} className={`flex flex-col items-center p-2 md:p-6 rounded-2xl md:rounded-3xl border-2 ${colors.border} ${isMe ? 'bg-slate-800' : colors.bg} relative overflow-hidden shadow-lg`}>
+                    <div className="w-full max-w-md flex flex-col h-full">
+                      <h3 className={`${colors.text} font-bold mb-4 md:mb-6 text-sm md:text-xl flex items-center justify-between`}>
+                        <span className="flex items-center gap-2">
+                          {isMe ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" /> : <Users className="w-5 h-5 md:w-6 md:h-6" />} 
+                          {isMe ? 'Tu Planilla' : `Planilla J${idx + 1}`}
+                        </span>
+                        {isMe && <span className="text-[10px] md:text-xs bg-slate-700 text-white px-2 py-1 rounded-full uppercase tracking-wider">Tu Turno</span>}
+                      </h3>
+                      
+                      <div className={`flex-1 flex items-center justify-center ${!isMe ? 'opacity-80 pointer-events-none' : ''}`}>
+                        <Planilla 
+                          problem={matchData.currentProblem} 
+                          progress={p.progress} 
+                          isMe={isMe} 
+                          onInput={handleInput} 
+                          colorClass={colors.text}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      );
+    }
 
-      {isMe && progress < totalSteps && (
-        <div className="mt-8 text-center text-sm md:text-base text-slate-400 font-sans">
-          {isQInputNext 
-            ? "Paso 1: Siguiente número del cociente" 
-            : "Paso 2: Escribe el resto (y baja el número)"}
-        </div>
-      )}
-
-    </div>
-  );
-};
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
