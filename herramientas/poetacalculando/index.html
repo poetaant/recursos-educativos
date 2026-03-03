@@ -25,6 +25,51 @@
         input[type="number"] {
             -moz-appearance: textfield;
         }
+
+        /* Animaciones para los botones colgantes */
+        @keyframes swing {
+            0% { transform: rotate(15deg); }
+            50% { transform: rotate(-15deg); }
+            100% { transform: rotate(15deg); }
+        }
+        .hanging-container {
+            transform-origin: top center;
+            animation: swing 3s ease-in-out infinite alternate;
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            margin-left: -28px; /* Centrado exacto: la mitad de los 56px de ancho */
+            width: 56px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 20;
+            pointer-events: none; /* Para que no bloquee los clics */
+        }
+        .hanging-rope {
+            width: 3px;
+            background-color: #8b5a2b; /* Color madera/cuerda */
+            transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Animación de estiramiento con un pequeño rebote */
+        }
+        .hanging-badge {
+            width: 56px; /* Circulitos más grandes */
+            height: 56px;
+            border-width: 4px; /* Borde un poco más grueso para compensar */
+            border-style: solid;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 2.4rem; /* Símbolo matemático más grande */
+            margin-top: -2px;
+            box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.5); /* Sombra un poco más fuerte */
+        }
+        /* Diferentes retardos para que no se balanceen todos a la vez */
+        .delay-1 { animation-delay: 0s; }
+        .delay-2 { animation-delay: -0.7s; }
+        .delay-3 { animation-delay: -1.4s; }
+        .delay-4 { animation-delay: -2.1s; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
@@ -87,6 +132,11 @@
             );
         };
 
+        // Componente Separador de Miles, Millones, etc. (Sólo resultados)
+        const DotSeparator = ({ isSmall }) => (
+            <span className={`absolute ${isSmall ? '-left-[4px] bottom-[2px] text-lg' : '-left-[6px] sm:-left-[8px] bottom-[4px] text-3xl'} font-extrabold text-slate-800 pointer-events-none z-20 select-none`}>.</span>
+        );
+
         // --- OPERATION BOARDS ---
 
         const AdditionBoard = ({ config, isManual, onNext, autoSolve }) => {
@@ -117,7 +167,6 @@
             const cols = maxLen + 2; 
             const maxPower = maxLen; 
 
-            // AUTO SOLVER COMPLETAMENTE REVISADO
             const prevAutoSolve = useRef(autoSolve);
             useEffect(() => {
                 if (autoSolve > prevAutoSolve.current) {
@@ -126,15 +175,12 @@
                         const newInputs = {};
                         const newCarries = {};
                         
-                        // 1. Calculamos el resultado exacto como string
                         const expectedStr = String(addends.reduce((acc, curr) => acc + (parseInt(curr, 10) || 0), 0));
                         
-                        // 2. Colocamos los números en sus cajas exactas (de derecha a izquierda)
                         for (let i = 0; i < expectedStr.length; i++) {
                             newInputs[`res-${i}`] = expectedStr[expectedStr.length - 1 - i];
                         }
 
-                        // 3. Calculamos las llevadas visuales
                         let currentCarry = 0;
                         for (let power = 0; power <= maxPower; power++) {
                             if (currentCarry > 0 && power > 0 && power < maxLen) {
@@ -172,7 +218,6 @@
                 let currentCarry = 0;
                 
                 for (let power = 0; power <= maxPower; power++) {
-                    // Ayudar con la llevada primero
                     if (currentCarry > 0 && power > 0 && power < maxLen) {
                         const carryKey = `c-${power}`;
                         if (carries[carryKey] !== String(currentCarry)) {
@@ -182,7 +227,6 @@
                         }
                     }
 
-                    // Sumar columna para arrastrar la llevada
                     let colSum = currentCarry;
                     addends.forEach(addend => {
                         const numStr = String(addend);
@@ -193,7 +237,6 @@
                     });
                     currentCarry = Math.floor(colSum / 10);
 
-                    // Ayudar con el resultado de la columna
                     if (power < expectedStr.length) {
                         const expectedChar = expectedStr[expectedStr.length - 1 - power];
                         const resKey = `res-${power}`;
@@ -218,14 +261,14 @@
 
             if (setupMode) {
                 return (
-                <div className="flex flex-col items-center space-y-4">
-                    <h3 className="text-xl font-bold text-gray-700">Introduce los sumandos</h3>
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los sumandos</h3>
                     {addends.map((a, i) => (
-                    <div key={i} className="flex items-center space-x-2">
-                        <span className="font-bold w-24">Sumando {i + 1}:</span>
+                    <div key={i} className="flex items-center space-x-4">
+                        <span className="font-bold text-2xl whitespace-nowrap">Sumando {i + 1}:</span>
                         <input 
                         type="number" 
-                        className="border-2 border-blue-300 rounded p-2 text-xl font-mono w-48"
+                        className="border-4 border-blue-300 rounded-xl p-4 text-3xl font-mono w-64"
                         value={a}
                         onChange={(e) => {
                             const newAddends = [...addends];
@@ -239,9 +282,9 @@
                     onClick={() => {
                         if (addends.every(a => String(a).trim() !== '')) setSetupMode(false);
                     }}
-                    className="bg-blue-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-600 flex items-center"
+                    className="bg-blue-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-blue-600 flex items-center shadow-lg"
                     >
-                    <Check className="mr-2" /> Comenzar Suma
+                    <Check className="mr-3 w-8 h-8" /> Comenzar Suma
                     </button>
                 </div>
                 );
@@ -285,9 +328,9 @@
                                 const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
                                 return (
                                     <div key={`c-${rIndex}-${power}`} className="flex justify-center">
-                                    <div className="w-10 h-12 flex items-center justify-center text-3xl font-mono">
-                                        {char}
-                                    </div>
+                                        <div className="w-10 h-12 flex items-center justify-center text-3xl font-mono">
+                                            {char}
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -298,19 +341,23 @@
                     {/* Divider */}
                     <div className={`col-span-${cols} border-b-4 border-black my-2`}></div>
 
-                    {/* Result Row */}
+                    {/* Result Row (AQUÍ SÍ HAY PUNTOS SEPARADORES) */}
                     <div className="col-span-1"></div>
                     {Array.from({ length: cols - 1 }).map((_, cIndex) => {
                         const power = cols - 2 - cIndex;
+                        const hasHigherInput = Object.keys(inputs).some(k => k.startsWith('res-') && parseInt(k.split('-')[1]) > power && inputs[k] !== '');
                         return (
                             <div key={`res-${power}`} className="flex justify-center">
-                            <DigitInput
-                                id={`add-res-${cIndex}`}
-                                value={inputs[`res-${power}`] || ''}
-                                onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
-                                className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
-                                isHelped={helpedFields[`res-${power}`]}
-                            />
+                                <div className="relative">
+                                    {power % 3 === 2 && hasHigherInput && <DotSeparator />}
+                                    <DigitInput
+                                        id={`add-res-${cIndex}`}
+                                        value={inputs[`res-${power}`] || ''}
+                                        onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                        className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
+                                        isHelped={helpedFields[`res-${power}`]}
+                                    />
+                                </div>
                             </div>
                         );
                     })}
@@ -366,7 +413,6 @@
             const cols = Math.max(minuend.length, subtrahend.length) + 1;
             const maxPower = cols - 2;
 
-            // AUTO SOLVER REVISADO
             const prevAutoSolve = useRef(autoSolve);
             useEffect(() => {
                 if (autoSolve > prevAutoSolve.current) {
@@ -375,13 +421,11 @@
                         const newInputs = {};
                         const newCarries = {};
                         
-                        // Resultado perfecto exacto
                         const expectedStr = String(parseInt(minuend || 0, 10) - parseInt(subtrahend || 0, 10));
                         for (let i = 0; i < expectedStr.length; i++) {
                             newInputs[`res-${i}`] = expectedStr[expectedStr.length - 1 - i];
                         }
 
-                        // Llevadas visuales
                         let currentCarry = 0;
                         for (let power = 0; power <= maxPower; power++) {
                             if (currentCarry > 0 && power > 0) {
@@ -422,7 +466,6 @@
                 let currentCarry = 0;
                 
                 for (let power = 0; power <= maxPower; power++) {
-                    // Ayudar llevada
                     if (currentCarry > 0 && power > 0) {
                         const carryKey = `c-${power}`;
                         if (carries[carryKey] !== String(currentCarry)) {
@@ -442,7 +485,6 @@
                     let nextCarry = 0;
                     if (resDigit < 0) { nextCarry = 1; }
 
-                    // Ayudar resultado actual
                     if (power < expectedStr.length) {
                         const expectedChar = expectedStr[expectedStr.length - 1 - power];
                         const resKey = `res-${power}`;
@@ -468,24 +510,24 @@
 
             if (setupMode) {
                 return (
-                <div className="flex flex-col items-center space-y-4">
-                    <h3 className="text-xl font-bold text-gray-700">Introduce los números</h3>
-                    <div className="flex items-center space-x-2">
-                    <span className="font-bold w-32">Minuendo (arriba):</span>
-                    <input type="number" className="border-2 border-blue-300 rounded p-2 text-xl font-mono w-48" value={minuend} onChange={(e) => setMinuend(e.target.value)} />
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los números</h3>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Minuendo (arriba):</span>
+                    <input type="number" className="border-4 border-blue-300 rounded-xl p-4 text-3xl font-mono w-64" value={minuend} onChange={(e) => setMinuend(e.target.value)} />
                     </div>
-                    <div className="flex items-center space-x-2">
-                    <span className="font-bold w-32">Sustraendo (abajo):</span>
-                    <input type="number" className="border-2 border-blue-300 rounded p-2 text-xl font-mono w-48" value={subtrahend} onChange={(e) => setSubtrahend(e.target.value)} />
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Sustraendo (abajo):</span>
+                    <input type="number" className="border-4 border-blue-300 rounded-xl p-4 text-3xl font-mono w-64" value={subtrahend} onChange={(e) => setSubtrahend(e.target.value)} />
                     </div>
                     <button 
                     onClick={() => {
                         if (minuend && subtrahend && parseInt(minuend, 10) >= parseInt(subtrahend, 10)) setSetupMode(false);
                         else alert("Por favor, asegúrate de que el minuendo sea mayor o igual al sustraendo.");
                     }}
-                    className="bg-blue-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-600 flex items-center"
+                    className="bg-blue-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-blue-600 flex items-center shadow-lg"
                     >
-                    <Check className="mr-2" /> Comenzar Resta
+                    <Check className="mr-3 w-8 h-8" /> Comenzar Resta
                     </button>
                 </div>
                 );
@@ -503,18 +545,20 @@
                         const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
                         return (
                             <div key={`c-${power}`} className="flex flex-col items-center justify-center relative h-16">
-                            <div className="text-3xl font-mono leading-none">{char}</div>
-                            {isSubtrahend && charIdx >= -1 && charIdx < numStr.length && power > 0 && (
-                                <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2">
-                                <DigitInput
-                                    isSmall
-                                    value={carries[`c-${power}`] || ''}
-                                    onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
-                                    className="bg-orange-50 border-orange-300 text-orange-700 text-xs w-5 h-6"
-                                    isHelped={helpedFields[`c-${power}`]}
-                                />
+                                <div className="text-3xl font-mono leading-none">
+                                    {char}
                                 </div>
-                            )}
+                                {isSubtrahend && charIdx >= -1 && charIdx < numStr.length && power > 0 && (
+                                    <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2">
+                                    <DigitInput
+                                        isSmall
+                                        value={carries[`c-${power}`] || ''}
+                                        onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
+                                        className="bg-orange-50 border-orange-300 text-orange-700 text-xs w-5 h-6"
+                                        isHelped={helpedFields[`c-${power}`]}
+                                    />
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
@@ -531,18 +575,23 @@
 
                     <div className={`col-span-${cols} border-b-4 border-black mt-4 mb-2`}></div>
 
+                    {/* Result Row (AQUÍ SÍ HAY PUNTOS SEPARADORES) */}
                     <div className="col-span-1"></div>
                     {Array.from({ length: cols - 1 }).map((_, cIndex) => {
                         const power = cols - 2 - cIndex;
+                        const hasHigherInput = Object.keys(inputs).some(k => k.startsWith('res-') && parseInt(k.split('-')[1]) > power && inputs[k] !== '');
                         return (
                             <div key={`res-${power}`} className="flex justify-center">
-                            <DigitInput
-                                id={`sub-res-${cIndex}`}
-                                value={inputs[`res-${power}`] || ''}
-                                onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
-                                className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
-                                isHelped={helpedFields[`res-${power}`]}
-                            />
+                                <div className="relative">
+                                    {power % 3 === 2 && hasHigherInput && <DotSeparator />}
+                                    <DigitInput
+                                        id={`sub-res-${cIndex}`}
+                                        value={inputs[`res-${power}`] || ''}
+                                        onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                        className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
+                                        isHelped={helpedFields[`res-${power}`]}
+                                    />
+                                </div>
                             </div>
                         );
                     })}
@@ -592,7 +641,6 @@
             const cols = L + M + 2;
             const numPartials = multiplier.length;
 
-            // AUTO SOLVER
             const prevAutoSolve = useRef(autoSolve);
             useEffect(() => {
                 if (autoSolve > prevAutoSolve.current) {
@@ -707,15 +755,15 @@
 
             if (setupMode) {
                 return (
-                <div className="flex flex-col items-center space-y-4">
-                    <h3 className="text-xl font-bold text-gray-700">Introduce los números</h3>
-                    <div className="flex items-center space-x-2">
-                    <span className="font-bold w-36">Multiplicando:</span>
-                    <input type="number" className="border-2 border-purple-300 rounded p-2 text-xl font-mono w-48" value={multiplicand} onChange={(e) => setMultiplicand(e.target.value)} />
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los números</h3>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Multiplicando:</span>
+                    <input type="number" className="border-4 border-purple-300 rounded-xl p-4 text-3xl font-mono w-64" value={multiplicand} onChange={(e) => setMultiplicand(e.target.value)} />
                     </div>
-                    <div className="flex items-center space-x-2">
-                    <span className="font-bold w-36">Multiplicador:</span>
-                    <input type="number" className="border-2 border-purple-300 rounded p-2 text-xl font-mono w-48" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} />
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Multiplicador:</span>
+                    <input type="number" className="border-4 border-purple-300 rounded-xl p-4 text-3xl font-mono w-64" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} />
                     </div>
                     <button 
                     onClick={() => {
@@ -724,9 +772,9 @@
                         resetState();
                         }
                     }}
-                    className="bg-purple-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-purple-600 flex items-center"
+                    className="bg-purple-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-purple-600 flex items-center shadow-lg"
                     >
-                    <Check className="mr-2" /> Comenzar
+                    <Check className="mr-3 w-8 h-8" /> Comenzar
                     </button>
                 </div>
                 );
@@ -796,15 +844,15 @@
                             const isInput = power >= rIndex && power <= rIndex + L;
                             
                             if (!isInput) return <div key={`p-${rIndex}-${power}`} className="w-10 h-12"></div>;
-                            
+
                             return (
                             <div key={`p-${rIndex}-${power}`} className="flex justify-center">
                                 <DigitInput
-                                id={`mul-p-${rIndex}-${cIndex}`}
-                                value={inputs[`p-${rIndex}-${power}`] || ''}
-                                onChange={(v) => setInputs({ ...inputs, [`p-${rIndex}-${power}`]: v })}
-                                className="bg-blue-50 border-blue-200"
-                                isHelped={helpedFields[`p-${rIndex}-${power}`]}
+                                    id={`mul-p-${rIndex}-${cIndex}`}
+                                    value={inputs[`p-${rIndex}-${power}`] || ''}
+                                    onChange={(v) => setInputs({ ...inputs, [`p-${rIndex}-${power}`]: v })}
+                                    className="bg-blue-50 border-blue-200"
+                                    isHelped={helpedFields[`p-${rIndex}-${power}`]}
                                 />
                             </div>
                             );
@@ -814,18 +862,23 @@
 
                     {numPartials > 1 && <div className={`col-span-${cols} border-b-4 border-black my-2`}></div>}
 
+                    {/* Result Row (AQUÍ SÍ HAY PUNTOS SEPARADORES) */}
                     <div className="col-span-1"></div>
                     {Array.from({ length: cols - 1 }).map((_, cIndex) => {
                         const power = cols - 2 - cIndex;
+                        const hasHigherInput = Object.keys(inputs).some(k => k.startsWith('res-') && parseInt(k.split('-')[1]) > power && inputs[k] !== '');
                         return (
                             <div key={`res-${power}`} className="flex justify-center">
-                            <DigitInput
-                                id={`mul-res-${cIndex}`}
-                                value={inputs[`res-${power}`] || ''}
-                                onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
-                                className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-gray-50 border-gray-300 font-bold'}
-                                isHelped={helpedFields[`res-${power}`]}
-                            />
+                                <div className="relative">
+                                    {power % 3 === 2 && hasHigherInput && <DotSeparator />}
+                                    <DigitInput
+                                        id={`mul-res-${cIndex}`}
+                                        value={inputs[`res-${power}`] || ''}
+                                        onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                        className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-gray-50 border-gray-300 font-bold'}
+                                        isHelped={helpedFields[`res-${power}`]}
+                                    />
+                                </div>
                             </div>
                         );
                     })}
@@ -883,7 +936,6 @@
                 }
             }, [config, isManual]);
 
-            // AUTO SOLVER REVISADO
             const prevAutoSolve = useRef(autoSolve);
             useEffect(() => {
                 if (autoSolve > prevAutoSolve.current) {
@@ -1086,15 +1138,15 @@
 
             if (setupMode) {
                 return (
-                <div className="flex flex-col items-center space-y-4">
-                    <h3 className="text-xl font-bold text-gray-700">Introduce los números</h3>
-                    <div className="flex items-center space-x-2">
-                    <span className="font-bold w-36">Dividendo:</span>
-                    <input type="number" className="border-2 border-teal-300 rounded p-2 text-xl font-mono w-48" value={dividend} onChange={(e) => setDividend(e.target.value)} />
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los números</h3>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Dividendo:</span>
+                    <input type="number" className="border-4 border-teal-300 rounded-xl p-4 text-3xl font-mono w-64" value={dividend} onChange={(e) => setDividend(e.target.value)} />
                     </div>
-                    <div className="flex items-center space-x-2">
-                    <span className="font-bold w-36">Divisor:</span>
-                    <input type="number" className="border-2 border-teal-300 rounded p-2 text-xl font-mono w-48" value={divisor} onChange={(e) => setDivisor(e.target.value)} />
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Divisor:</span>
+                    <input type="number" className="border-4 border-teal-300 rounded-xl p-4 text-3xl font-mono w-64" value={divisor} onChange={(e) => setDivisor(e.target.value)} />
                     </div>
                     <button 
                     onClick={() => {
@@ -1103,9 +1155,9 @@
                         resetBoard();
                         } else alert("Números inválidos. Asegúrate de que el divisor no sea 0.");
                     }}
-                    className="bg-teal-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-teal-600 flex items-center"
+                    className="bg-teal-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-teal-600 flex items-center shadow-lg"
                     >
-                    <Check className="mr-2" /> Comenzar División
+                    <Check className="mr-3 w-8 h-8" /> Comenzar División
                     </button>
                 </div>
                 );
@@ -1136,14 +1188,16 @@
                         
                         <div className="flex relative mb-2">
                             {renderArc()}
-                            {dividend.split('').map((char, i) => (
-                            <div key={i} className="w-10 h-12 flex items-center justify-center text-3xl font-mono font-bold tracking-widest relative">
-                                {char}
-                                {stepRows.some((r) => r.dropColIndex === i) && (
-                                <ArrowDown className="absolute -bottom-6 text-orange-500 h-6 w-6 z-10" />
-                                )}
-                            </div>
-                            ))}
+                            {dividend.split('').map((char, i) => {
+                                return (
+                                    <div key={i} className="w-10 h-12 flex items-center justify-center text-3xl font-mono font-bold tracking-widest relative">
+                                        {char}
+                                        {stepRows.some((r) => r.dropColIndex === i) && (
+                                        <ArrowDown className="absolute -bottom-6 text-orange-500 h-6 w-6 z-10" />
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {arcLen > 0 && stepRows.map((row, rIndex) => (
@@ -1153,35 +1207,38 @@
                                 const maxActiveCol = row.dropColIndex !== null ? row.dropColIndex : (arcLen - 1 + rIndex); 
                                 
                                 if (cIndex <= maxActiveCol) {
-                                // CASILLA DE BAJADA MANUAL
-                                if (row.droppedChar && cIndex === row.dropColIndex) {
-                                    return (
-                                    <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
-                                        <DigitInput
-                                            isSmall
-                                            readOnly={status === 'correct'}
-                                            value={row.remainderInputs[cIndex] || ''}
-                                            onChange={(v) => handleRemainderChange(rIndex, cIndex, v)}
-                                            className={`w-full h-full text-xl font-bold border-blue-300 text-blue-600 bg-blue-50 focus:bg-blue-100 ${status === 'incorrect' ? 'border-red-300' : ''}`}
-                                            isHelped={helpedFields[`rem-${rIndex}-${cIndex}`]}
-                                        />
-                                    </div>
-                                    )
-                                }
 
-                                // CASILLA DE RESTO NORMAL
-                                return (
-                                    <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
-                                    <DigitInput
-                                        isSmall
-                                        readOnly={status === 'correct'}
-                                        value={row.remainderInputs[cIndex] || ''}
-                                        onChange={(v) => handleRemainderChange(rIndex, cIndex, v)}
-                                        className={`w-full h-full text-xl border-gray-300 ${status === 'incorrect' ? 'border-red-300' : ''}`}
-                                        isHelped={helpedFields[`rem-${rIndex}-${cIndex}`]}
-                                    />
-                                    </div>
-                                );
+                                    if (row.droppedChar && cIndex === row.dropColIndex) {
+                                        return (
+                                        <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
+                                            <div className="relative w-full h-full">
+                                                <DigitInput
+                                                    isSmall
+                                                    readOnly={status === 'correct'}
+                                                    value={row.remainderInputs[cIndex] || ''}
+                                                    onChange={(v) => handleRemainderChange(rIndex, cIndex, v)}
+                                                    className={`w-full h-full text-xl font-bold border-blue-300 text-blue-600 bg-blue-50 focus:bg-blue-100 ${status === 'incorrect' ? 'border-red-300' : ''}`}
+                                                    isHelped={helpedFields[`rem-${rIndex}-${cIndex}`]}
+                                                />
+                                            </div>
+                                        </div>
+                                        )
+                                    }
+
+                                    return (
+                                        <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
+                                            <div className="relative w-full h-full">
+                                                <DigitInput
+                                                    isSmall
+                                                    readOnly={status === 'correct'}
+                                                    value={row.remainderInputs[cIndex] || ''}
+                                                    onChange={(v) => handleRemainderChange(rIndex, cIndex, v)}
+                                                    className={`w-full h-full text-xl border-gray-300 ${status === 'incorrect' ? 'border-red-300' : ''}`}
+                                                    isHelped={helpedFields[`rem-${rIndex}-${cIndex}`]}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
                                 }
                                 
                                 return <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12"></div>;
@@ -1209,17 +1266,24 @@
                         </div>
                         
                         <div className="pl-4 pt-2 flex space-x-1">
-                            {arcLen > 0 && Array.from({ length: dividend.length - arcLen + 1 }).map((_, i) => (
-                                <DigitInput
-                                key={`q-${i}`}
-                                isSmall
-                                readOnly={status === 'correct'}
-                                value={quotientInputs[i] || ''}
-                                onChange={(v) => handleQuotientChange(i, v)}
-                                className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-teal-50'}
-                                isHelped={helpedFields[`q-${i}`]}
-                                />
-                            ))}
+                            {/* Cociente (AQUÍ SÍ HAY PUNTOS SEPARADORES) */}
+                            {arcLen > 0 && Array.from({ length: dividend.length - arcLen + 1 }).map((_, i) => {
+                                const power = (dividend.length - arcLen) - i;
+                                const hasHigher = quotientInputs.some((val, idx) => idx < i && val !== '');
+                                return (
+                                    <div key={`q-${i}`} className="relative">
+                                        {power % 3 === 2 && hasHigher && <DotSeparator isSmall />}
+                                        <DigitInput
+                                            isSmall
+                                            readOnly={status === 'correct'}
+                                            value={quotientInputs[i] || ''}
+                                            onChange={(v) => handleQuotientChange(i, v)}
+                                            className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-teal-50'}
+                                            isHelped={helpedFields[`q-${i}`]}
+                                        />
+                                    </div>
+                                );
+                            })}
                         </div>
                         </div>
 
@@ -1285,7 +1349,6 @@
             const [refreshKey, setRefreshKey] = useState(0);
             const [autoSolveCount, setAutoSolveCount] = useState(0);
 
-            // AQUÍ ESTÁ LA MAGIA: Memorizamos la configuración para que no resetee los números al usar el truco
             const config = useMemo(() => {
                 switch(level) {
                 case 1: return { numAddends: 2, maxDigits: 1, digitsMin: 1, digitsSub: 1, digitsMultiplicand: 1, digitsMultiplier: 1, digitsDividend: 2, digitsDivisor: 1 };
@@ -1300,7 +1363,7 @@
 
             const nextOperation = () => {
                 setRefreshKey(prev => prev + 1);
-                setAutoSolveCount(0); // Reiniciamos el truco en cada operación
+                setAutoSolveCount(0);
             };
 
             const handlePoetClick = () => {
@@ -1314,8 +1377,16 @@
                 }
             };
 
-            const activeClasses = "bg-white text-blue-600 shadow-sm rounded-lg font-bold";
-            const inactiveClasses = "text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg";
+            const activeClasses = "bg-white text-blue-600 shadow-md rounded-xl font-extrabold border-2 border-blue-200 scale-105";
+            const inactiveClasses = "text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-xl transition-colors border-2 border-transparent font-semibold";
+
+            // Configuramos colores específicos para cada medalla
+            const operationsConfig = [
+                { id: 'add', name: 'Suma', sym: '+', delay: 'delay-1', bg: '#3b82f6', border: '#1d4ed8', text: '#ffffff' },
+                { id: 'sub', name: 'Resta', sym: '−', delay: 'delay-2', bg: '#ef4444', border: '#b91c1c', text: '#ffffff' },
+                { id: 'mul', name: 'Multiplicación', sym: '×', delay: 'delay-3', bg: '#D4AF37', border: '#998022', text: '#ffffff' },
+                { id: 'div', name: 'División', sym: '÷', delay: 'delay-4', bg: '#C0C0C0', border: '#808080', text: '#000000' },
+            ];
 
             if (!hasStarted) {
                 return (
@@ -1338,65 +1409,97 @@
             }
 
             return (
-                <div className="min-h-screen bg-slate-50 font-sans p-4">
-                <div className="max-w-4xl mx-auto">
+                <div className="min-h-screen bg-slate-50 font-sans p-4 overflow-x-hidden">
+                <div className="w-[98%] max-w-[1600px] mx-auto">
                     
-                    <header className="text-center mb-8">
-                    <h1 
-                        className="text-4xl font-extrabold text-blue-600 drop-shadow-sm mb-2 cursor-pointer hover:text-blue-700 transition-colors"
-                        onClick={() => setHasStarted(false)}
-                        title="Haz clic para volver a la portada"
-                    >
-                        Máquina de Operaciones
-                    </h1>
-                    <p className="text-gray-600 font-medium">Practica matemáticas paso a paso</p>
-                    </header>
-
-                    <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap gap-4 items-center justify-between border border-gray-200">
-                    
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button onClick={() => { setOperation('add'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'add' ? activeClasses : inactiveClasses}`}>Suma</button>
-                        <button onClick={() => { setOperation('sub'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'sub' ? activeClasses : inactiveClasses}`}>Resta</button>
-                        <button onClick={() => { setOperation('mul'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'mul' ? activeClasses : inactiveClasses}`}>Multiplicación</button>
-                        <button onClick={() => { setOperation('div'); setAutoSolveCount(0); }} className={`px-4 py-2 ${operation === 'div' ? activeClasses : inactiveClasses}`}>División</button>
-                    </div>
-
-                    {/* Imagen del poeta con la función de contraseña mágica */}
-                    <img 
-                        src="poeta2.jpg" 
-                        alt="Poeta calculador" 
-                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/100x100/e2e8f0/1e40af?text=Poeta"; }}
-                        className="h-24 w-auto object-contain rounded-lg shadow-md cursor-pointer hover:scale-105 transition-transform"
-                        onClick={handlePoetClick}
-                        title="Opciones mágicas"
-                    />
-
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                        <span className="text-gray-700 font-bold text-sm">Nivel:</span>
-                        <select 
-                            value={level} 
-                            onChange={(e) => { setLevel(parseInt(e.target.value)); setAutoSolveCount(0); }}
-                            disabled={mode === 'manual'}
-                            className="border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-200"
-                        >
-                            {[1,2,3,4,5,6].map(l => <option key={l} value={l}>{l}º Primaria</option>)}
-                        </select>
+                    {/* Quitamos márgenes inferiores enormes para que la pizarra suba más arriba */}
+                    <div className="w-full overflow-x-auto pb-28 -mb-16 pt-2 px-2 z-20 relative">
+                        
+                        <div className="bg-white p-4 lg:p-6 rounded-2xl shadow-md mb-2 flex flex-nowrap gap-6 lg:gap-10 items-center justify-between border-4 border-gray-200 min-w-max mx-auto">
+                        
+                        <div className="flex bg-gray-100 p-2 rounded-2xl gap-2 shrink-0">
+                            {operationsConfig.map((op) => {
+                                const isActive = operation === op.id;
+                                return (
+                                <div key={op.id} className="relative">
+                                    <button 
+                                        onClick={() => { setOperation(op.id); setAutoSolveCount(0); }} 
+                                        className={`px-6 sm:px-8 py-3 text-xl lg:text-2xl transition-all z-10 relative whitespace-nowrap ${isActive ? activeClasses : inactiveClasses}`}
+                                    >
+                                        {op.name}
+                                    </button>
+                                    <div className={`hanging-container ${op.delay}`}>
+                                        <div 
+                                            className="hanging-rope"
+                                            style={{ height: isActive ? '45px' : '15px' }} /* La cuerda crece si está seleccionada */
+                                        ></div>
+                                        <div 
+                                            className="hanging-badge" 
+                                            style={{ backgroundColor: op.bg, borderColor: op.border, color: op.text }}
+                                        >
+                                            {op.sym}
+                                        </div>
+                                    </div>
+                                </div>
+                                );
+                            })}
                         </div>
 
-                        <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button onClick={() => { setMode('auto'); setAutoSolveCount(0); }} className={`px-3 py-1 text-sm ${mode === 'auto' ? activeClasses : inactiveClasses}`}>Auto</button>
-                        <button onClick={() => { setMode('manual'); setAutoSolveCount(0); }} className={`px-3 py-1 text-sm ${mode === 'manual' ? activeClasses : inactiveClasses}`}>Manual</button>
+                        <img 
+                            src="poeta2.jpg" 
+                            alt="Poeta calculador" 
+                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/100x100/e2e8f0/1e40af?text=Poeta"; }}
+                            className="h-24 lg:h-32 w-auto object-contain rounded-xl shadow-lg cursor-pointer hover:scale-110 transition-transform shrink-0 mx-4"
+                            onClick={handlePoetClick}
+                            title="Opciones mágicas"
+                        />
+
+                        <div className="flex items-center space-x-6 lg:space-x-8 shrink-0">
+                            <div className="flex items-center space-x-3">
+                            <span className="text-gray-700 font-extrabold text-xl lg:text-2xl whitespace-nowrap">Nivel:</span>
+                            <select 
+                                value={level} 
+                                onChange={(e) => { setLevel(parseInt(e.target.value)); setAutoSolveCount(0); }}
+                                disabled={mode === 'manual'}
+                                className="border-2 border-gray-300 rounded-xl shadow-sm focus:border-blue-400 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-200 text-xl lg:text-2xl py-2 px-4 font-bold text-gray-700 cursor-pointer"
+                            >
+                                {[1,2,3,4,5,6].map(l => <option key={l} value={l}>{l}º Primaria</option>)}
+                            </select>
+                            </div>
+
+                            <div className="flex bg-gray-100 p-2 rounded-2xl gap-2">
+                            <button onClick={() => { setMode('auto'); setAutoSolveCount(0); }} className={`px-6 py-2 text-xl lg:text-2xl whitespace-nowrap ${mode === 'auto' ? activeClasses : inactiveClasses}`}>Auto</button>
+                            <button onClick={() => { setMode('manual'); setAutoSolveCount(0); }} className={`px-6 py-2 text-xl lg:text-2xl whitespace-nowrap ${mode === 'manual' ? activeClasses : inactiveClasses}`}>Manual</button>
+                            </div>
+                        </div>
+
                         </div>
                     </div>
 
-                    </div>
-
-                    <main className="min-h-[500px] flex items-center justify-center py-8">
-                    {operation === 'add' && <AdditionBoard key={`add-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
-                    {operation === 'sub' && <SubtractionBoard key={`sub-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
-                    {operation === 'mul' && <MultiplicationBoard key={`mul-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
-                    {operation === 'div' && <DivisionBoard key={`div-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                    {/* Contenedor principal de la pizarra, rediseñado para expandirse a óvalo si es necesario */}
+                    <main className="min-h-[500px] flex items-center sm:items-start lg:items-center justify-center pt-2 pb-8 overflow-auto relative z-10">
+                        <div className={`relative flex items-center justify-center p-12 md:p-24 w-fit h-fit min-w-[95vw] lg:min-w-[850px] min-h-[95vw] lg:min-h-[850px] border-[16px] sm:border-[24px] shadow-[inset_0_0_80px_rgba(0,0,0,0.8),0_20px_40px_rgba(0,0,0,0.4)] transition-all duration-500 ${
+                            mode === 'manual' ? 'bg-[#EAE0C8]' : 'bg-[#2A3B32]'
+                        } ${
+                            operation === 'add' ? 'border-blue-500' :
+                            operation === 'sub' ? 'border-red-500' :
+                            operation === 'mul' ? 'border-[#D4AF37]' :
+                            'border-[#C0C0C0]'
+                        }`} style={{ borderRadius: '50%' }}>
+                            
+                            {/* Textura sutil de tiza/ruido para la pizarra */}
+                            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ borderRadius: '50%', backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.7%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E")'}}></div>
+                            
+                            {/* Contenido interior. Ya no forzamos un w-full h-full para que el padre pueda crecer y volverse ovalado */}
+                            <div className="z-10 flex items-center justify-center max-w-full">
+                                <div className="transform scale-[0.60] sm:scale-75 md:scale-90 lg:scale-100 origin-center transition-transform flex items-center justify-center">
+                                    {operation === 'add' && <AdditionBoard key={`add-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                                    {operation === 'sub' && <SubtractionBoard key={`sub-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                                    {operation === 'mul' && <MultiplicationBoard key={`mul-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                                    {operation === 'div' && <DivisionBoard key={`div-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} />}
+                                </div>
+                            </div>
+                        </div>
                     </main>
 
                 </div>
