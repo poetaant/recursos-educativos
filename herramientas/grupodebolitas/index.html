@@ -281,7 +281,7 @@
             border: 5px solid #ff66b2;
         }
 
-        .modal-content h2 { margin: 0; color: #ff3399; }
+        .modal-content h2 { margin: 0; color: #ff3399; font-size: 20px; line-height: 1.2; }
         
         .color-picker-container {
             display: flex;
@@ -484,7 +484,7 @@
         <div id="modal-ficha" class="modal-overlay">
             <div class="modal-content">
                 <span class="close-btn" onclick="cerrarFicha()">&times;</span>
-                <h2 id="ficha-titulo">Ficha</h2>
+                <h2 id="ficha-titulo" data-idgrupo="">Ficha</h2>
                 
                 <div class="color-picker-container">
                     <span style="font-size: 14px; color: #00008B; font-weight: bold;">Color del texto:</span>
@@ -587,9 +587,9 @@
             }
         });
 
-        window.guardarNotaEnNube = async function(nombreGrupo, textoHtml) {
+        window.guardarNotaEnNube = async function(idGrupo, textoHtml) {
             if (!currentUser) return;
-            const safeId = nombreGrupo.replace(/\//g, '-');
+            const safeId = idGrupo.replace(/\//g, '-'); // Sanitizamos el ID
             const docRef = doc(db, 'usuarios', currentUser.uid, 'fichas', safeId);
             try {
                 await setDoc(docRef, { texto: textoHtml, updatedAt: new Date().toISOString() });
@@ -628,6 +628,7 @@
             "6ºB": ["Ángela", "Laura", "Daniela", "Eire", "Sofía", "Maia", "Rodrigo", "Antón", "Martina", "Nora", "Luis", "Paul", "Diego", "Xela", "Deva", "Carmen", "Jorge", "Nicolás", "Naia", "Gorka", "Nicolás", "Javier"]
         };
 
+        // Ahora nombresActuales guardará OBJETOS con id único: { id: "1ºA - Daniel", nombre: "Daniel", curso: "1ºA" }
         let nombresActuales = [];
         let bolitas = [];
         const RADIO_BASE = 40; 
@@ -687,7 +688,18 @@
                 
                 nombresActuales = [];
                 cursosSeleccionados.forEach(c => {
-                    nombresActuales = nombresActuales.concat(datosCursos[c]);
+                    let contadoresRepetidos = {};
+                    datosCursos[c].forEach(nombre => {
+                        // Manejo de nombres idénticos en la misma clase (ej: "Nel" en 5ºA)
+                        contadoresRepetidos[nombre] = (contadoresRepetidos[nombre] || 0) + 1;
+                        let sufijo = contadoresRepetidos[nombre] > 1 ? ` ${contadoresRepetidos[nombre]}` : '';
+                        
+                        nombresActuales.push({
+                            id: `${c} - ${nombre}${sufijo}`,
+                            nombre: nombre + sufijo,
+                            curso: c
+                        });
+                    });
                 });
             }
             
@@ -781,6 +793,7 @@
                 if (y < RADIO_BASE) y = RADIO_BASE;
                 if (y > canvas.height - RADIO_BASE) y = canvas.height - RADIO_BASE;
 
+                // Ahora pasamos un array de objetos Alumno
                 bolitas.push(new Bolita(x, y, RADIO_BASE, colorAleatorio(), [nombresActuales[index]]));
                 
                 index++;
@@ -822,14 +835,24 @@
 
         window.abrirFicha = function() {
             if (!bolitaSeleccionada) return;
-            const nombreGrupo = bolitaSeleccionada.nombres.join(', ');
-            document.getElementById('ficha-titulo').innerText = nombreGrupo;
             
-            let datoG = window.notasAlumnos[nombreGrupo];
+            const alumnosGrupo = bolitaSeleccionada.alumnos;
+            
+            // Construimos un ID único y constante para este grupo
+            const idGrupo = alumnosGrupo.map(a => a.id).sort().join(' + ');
+            
+            // Título visible (incluye curso para desambiguar)
+            const nombreMostrar = alumnosGrupo.map(a => `${a.nombre} (${a.curso})`).join(', ');
+            
+            document.getElementById('ficha-titulo').innerText = nombreMostrar;
+            document.getElementById('ficha-titulo').dataset.idgrupo = idGrupo; // Guardamos el ID real de forma oculta
+            
+            // Intenta cargar con el ID nuevo. Si no hay nada, migra la ficha del sistema antiguo si existía.
+            let datoG = window.notasAlumnos[idGrupo] || window.notasAlumnos[alumnosGrupo.map(a => a.nombre).join(', ')];
             let textoExistente = '';
             
             if (datoG) {
-                textoExistente = datoG.texto || ''; 
+                textoExistente = datoG.texto !== undefined ? datoG.texto : datoG; 
             }
             
             const hoy = new Date();
@@ -843,10 +866,10 @@
                 textoExistente = `<span style="color: #000000;">${fechaStr}<br>- </span>`;
             } else {
                 if (!textContent.includes(fechaStr)) {
-                    textoExistente = textoExistente.trim() + `<br><br><span style="color: #000000;">${fechaStr}<br>- </span>`;
-                } else if (!textContent.endsWith('-')) {
-                    textoExistente = textoExistente.trim() + `<br><span style="color: #000000;">- </span>`;
-                }
+                    // Coloca la fecha nueva ARRIBA del texto existente
+                    textoExistente = `<span style="color: #000000;">${fechaStr}<br>- </span><br><br>` + textoExistente.trim();
+                } 
+                // Si ya tiene la fecha de hoy, lo dejamos tal cual, listo para seguir escribiendo arriba.
             }
             
             document.getElementById('ficha-texto').innerHTML = textoExistente;
@@ -859,7 +882,7 @@
                 if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
                     var range = document.createRange();
                     range.selectNodeContents(el);
-                    range.collapse(false);
+                    range.collapse(true); // true = Coloca el cursor al inicio (arriba del todo)
                     var sel = window.getSelection();
                     sel.removeAllRanges();
                     sel.addRange(range);
@@ -868,18 +891,18 @@
         };
 
         window.cerrarFicha = function() {
-            const nombreGrupo = document.getElementById('ficha-titulo').innerText;
+            const idGrupo = document.getElementById('ficha-titulo').dataset.idgrupo;
             const textoActualizado = document.getElementById('ficha-texto').innerHTML;
             
-            // 1. Guardado en RAM (inmediatez)
-            window.notasAlumnos[nombreGrupo] = { texto: textoActualizado };
+            // 1. Guardado en RAM (inmediatez) con el nuevo ID seguro
+            window.notasAlumnos[idGrupo] = { texto: textoActualizado };
             
-            // 2. Guardado Seguro Local (Evita perder datos si Firebase falla)
+            // 2. Guardado Seguro Local
             localStorage.setItem('respaldo_bolitas_colegio', JSON.stringify(window.notasAlumnos));
             
-            // 3. Intento de subida a la nube (ahora guarda a TODOS los alumnos y grupos, manuales o automáticos)
+            // 3. Intento de subida a la nube usando el ID seguro
             if (bolitaSeleccionada && window.guardarNotaEnNube) {
-                window.guardarNotaEnNube(nombreGrupo, textoActualizado);
+                window.guardarNotaEnNube(idGrupo, textoActualizado);
             }
 
             document.getElementById('modal-ficha').style.display = 'none';
@@ -899,12 +922,12 @@
             const select = document.getElementById('select-alumno-informe');
             select.innerHTML = '';
             
-            const nombresOrdenados = [...nombresActuales].sort((a, b) => a.localeCompare(b, 'es'));
+            const alumnosOrdenados = [...nombresActuales].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
             
-            nombresOrdenados.forEach(nombre => {
+            alumnosOrdenados.forEach(alumno => {
                 const opt = document.createElement('option');
-                opt.value = nombre;
-                opt.innerText = nombre;
+                opt.value = alumno.id;
+                opt.innerText = `${alumno.nombre} (${alumno.curso})`;
                 select.appendChild(opt);
             });
             document.getElementById('div-select-alumnos').style.display = 'flex';
@@ -1034,10 +1057,11 @@
         window.generarInformeCurso = function() {
             if (cursosSeleccionados.length === 0) return;
             const nombreCursos = cursosSeleccionados.join(', ');
-            const secciones = nombresActuales.map(nombre => {
-                let n = window.notasAlumnos[nombre];
+            const secciones = nombresActuales.map(alumno => {
+                // Soporte para notas antiguas guardadas por nombre simple
+                let n = window.notasAlumnos[alumno.id] || window.notasAlumnos[alumno.nombre];
                 return {
-                    nombre: nombre,
+                    nombre: `${alumno.nombre} (${alumno.curso})`,
                     contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
                 };
             });
@@ -1045,12 +1069,16 @@
         };
 
         window.generarInformeAlumno = function() {
-            const alumno = document.getElementById('select-alumno-informe').value;
-            if (!alumno) return;
+            const idAlumno = document.getElementById('select-alumno-informe').value;
+            if (!idAlumno) return;
+            const alumnoObj = nombresActuales.find(a => a.id === idAlumno);
             const nombreCursos = cursosSeleccionados.join(', ');
-            let n = window.notasAlumnos[alumno];
-            exportarPDF(alumno, "Informe Alumno: " + alumno + " (Clases: " + nombreCursos + ")", [{
-                nombre: alumno,
+            
+            // Soporte para notas antiguas
+            let n = window.notasAlumnos[idAlumno] || window.notasAlumnos[alumnoObj.nombre];
+            
+            exportarPDF(alumnoObj.nombre + "_" + alumnoObj.curso, "Informe Alumno: " + alumnoObj.nombre + " (" + alumnoObj.curso + ")", [{
+                nombre: `${alumnoObj.nombre} (${alumnoObj.curso})`,
                 contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
             }]);
         };
@@ -1058,12 +1086,30 @@
         window.generarInformeGrupos = function() {
             if (cursosSeleccionados.length === 0) return;
             const nombreCursos = cursosSeleccionados.join(', ');
-            let gruposDelCurso = Object.keys(window.notasAlumnos).filter(k => k.includes(',') && k.split(', ').some(n => nombresActuales.includes(n)));
+            
+            // Buscar grupos en memoria que tengan alumnos seleccionados actualmente
+            let gruposDelCurso = Object.keys(window.notasAlumnos).filter(k => {
+                let separador = k.includes(' + ') ? ' + ' : ', '; // Soporta formato antiguo y nuevo
+                if (!k.includes(separador)) return false; 
+                
+                let idsEnGrupo = k.split(separador);
+                return idsEnGrupo.some(id => nombresActuales.some(a => a.id === id || a.nombre === id));
+            });
             
             let secciones = gruposDelCurso.map(g => {
                 let n = window.notasAlumnos[g];
+                
+                // Hacemos el título amigable a la vista eliminando los IDs del curso en el informe
+                let tituloVisual = g;
+                if (g.includes(' + ')) {
+                    tituloVisual = g.split(' + ').map(id => {
+                        let partes = id.split(' - ');
+                        return partes.length > 1 ? `${partes[1]} (${partes[0]})` : id;
+                    }).join(', ');
+                }
+
                 return {
-                    nombre: g,
+                    nombre: tituloVisual,
                     contenido: n ? (n.texto !== undefined ? n.texto : n) : ''
                 };
             });
@@ -1121,15 +1167,15 @@
         }
 
         class Bolita {
-            constructor(x, y, radio, color, nombresArray) {
+            constructor(x, y, radio, color, alumnosArray) {
                 this.x = x;
                 this.y = y;
                 this.radioOriginal = radio; 
                 this.radio = radio;
                 this.color = color;
                 
-                this.nombres = nombresArray; 
-                this.masa = nombresArray.length; 
+                this.alumnos = alumnosArray; 
+                this.masa = alumnosArray.length; 
 
                 this.xOriginal = x; 
                 this.yOriginal = y;
@@ -1175,12 +1221,13 @@
                 ctx.strokeStyle = '#ffffff'; 
                 
                 let lineSpacing = esGrande ? (fontSize + 10) : 18;
-                let startY = this.y - ((this.nombres.length - 1) * lineSpacing) / 2;
+                let startY = this.y - ((this.alumnos.length - 1) * lineSpacing) / 2;
                 
-                this.nombres.forEach((nombre, idx) => {
+                this.alumnos.forEach((alumno, idx) => {
                     let yPos = startY + idx * lineSpacing;
-                    ctx.strokeText(nombre, this.x, yPos);
-                    ctx.fillText(nombre, this.x, yPos);
+                    // Solo dibujamos el nombre para no ensuciar la bolita. El ID interno lo distingue.
+                    ctx.strokeText(alumno.nombre, this.x, yPos);
+                    ctx.fillText(alumno.nombre, this.x, yPos);
                 });
             }
 
@@ -1218,7 +1265,7 @@
                     
                     if (dist - (this.radio + otra.radio) < 0) {
                         
-                        let puedeFusionarseNormal = maxGrupo > 1 && (this.nombres.length + otra.nombres.length) <= maxGrupo;
+                        let puedeFusionarseNormal = maxGrupo > 1 && (this.alumnos.length + otra.alumnos.length) <= maxGrupo;
                         let esFusionForzada = (this.forzarFusionCon === otra) || (otra.forzarFusionCon === this);
 
                         if (this.forzarFusionCon && !esFusionForzada) puedeFusionarseNormal = false;
@@ -1233,7 +1280,7 @@
                             this.dx = (this.dx * m1 + otra.dx * m2) / (m1 + m2);
                             this.dy = (this.dy * m1 + otra.dy * m2) / (m1 + m2);
 
-                            this.nombres = this.nombres.concat(otra.nombres);
+                            this.alumnos = this.alumnos.concat(otra.alumnos);
                             this.masa = m1 + m2;
                             this.esManual = false; 
 
@@ -1266,19 +1313,19 @@
             if (maxGrupo <= 1) return;
             if (bolitas.some(b => b.cooldownFusion > 0)) { temporizadorEstancamiento = 0; return; }
 
-            let incompletas = bolitas.filter(b => b.nombres.length < maxGrupo && !b.marcadaParaBorrar && !b.enZona);
-            let completas = bolitas.filter(b => b.nombres.length === maxGrupo && !b.marcadaParaBorrar && !b.enZona); 
+            let incompletas = bolitas.filter(b => b.alumnos.length < maxGrupo && !b.marcadaParaBorrar && !b.enZona);
+            let completas = bolitas.filter(b => b.alumnos.length === maxGrupo && !b.marcadaParaBorrar && !b.enZona); 
 
             if (incompletas.length === 0) { temporizadorEstancamiento = 0; return; }
 
-            let sumaIncompletas = incompletas.reduce((sum, b) => sum + b.nombres.length, 0);
+            let sumaIncompletas = incompletas.reduce((sum, b) => sum + b.alumnos.length, 0);
             let sonRestosDefinitivos = sumaIncompletas < maxGrupo; 
 
             let puedenFusionarse = false;
             if (!sonRestosDefinitivos) {
                 for (let i = 0; i < incompletas.length; i++) {
                     for (let j = i + 1; j < incompletas.length; j++) {
-                        if (incompletas[i].nombres.length + incompletas[j].nombres.length <= maxGrupo) {
+                        if (incompletas[i].alumnos.length + incompletas[j].alumnos.length <= maxGrupo) {
                             puedenFusionarse = true;
                             break;
                         }
@@ -1288,7 +1335,7 @@
             }
 
             if (sonRestosDefinitivos || !puedenFusionarse) {
-                let mayoresAUno = incompletas.filter(b => b.nombres.length > 1);
+                let mayoresAUno = incompletas.filter(b => b.alumnos.length > 1);
                 if (mayoresAUno.length > 0) {
                     temporizadorEstancamiento++;
                     if (temporizadorEstancamiento > 60) {
@@ -1313,7 +1360,7 @@
 
                 incompletas.forEach(suelta => {
                     if (suelta.forzarFusionCon) {
-                        if (suelta.forzarFusionCon.marcadaParaBorrar || suelta.forzarFusionCon.nombres.length !== maxGrupo) {
+                        if (suelta.forzarFusionCon.marcadaParaBorrar || suelta.forzarFusionCon.alumnos.length !== maxGrupo) {
                             suelta.forzarFusionCon = null;
                         }
                     }
@@ -1349,7 +1396,7 @@
         function explotarGruposPequenos(grupos) {
             grupos.forEach(b => {
                 b.marcadaParaBorrar = true;
-                let cantidad = b.nombres.length;
+                let cantidad = b.alumnos.length;
                 let anguloBase = Math.random() * Math.PI * 2;
                 for (let i = 0; i < cantidad; i++) {
                     let angulo = anguloBase + (Math.PI * 2 / cantidad) * i;
@@ -1357,7 +1404,7 @@
                     let spawnX = b.x + Math.cos(angulo) * 15;
                     let spawnY = b.y + Math.sin(angulo) * 15;
 
-                    let nuevaBolita = new Bolita(spawnX, spawnY, RADIO_BASE, colorAleatorio(), [b.nombres[i]]);
+                    let nuevaBolita = new Bolita(spawnX, spawnY, RADIO_BASE, colorAleatorio(), [b.alumnos[i]]);
                     nuevaBolita.dx = Math.cos(angulo) * velocidadExplosion;
                     nuevaBolita.dy = Math.sin(angulo) * velocidadExplosion;
                     nuevaBolita.cooldownFusion = 90; 
@@ -1434,8 +1481,8 @@
                         if (otra !== bolitaArrastrada && !otra.marcadaParaBorrar) {
                             const dist = Math.hypot(bolitaArrastrada.x - otra.x, bolitaArrastrada.y - otra.y);
                             if (dist < (bolitaArrastrada.radio + otra.radio)) {
-                                otra.nombres = otra.nombres.concat(bolitaArrastrada.nombres);
-                                otra.masa = otra.nombres.length;
+                                otra.alumnos = otra.alumnos.concat(bolitaArrastrada.alumnos);
+                                otra.masa = otra.alumnos.length;
                                 otra.radioOriginal = RADIO_BASE + (otra.masa - 1) * 18;
                                 otra.radio = otra.radioOriginal;
                                 otra.esManual = true; 
