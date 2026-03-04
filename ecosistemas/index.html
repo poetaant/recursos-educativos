@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Los Ecosistemas - 3º Primaria</title>
+    <!-- Tailwind CSS para los estilos (única dependencia externa) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Animación suave para el icono de flecha al desplegar/contraer */
+        .chevron-icon {
+            transition: transform 0.3s ease;
+        }
+        .is-expanded .chevron-icon {
+            transform: rotate(90deg);
+        }
+        
+        /* Ocultar elementos colapsados */
+        .collapsed-content {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-blue-50 font-sans min-h-screen p-4 md:p-8 text-gray-800">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+                Ciencias de la Naturaleza: 3º Primaria
+            </h1>
+            <p class="text-lg text-gray-600 bg-white border border-gray-200 inline-block px-6 py-2 rounded-full font-medium shadow-sm">
+                Tema 4: Los Ecosistemas
+            </p>
+            <p class="mt-4 text-gray-500 text-sm bg-blue-100/50 p-3 rounded-lg inline-block">
+                💡 <b>Instrucción:</b> Haz clic en las tarjetas que tienen una flecha para descubrir más información.
+            </p>
+        </div>
+
+        <!-- Contenedor principal donde se inyectará el organigrama -->
+        <div class="bg-white p-4 md:p-8 rounded-2xl border border-gray-200 shadow-xl" id="flowchart-container">
+            <!-- El contenido se generará dinámicamente -->
+        </div>
+        
+    </div>
+
+    <script>
+        // --- DATOS DEL ORGANIGRAMA CON EMOJIS NATIVOS ---
+        const ecosistemasData = {
+            id: "root",
+            title: "Los Ecosistemas",
+            icon: "🌍",
+            color: "bg-blue-600",
+            content: "Un ecosistema es el conjunto formado por un lugar físico, todos los seres vivos que habitan en él y las relaciones que se establecen entre ellos y el medio ambiente.",
+            children: [
+                {
+                    id: "componentes",
+                    title: "1. Componentes del Ecosistema",
+                    icon: "🧩",
+                    color: "bg-indigo-500",
+                    content: "Todo ecosistema está formado por dos componentes principales que interactúan continuamente entre sí.",
+                    children: [
+                        {
+                            id: "medio-fisico",
+                            title: "Medio Físico (Biotopo)",
+                            icon: "⛰️",
+                            color: "bg-teal-500",
+                            content: "Es el lugar del ecosistema y las condiciones ambientales que tiene. Está formado por elementos no vivos.",
+                            children: [
+                                { id: "mf-1", title: "Agua", icon: "💧", content: "Líquido vital indispensable. Puede ser dulce (ríos, lagos) o salada (mares, océanos)." },
+                                { id: "mf-2", title: "Aire", icon: "🌬️", content: "Contiene los gases necesarios para respirar y vivir, como el oxígeno y el dióxido de carbono." },
+                                { id: "mf-3", title: "Suelo y Relieve", icon: "📍", content: "Superficie donde crecen las plantas, habitan los animales y se configura el paisaje (montañas, valles, llanuras)." },
+                                { id: "mf-4", title: "Luz y Temperatura", icon: "☀️", content: "La energía que llega del Sol y el calor o frío del lugar. Determinan qué tipo de seres vivos pueden sobrevivir allí." }
+                            ]
+                        },
+                        {
+                            id: "seres-vivos",
+                            title: "Seres Vivos (Biocenosis)",
+                            icon: "🌳",
+                            color: "bg-emerald-500",
+                            content: "Es el conjunto de todos los organismos biológicos que habitan en el ecosistema.",
+                            children: [
+                                { id: "sv-1", title: "Flora (Vegetación)", icon: "🍃", content: "El conjunto de todas las plantas de un ecosistema. Producen oxígeno y alimento." },
+                                { id: "sv-2", title: "Fauna (Animales)", icon: "🐾", content: "El conjunto de todos los animales de un ecosistema, desde los más grandes hasta los insectos." },
+                                { id: "sv-3", title: "Otros reinos", icon: "🍄", content: "Hongos, bacterias y algas que también cumplen funciones vitales, como la descomposición de la materia." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "tipos",
+                    title: "2. Tipos de Ecosistemas",
+                    icon: "🗺️",
+                    color: "bg-purple-500",
+                    content: "Existen diferentes tipos de ecosistemas dependiendo del medio físico en el que se encuentren.",
+                    children: [
+                        {
+                            id: "terrestres",
+                            title: "Ecosistemas Terrestres",
+                            icon: "🌲",
+                            color: "bg-green-600",
+                            content: "Son aquellos en los que los seres vivos habitan sobre el suelo, rodeados de aire.",
+                            children: [
+                                { id: "t-1", title: "Bosques", icon: "🌳", content: "Zonas con muchos árboles. Destacan el bosque mediterráneo (encinas) y el bosque atlántico (hayas, robles)." },
+                                { id: "t-2", title: "Praderas y Estepas", icon: "🌾", content: "Grandes extensiones cubiertas de hierbas y pastos. Ideales para animales herbívoros." },
+                                { id: "t-3", title: "Desiertos", icon: "🐪", content: "Lugares con muy poca agua, temperaturas extremas y vegetación muy escasa (como los cactus)." }
+                            ]
+                        },
+                        {
+                            id: "acuaticos",
+                            title: "Ecosistemas Acuáticos",
+                            icon: "🌊",
+                            color: "bg-blue-500",
+                            content: "Son aquellos en los que los seres vivos habitan rodeados de agua.",
+                            children: [
+                                { id: "a-1", title: "De Agua Salada", icon: "🐋", content: "Mares y océanos. Tienen mucha luz cerca de la superficie y oscuridad en las profundidades." },
+                                { id: "a-2", title: "De Agua Dulce", icon: "🐟", content: "Ríos (aguas con corriente) y lagos o estanques (aguas tranquilas)." }
+                            ]
+                        },
+                        {
+                            id: "mixtos",
+                            title: "Ecosistemas Mixtos",
+                            icon: "🦆",
+                            color: "bg-cyan-600",
+                            content: "Zonas de transición donde se unen la tierra y el agua.",
+                            children: [
+                                { id: "m-1", title: "Costas", icon: "🏖️", content: "La zona donde el mar se encuentra con la tierra. Acantilados y playas." },
+                                { id: "m-2", title: "Humedales", icon: "🐸", content: "Zonas de tierra que se inundan de agua de forma permanente o temporal." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "relaciones",
+                    title: "3. Las Cadenas Alimentarias",
+                    icon: "🔗",
+                    color: "bg-orange-500",
+                    content: "En un ecosistema, los seres vivos se relacionan principalmente para alimentarse.",
+                    children: [
+                        { id: "r-1", title: "Productores", icon: "🌱", color: "bg-green-500", content: "Son las plantas y las algas. Fabrican su propio alimento gracias a la luz del Sol (fotosíntesis)." },
+                        {
+                            id: "consumidores",
+                            title: "Consumidores",
+                            icon: "🦊",
+                            color: "bg-red-500",
+                            content: "Son los animales, que no pueden fabricar su alimento y necesitan comer a otros seres vivos.",
+                            children: [
+                                { id: "c-1", title: "Primarios (Herbívoros)", icon: "🐇", content: "Se alimentan directamente de las plantas (ej. conejos, vacas)." },
+                                { id: "c-2", title: "Secundarios (Carnívoros)", icon: "🐍", content: "Se alimentan de los animales herbívoros (ej. zorros, ranas)." },
+                                { id: "c-3", title: "Terciarios", icon: "🦅", content: "Superdepredadores que se alimentan de otros carnívoros (ej. águilas, tiburones)." }
+                            ]
+                        },
+                        { id: "r-3", title: "Descomponedores", icon: "🦠", color: "bg-stone-500", content: "Hongos y bacterias. Transforman los restos de otros seres vivos en nutrientes para el suelo." }
+                    ]
+                },
+                {
+                    id: "conservacion",
+                    title: "4. Conservación",
+                    icon: "🛡️",
+                    color: "bg-rose-600",
+                    content: "Los humanos modificamos los ecosistemas, a veces causando daños que debemos evitar.",
+                    children: [
+                        {
+                            id: "amenazas",
+                            title: "Amenazas y Problemas",
+                            icon: "⚠️",
+                            color: "bg-red-600",
+                            content: "Acciones humanas que destruyen el medio ambiente.",
+                            children: [
+                                { id: "am-1", title: "Contaminación", icon: "🛢️", content: "Acumulación de basuras, gases tóxicos en el aire o plásticos en el agua." },
+                                { id: "am-2", title: "Deforestación", icon: "🔥", content: "Tala excesiva de árboles y quema de bosques." },
+                                { id: "am-3", title: "Sobreexplotación", icon: "🎣", content: "Extraer más recursos de los que la naturaleza puede reponer (ej. pesca excesiva)." }
+                            ]
+                        },
+                        {
+                            id: "soluciones",
+                            title: "Soluciones y Protección",
+                            icon: "✅",
+                            color: "bg-emerald-600",
+                            content: "Medidas que podemos tomar para cuidar nuestro planeta.",
+                            children: [
+                                { id: "sol-1", title: "La Regla de las 3R", icon: "♻️", content: "Reducir (gastar menos), Reutilizar (dar nuevos usos) y Reciclar (separar la basura)." },
+                                { id: "sol-2", title: "Espacios Protegidos", icon: "🏞️", content: "Parques nacionales donde está prohibido cazar, construir o contaminar." }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Icono de flecha en formato SVG integrado (no requiere descargas)
+        const chevronSVG = `
+            <svg class="w-6 h-6 text-gray-400 chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        `;
+
+        // --- LÓGICA DE RENDERIZADO ---
+        function createTreeNode(node, level = 0, isLast = true) {
+            const hasChildren = node.children && node.children.length > 0;
+            // Abrimos por defecto los dos primeros niveles
+            const isExpandedByDefault = level < 2;
+
+            // Contenedor principal
+            const container = document.createElement('div');
+            container.className = 'relative';
+
+            // Líneas conectoras (diseño de árbol)
+            if (level > 0) {
+                const vLine = document.createElement('div');
+                vLine.className = 'absolute border-l-2 border-gray-300';
+                vLine.style.left = '-1.25rem'; 
+                vLine.style.top = '-0.5rem';
+                vLine.style.bottom = isLast ? 'calc(100% - 1.5rem)' : '0';
+                container.appendChild(vLine);
+
+                const hLine = document.createElement('div');
+                hLine.className = 'absolute border-t-2 border-gray-300';
+                hLine.style.left = '-1.25rem';
+                hLine.style.top = '1.5rem';
+                hLine.style.width = '1.25rem';
+                container.appendChild(hLine);
+            }
+
+            // Tarjeta contenedora
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'mb-4 relative z-10';
+
+            const card = document.createElement('div');
+            card.className = `flex flex-col p-4 rounded-xl border border-gray-200 bg-white shadow-sm transition-all ${hasChildren ? 'cursor-pointer hover:shadow-md hover:border-gray-300' : ''}`;
+            
+            // Añadir clase si está expandido
+            if (hasChildren && isExpandedByDefault) {
+                card.classList.add('is-expanded');
+            }
+
+            // Cabecera de la tarjeta
+            const header = document.createElement('div');
+            header.className = 'flex items-center justify-between';
+
+            const titleGroup = document.createElement('div');
+            titleGroup.className = 'flex items-center gap-3';
+
+            const bgColor = node.color || "bg-gray-500";
+            
+            // Renderizamos el emoji y el título
+            titleGroup.innerHTML = `
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg text-white ${bgColor} shadow-sm text-xl">
+                    ${node.icon}
+                </div>
+                <h3 class="font-bold text-gray-800 ${level === 0 ? 'text-xl' : 'text-lg'}">
+                    ${node.title}
+                </h3>
+            `;
+            header.appendChild(titleGroup);
+
+            // Flecha si tiene hijos
+            if (hasChildren) {
+                const chevronWrapper = document.createElement('div');
+                chevronWrapper.className = 'p-1 rounded-full hover:bg-gray-100 transition-colors';
+                chevronWrapper.innerHTML = chevronSVG;
+                header.appendChild(chevronWrapper);
+            }
+
+            card.appendChild(header);
+
+            // Contenido de texto
+            if (node.content) {
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'mt-3 text-gray-600 text-sm md:text-base leading-relaxed pl-14 border-l-2 border-transparent';
+                contentDiv.textContent = node.content;
+                card.appendChild(contentDiv);
+            }
+
+            cardContainer.appendChild(card);
+            container.appendChild(cardContainer);
+
+            // Contenedor de hijos (Ramas)
+            if (hasChildren) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'ml-10 relative';
+                
+                if (!isExpandedByDefault) {
+                    childrenContainer.classList.add('collapsed-content');
+                }
+
+                // Llamada recursiva
+                node.children.forEach((child, index) => {
+                    const isChildLast = index === node.children.length - 1;
+                    childrenContainer.appendChild(createTreeNode(child, level + 1, isChildLast));
+                });
+
+                // Evento de clic para abrir/cerrar
+                card.addEventListener('click', () => {
+                    const isHidden = childrenContainer.classList.contains('collapsed-content');
+                    if (isHidden) {
+                        childrenContainer.classList.remove('collapsed-content');
+                        card.classList.add('is-expanded');
+                    } else {
+                        childrenContainer.classList.add('collapsed-content');
+                        card.classList.remove('is-expanded');
+                    }
+                });
+
+                container.appendChild(childrenContainer);
+            }
+
+            return container;
+        }
+
+        // --- INICIAR LA APLICACIÓN ---
+        window.onload = function() {
+            try {
+                const flowchartContainer = document.getElementById('flowchart-container');
+                const rootNode = createTreeNode(ecosistemasData, 0, true);
+                flowchartContainer.appendChild(rootNode);
+            } catch (error) {
+                console.error("Error al generar el organigrama:", error);
+                document.getElementById('flowchart-container').innerHTML = "<p class='text-red-500 font-bold p-4'>Hubo un error al cargar el contenido. Por favor, asegúrate de estar conectado a internet para cargar los estilos base.</p>";
+            }
+        };
+    </script>
+</body>
+</html>
