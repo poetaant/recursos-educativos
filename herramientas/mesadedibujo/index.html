@@ -20,8 +20,8 @@
           },
           keyframes: {
             fadeIn: {
-              '0%': { opacity: '0', transform: 'translateY(10px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
             },
             shake: {
               '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
@@ -65,6 +65,8 @@
     const ChevronLeft = ({ size=24, className="", strokeWidth=2 }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} width={size} height={size}><polyline points="15 18 9 12 15 6"/></svg>;
     const ChevronRight = ({ size=24, className="", strokeWidth=2 }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} width={size} height={size}><polyline points="9 18 15 12 9 6"/></svg>;
     const ChevronsDown = ({ size=24, className="", strokeWidth=2 }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} width={size} height={size}><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>;
+    const RulerIcon = ({ size=24, className="" }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} width={size} height={size}><rect x="2" y="8" width="20" height="8" rx="2"/><line x1="6" y1="8" x2="6" y2="11"/><line x1="10" y1="8" x2="10" y2="12"/><line x1="14" y1="8" x2="14" y2="11"/><line x1="18" y1="8" x2="18" y2="12"/></svg>;
+    const ProtractorIcon = ({ size=24, className="" }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} width={size} height={size}><path d="M 2 16 A 10 10 0 0 1 22 16 Z"/><line x1="2" y1="16" x2="22" y2="16"/><circle cx="12" cy="16" r="1.5"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="6.5" y1="10.5" x2="8" y2="11.5"/><line x1="17.5" y1="10.5" x2="16" y2="11.5"/></svg>;
 
     /* --- COMPONENTE PRINCIPAL --- */
     function App() {
@@ -304,6 +306,194 @@
       </LessonContainer>
     );
 
+    const LessonTriangulos = ({ onComplete, isCompleted }) => (
+      <LessonContainer isCompleted={isCompleted}>
+        <h2 className="text-3xl font-extrabold text-green-600 mb-4">Clasificación de Triángulos</h2>
+        <p className="text-xl text-slate-600 mb-6">
+          Los triángulos tienen 3 lados. Podemos llamarlos de diferente manera según cómo sean sus lados:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-green-50 p-4 rounded-xl flex flex-col items-center text-center">
+            <svg viewBox="0 0 100 100" className="w-32 h-32 mb-4 drop-shadow-md">
+              <polygon points="50,15 85,85 15,85" fill="#34D399" stroke="#059669" strokeWidth="3" />
+            </svg>
+            <h4 className="font-bold text-xl text-green-700">Equilátero</h4>
+            <p>3 lados IGUALES</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-xl flex flex-col items-center text-center">
+            <svg viewBox="0 0 100 100" className="w-32 h-32 mb-4 drop-shadow-md">
+              <polygon points="50,10 70,90 30,90" fill="#34D399" stroke="#059669" strokeWidth="3" />
+            </svg>
+            <h4 className="font-bold text-xl text-green-700">Isósceles</h4>
+            <p>2 lados IGUALES</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-xl flex flex-col items-center text-center">
+            <svg viewBox="0 0 100 100" className="w-32 h-32 mb-4 drop-shadow-md">
+              <polygon points="10,20 90,90 10,90" fill="#34D399" stroke="#059669" strokeWidth="3" />
+            </svg>
+            <h4 className="font-bold text-xl text-green-700">Escaleno</h4>
+            <p>0 lados iguales (todos diferentes)</p>
+          </div>
+        </div>
+        <QuizSection 
+          question="¿Cómo se llama el triángulo que tiene los 3 lados del mismo tamaño?"
+          options={["Escaleno", "Cuadrado", "Equilátero", "Isósceles"]}
+          correctAnswer={2}
+          onCorrect={onComplete}
+          isCompleted={isCompleted}
+        />
+      </LessonContainer>
+    );
+
+    const LessonCuadrilateros = ({ onComplete, isCompleted }) => (
+      <LessonContainer isCompleted={isCompleted}>
+        <h2 className="text-3xl font-extrabold text-yellow-500 mb-4">Los Cuadriláteros</h2>
+        <p className="text-xl text-slate-600 mb-6">
+          Son polígonos que tienen exactamente <strong>4 lados</strong>. ¡Hay varios de la misma familia!
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-yellow-50 p-4 rounded-xl flex flex-col items-center text-center border-2 border-yellow-200">
+            <svg viewBox="0 0 100 100" className="w-24 h-24 mb-2 drop-shadow-md">
+              <rect x="20" y="20" width="60" height="60" fill="#FBBF24" stroke="#D97706" strokeWidth="3" />
+            </svg>
+            <h4 className="font-bold text-lg text-yellow-700">Cuadrado</h4>
+            <p className="text-sm">4 lados iguales y rectos.</p>
+          </div>
+          <div className="bg-yellow-50 p-4 rounded-xl flex flex-col items-center text-center border-2 border-yellow-200">
+            <svg viewBox="0 0 100 100" className="w-24 h-24 mb-2 drop-shadow-md">
+              <rect x="10" y="30" width="80" height="40" fill="#FBBF24" stroke="#D97706" strokeWidth="3" />
+            </svg>
+            <h4 className="font-bold text-lg text-yellow-700">Rectángulo</h4>
+            <p className="text-sm">Lados iguales dos a dos y rectos.</p>
+          </div>
+          <div className="bg-yellow-50 p-4 rounded-xl flex flex-col items-center text-center border-2 border-yellow-200">
+            <svg viewBox="0 0 100 100" className="w-24 h-24 mb-2 drop-shadow-md">
+              <polygon points="50,10 90,50 50,90 10,50" fill="#FBBF24" stroke="#D97706" strokeWidth="3" />
+            </svg>
+            <h4 className="font-bold text-lg text-yellow-700">Rombo</h4>
+            <p className="text-sm">4 lados iguales pero torcidos.</p>
+          </div>
+          <div className="bg-yellow-50 p-4 rounded-xl flex flex-col items-center text-center border-2 border-yellow-200">
+            <svg viewBox="0 0 100 100" className="w-24 h-24 mb-2 drop-shadow-md">
+              <polygon points="30,20 90,20 70,80 10,80" fill="#FBBF24" stroke="#D97706" strokeWidth="3" />
+            </svg>
+            <h4 className="font-bold text-lg text-yellow-700">Romboide</h4>
+            <p className="text-sm">Como un rectángulo empujado.</p>
+          </div>
+        </div>
+        <QuizSection 
+          question="Tengo 4 lados iguales, pero mis esquinas no son rectas como las de un cuadrado. ¿Quién soy?"
+          options={["Rectángulo", "Triángulo", "Rombo", "Círculo"]}
+          correctAnswer={2}
+          onCorrect={onComplete}
+          isCompleted={isCompleted}
+        />
+      </LessonContainer>
+    );
+
+    const LessonPerimetro = ({ onComplete, isCompleted }) => (
+      <LessonContainer isCompleted={isCompleted}>
+        <h2 className="text-3xl font-extrabold text-orange-500 mb-4">El Perímetro</h2>
+        <p className="text-xl text-slate-600 mb-6">
+          El perímetro es <strong>la suma de todos los lados</strong> de un polígono. Imagina que eres una hormiguita dando una vuelta completa alrededor de la figura.
+        </p>
+        <div className="bg-orange-50 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-8 border-2 border-orange-200">
+          <svg viewBox="0 0 100 100" className="w-48 h-48 drop-shadow-xl overflow-visible">
+            <polygon points="50,20 90,80 10,80" fill="#FED7AA" stroke="#EA580C" strokeWidth="3" />
+            <text x="75" y="55" fontSize="8" fill="#C2410C" fontWeight="bold">5 cm</text>
+            <text x="15" y="55" fontSize="8" fill="#C2410C" fontWeight="bold">5 cm</text>
+            <text x="45" y="90" fontSize="8" fill="#C2410C" fontWeight="bold">6 cm</text>
+            <path d="M 10,80 L 50,20 L 90,80 L 10,80" fill="none" stroke="#000" strokeWidth="1" strokeDasharray="4,4" className="animate-pulse" />
+            <circle cx="10" cy="80" r="3" fill="#000" />
+          </svg>
+          <div className="text-2xl text-orange-800">
+            <p className="mb-4">Para saber el perímetro sumamos:</p>
+            <p className="font-bold text-3xl bg-white p-4 rounded-xl shadow-inner inline-block text-center">
+              5 + 5 + 6 = 16 cm
+            </p>
+          </div>
+        </div>
+        <QuizSection 
+          question="Si un cuadrado tiene un lado que mide 3 cm, ¿Cuál es su perímetro? (Recuerda que tiene 4 lados iguales)"
+          options={["3 cm", "6 cm", "12 cm", "9 cm"]}
+          correctAnswer={2}
+          onCorrect={onComplete}
+          isCompleted={isCompleted}
+        />
+      </LessonContainer>
+    );
+
+    const LessonArea = ({ onComplete, isCompleted }) => (
+      <LessonContainer isCompleted={isCompleted}>
+        <h2 className="text-3xl font-extrabold text-purple-600 mb-4">El Área (Cuadrado Unidad)</h2>
+        <p className="text-xl text-slate-600 mb-6">
+          El área es <strong>todo el espacio de dentro</strong> de la figura. Para medirlo, usamos pequeños cuadrados (cuadrado unidad) y los contamos.
+        </p>
+        <div className="flex flex-col md:flex-row items-center gap-8 justify-center">
+          <div className="bg-purple-50 p-6 rounded-2xl border-2 border-purple-200 shadow-md">
+            <svg viewBox="0 0 120 120" className="w-48 h-48">
+              <pattern id="grid-lesson" width="20" height="20" patternUnits="userSpaceOnUse">
+                <rect width="20" height="20" fill="none" stroke="#E9D5FF" strokeWidth="1" />
+              </pattern>
+              <rect width="120" height="120" fill="url(#grid-lesson)" />
+              <rect x="20" y="20" width="80" height="60" fill="#A855F7" stroke="#7E22CE" strokeWidth="2" />
+              {[...Array(12)].map((_, i) => (
+                <rect key={i} x={20 + (i % 4) * 20} y={20 + Math.floor(i / 4) * 20} width="20" height="20" fill="none" stroke="#7E22CE" strokeWidth="1" strokeDasharray="2,2" />
+              ))}
+            </svg>
+          </div>
+          <div className="text-xl text-purple-800 bg-white p-6 rounded-xl shadow-md border-l-8 border-purple-500 max-w-sm">
+            <p>Cada cuadradito es una <strong>unidad</strong>.</p>
+            <p className="mt-4">Si cuentas los cuadraditos morados de la figura, verás que caben exactamente <strong>12 cuadraditos</strong>.</p>
+            <p className="font-bold mt-2 text-2xl">Área = 12 unidades</p>
+          </div>
+        </div>
+        <QuizSection 
+          question="Si dibujo un rectángulo que tiene 2 cuadraditos de alto y 3 cuadraditos de ancho, ¿Cuántos cuadraditos caben dentro en total?"
+          options={["5", "6", "10", "3"]}
+          correctAnswer={1}
+          onCorrect={onComplete}
+          isCompleted={isCompleted}
+        />
+      </LessonContainer>
+    );
+
+    const LessonCirculo = ({ onComplete, isCompleted }) => (
+      <LessonContainer isCompleted={isCompleted}>
+        <h2 className="text-3xl font-extrabold text-pink-600 mb-4">La Circunferencia y el Círculo</h2>
+        <p className="text-xl text-slate-600 mb-6">
+          ¡Cuidado que no son lo mismo! Uno es como un anillo y el otro es como una moneda.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-pink-50 p-6 rounded-2xl flex flex-col items-center border-2 border-pink-200">
+            <h3 className="text-2xl font-bold text-pink-700 mb-4">La Circunferencia</h3>
+            <p className="mb-4 text-center">Es solo la línea del borde (vacía por dentro).</p>
+            <svg viewBox="0 0 100 100" className="w-32 h-32 drop-shadow-md">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#DB2777" strokeWidth="6" />
+              <circle cx="50" cy="50" r="3" fill="#000" />
+              <line x1="50" y1="50" x2="90" y2="50" stroke="#000" strokeWidth="2" strokeDasharray="2,2" />
+              <text x="30" y="45" fontSize="8" fontWeight="bold">Centro</text>
+              <text x="60" y="45" fontSize="8" fontWeight="bold">Radio</text>
+            </svg>
+          </div>
+          <div className="bg-pink-50 p-6 rounded-2xl flex flex-col items-center border-2 border-pink-200">
+            <h3 className="text-2xl font-bold text-pink-700 mb-4">El Círculo</h3>
+            <p className="mb-4 text-center">Es el borde y todo lo relleno de dentro.</p>
+            <svg viewBox="0 0 100 100" className="w-32 h-32 drop-shadow-md">
+              <circle cx="50" cy="50" r="40" fill="#F472B6" stroke="#DB2777" strokeWidth="6" />
+            </svg>
+          </div>
+        </div>
+        <QuizSection 
+          question="Si me como una pizza entera, ¿me estoy comiendo una circunferencia o un círculo?"
+          options={["Una circunferencia", "Un cuadrado", "Un círculo", "Un triángulo"]}
+          correctAnswer={2}
+          onCorrect={onComplete}
+          isCompleted={isCompleted}
+        />
+      </LessonContainer>
+    );
+
     /* --- MODO PRUEBA: DATOS DE LAS FORMAS GIGANTES E IRREGULARES --- */
     const TEST_SHAPES = [
       {
@@ -325,20 +515,42 @@
       },
       {
         type: 'polygon',
-        render: (cx, cy) => <polygon points="600,560 920,560 600,240" fill="rgba(34, 197, 94, 0.6)" stroke="#059669" strokeWidth="6" />,
+        // Triángulo Escaleno Rectángulo (Base 8cm, Altura 6cm, Hipotenusa 10cm)
+        render: (cx, cy) => <polygon points="600,560 920,560 600,320" fill="rgba(34, 197, 94, 0.6)" stroke="#059669" strokeWidth="6" />,
         renderGuides: () => (
           <g>
              <path d="M 640,560 L 640,520 L 600,520" fill="none" stroke="#D97706" strokeWidth="4" />
           </g>
         ),
         questions: [
-          { id: 'nombre', label: 'Polígono que es:', answer: ['triangulo', 'triángulo'], x: 640, y: 50, arrow: null, cycles: [1,2,3] },
-          { id: 'tipo_lados', label: 'Tipo según lados:', answer: ['escaleno'], x: 1050, y: 300, arrow: {tx: 760, ty: 400}, cycles: [2,3] },
-          { id: 'tipo_angulo', label: 'Tipo del ángulo:', answer: ['rectangulo', 'rectángulo', 'recto'], x: 200, y: 450, arrow: {tx: 620, ty: 540}, cycles: [3] },
-          { id: 'vertice', label: 'Esquina / Punto:', answer: ['vertice', 'vértice'], x: 200, y: 150, arrow: {tx: 600, ty: 240}, cycles: [1,2,3] },
-          { id: 'lado', label: 'Línea más larga:', answer: ['lado', 'hipotenusa'], x: 1050, y: 500, arrow: {tx: 760, ty: 560}, cycles: [1,2,3] },
+          { id: 'nombre', label: 'Polígono que es:', answer: ['triangulo', 'triángulo'], x: 640, y: 30, arrow: null, cycles: [1,2,3] },
+          { id: 'tipo_lados', label: 'Tipo según lados:', answer: ['escaleno'], x: 1050, y: 200, arrow: {tx: 750, ty: 440}, cycles: [2,3] },
+          { id: 'tipo_angulos', label: 'Tipo según ángulos:', answer: ['rectangulo', 'rectángulo'], x: 1050, y: 350, arrow: {tx: 700, ty: 480}, cycles: [3] },
+          { id: 'angulo', label: 'Tipo de ángulo:', answer: ['recto', '90', '90º'], x: 200, y: 450, arrow: {tx: 620, ty: 540}, cycles: [3] },
+          { id: 'vertice', label: 'Esquina / Punto:', answer: ['vertice', 'vértice'], x: 200, y: 150, arrow: {tx: 600, ty: 320}, cycles: [1,2,3] },
+          { id: 'lado', label: 'Línea más larga:', answer: ['lado', 'hipotenusa'], x: 1050, y: 500, arrow: {tx: 760, ty: 440}, cycles: [1,2,3] },
           { id: 'perimetro', label: 'Perímetro:', answer: ['24'], x: 300, y: 650, arrow: null, cycles: [2,3] },
           { id: 'superficie', label: 'Superficie:', answer: ['24'], x: 950, y: 650, arrow: null, cycles: [2,3] }
+        ]
+      },
+      {
+        type: 'polygon',
+        // Triángulo Isósceles Obtusángulo (Base 12cm, Lados 7.5cm, Altura 4.5cm)
+        render: (cx, cy) => <polygon points="560,500 1040,500 800,320" fill="rgba(16, 185, 129, 0.6)" stroke="#047857" strokeWidth="6" />,
+        renderGuides: () => (
+          <g>
+             <path d="M 776,338 Q 800,360 824,338" fill="none" stroke="#D97706" strokeWidth="4" />
+          </g>
+        ),
+        questions: [
+          { id: 'nombre', label: 'Polígono que es:', answer: ['triangulo', 'triángulo'], x: 640, y: 30, arrow: null, cycles: [1,2,3] },
+          { id: 'tipo_lados', label: 'Tipo según lados:', answer: ['isosceles', 'isósceles'], x: 1050, y: 200, arrow: {tx: 920, ty: 410}, cycles: [2,3] },
+          { id: 'tipo_angulos', label: 'Tipo según ángulos:', answer: ['obtusangulo', 'obtusángulo'], x: 1050, y: 350, arrow: {tx: 800, ty: 450}, cycles: [3] },
+          { id: 'angulo', label: 'Tipo de ángulo:', answer: ['obtuso'], x: 200, y: 200, arrow: {tx: 800, ty: 350}, cycles: [3] },
+          { id: 'vertice', label: 'Esquina / Punto:', answer: ['vertice', 'vértice'], x: 200, y: 350, arrow: {tx: 560, ty: 500}, cycles: [1,2,3] },
+          { id: 'lado', label: 'Línea de abajo:', answer: ['lado', 'base'], x: 1050, y: 500, arrow: {tx: 800, ty: 500}, cycles: [1,2,3] },
+          { id: 'perimetro', label: 'Perímetro:', answer: ['27'], x: 300, y: 650, arrow: null, cycles: [2,3] },
+          { id: 'superficie', label: 'Superficie:', answer: ['27'], x: 950, y: 650, arrow: null, cycles: [2,3] }
         ]
       },
       {
@@ -366,7 +578,6 @@
       },
       {
         type: 'polygon',
-        // Hexágono irregular en forma de 'L' invertida (Perímetro exacto 40, Área exacta 75)
         render: (cx, cy) => <polygon points="600,200 800,200 800,400 1000,400 1000,600 600,600" fill="rgba(168, 85, 247, 0.6)" stroke="#9333EA" strokeWidth="6" />,
         renderGuides: () => (
           <g>
@@ -384,7 +595,6 @@
       },
       {
         type: 'polygon',
-        // Pentágono irregular en forma de casa (Perímetro exacto 26, Área exacta 42)
         render: (cx, cy) => <polygon points="680,400 800,240 920,400 920,600 680,600" fill="rgba(239, 68, 68, 0.6)" stroke="#DC2626" strokeWidth="6" />,
         renderGuides: () => (
           <g>
@@ -404,20 +614,19 @@
 
     const cleanStr = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/cm2|cm²|cm|º|grados/g, '').replace(',', '.').trim();
 
-    /* --- COMPONENTES GLOBALES DE LA MESA (Moviendo fuera para evitar parpadeos por filtros y re-renders) --- */
+    /* --- COMPONENTES GLOBALES DE LA MESA --- */
     const formatLength = (val, currentCycle) => {
+      if (isNaN(val)) return 0;
       if (currentCycle === 1) return Math.ceil(val);
       if (currentCycle === 2) return Math.round(val);
       return parseFloat(val.toFixed(1));
     };
 
-    // Hemos cambiado el SVG filter (url(#shadow)) por sombras manuales (<rect>) para que no se caiga en iPads/Tablets
     const FloatingLabel = ({ text, x, y, color = "#1E293B", width = 160 }) => {
       const halfWidth = width / 2;
       return (
         <g transform={`translate(${x}, ${y - 45})`} className="pointer-events-none z-50">
           <g className="animate-fade-in">
-            {/* Sombra Segura */}
             <rect x={-halfWidth + 2} y="-18" width={width} height="40" fill="rgba(0,0,0,0.2)" rx="10" />
             <rect x={-halfWidth} y="-20" width={width} height="40" fill={color} rx="10" />
             <polygon points="-10,20 10,20 0,30" transform="translate(0, 0)" fill={color} />
@@ -434,7 +643,6 @@
       return (
         <g transform={`translate(${x}, ${y})`} className="pointer-events-none z-50">
           <g className="animate-fade-in">
-            {/* Sombra Segura */}
             <rect x="-138" y="2" width="280" height={height} fill="rgba(0,0,0,0.2)" rx="15" />
             <rect x="-140" y="0" width="280" height={height} fill="#1E293B" rx="15" />
             <polygon points="-10,0 10,0 0,-10" fill="#1E293B" />
@@ -477,6 +685,14 @@
       const [triangleTypeInput, setTriangleTypeInput] = useState(null);
 
       const [cycle, setCycle] = useState(3);
+      
+      // ESTADO DE LA REGLA VIRTUAL
+      const [showRuler, setShowRuler] = useState(false);
+      const [rulerState, setRulerState] = useState({ x: 600, y: 150, angle: 0 });
+
+      // ESTADO DEL TRANSPORTADOR VIRTUAL
+      const [showProtractor, setShowProtractor] = useState(false);
+      const [protractorState, setProtractorState] = useState({ x: 400, y: 250, angle: 0 });
 
       // ESTADOS MODO PRUEBA
       const [isTestMode, setIsTestMode] = useState(false);
@@ -487,7 +703,6 @@
       const gridSize = 40;
       const snap = (val) => Math.round(val / gridSize) * gridSize;
       
-      // NUEVO: Altura dinámica (más largo en modo prueba)
       const canvasHeight = isTestMode ? 1200 : 800;
 
       const getCoords = (e) => {
@@ -501,8 +716,8 @@
         return { x, y, exactX: svgP.x, exactY: svgP.y };
       };
 
-      const startDrag = (e, actionBuilder) => {
-        if (activeTool !== 'move' || isTestMode) return;
+      const startDrag = (e, actionBuilder, forceAllow = false) => {
+        if (!forceAllow && (activeTool !== 'move' || isTestMode)) return;
         e.stopPropagation();
         const coords = getCoords(e);
         if (!coords) return;
@@ -513,13 +728,51 @@
       };
 
       const handlePointerMove = (e) => {
-        if (isTestMode) return;
         const coords = getCoords(e);
         if (!coords) return;
-        setCursorPos(coords);
+        
+        if (!isTestMode) setCursorPos(coords);
 
         if (dragAction) {
           setIsDragging(true);
+
+          // Arrastrar Regla (Funciona en todos los modos)
+          if (dragAction.type === 'ruler-body') {
+            const dx = coords.exactX - dragAction.startX;
+            const dy = coords.exactY - dragAction.startY;
+            setRulerState(prev => ({
+              ...prev,
+              x: dragAction.initialPos.x + dx,
+              y: dragAction.initialPos.y + dy
+            }));
+            return;
+          }
+          if (dragAction.type === 'ruler-rotate') {
+            const angle = Math.atan2(coords.exactY - dragAction.originY, coords.exactX - dragAction.originX) * 180 / Math.PI;
+            setRulerState(prev => ({ ...prev, angle }));
+            return;
+          }
+
+          // Arrastrar Transportador (Funciona en todos los modos)
+          if (dragAction.type === 'protractor-body') {
+            const dx = coords.exactX - dragAction.startX;
+            const dy = coords.exactY - dragAction.startY;
+            setProtractorState(prev => ({
+              ...prev,
+              x: dragAction.initialPos.x + dx,
+              y: dragAction.initialPos.y + dy
+            }));
+            return;
+          }
+          if (dragAction.type === 'protractor-rotate') {
+            const angle = Math.atan2(coords.exactY - dragAction.originY, coords.exactX - dragAction.originX) * 180 / Math.PI;
+            setProtractorState(prev => ({ ...prev, angle }));
+            return;
+          }
+
+          // Movimiento de figuras (Bloqueado en Modo Prueba)
+          if (isTestMode) return;
+
           const dx = coords.x - dragAction.startX;
           const dy = coords.y - dragAction.startY;
 
@@ -580,7 +833,6 @@
       const handleSvgClick = (e) => {
         if (isTestMode) return;
         const now = Date.now();
-        // Debounce para evitar clicks fantasmas accidentales en el fondo
         if (now - (lastTap.current['svg_click'] || 0) < 150) return; 
         lastTap.current['svg_click'] = now;
 
@@ -631,7 +883,6 @@
         if (isDragging) return;
         
         const now = Date.now();
-        // Bloqueo Anti-Parpadeos
         if (now - (lastTap.current['toggle_' + id] || 0) < 150) return; 
         lastTap.current['toggle_' + id] = now;
 
@@ -773,7 +1024,6 @@
             anchor = { x: (seg.p1.x + seg.p2.x) / 2, y: (seg.p1.y + seg.p2.y) / 2 };
           }
           
-          // Escudo anti-crash si se hace doble clic en un lado de longitud EXACTA Cero.
           if (currentPx === 0) {
               lastTap.current[tapKey] = 0;
               return;
@@ -858,12 +1108,11 @@
         setTestResults(null);
       };
 
-      // NUEVO: Función para cambiar de figura sin salir del modo prueba
       const changeTestShape = () => {
         let randomShape;
         do {
           randomShape = TEST_SHAPES[Math.floor(Math.random() * TEST_SHAPES.length)];
-        } while (TEST_SHAPES.length > 1 && randomShape === currentTest); // Asegura que no salga la misma dos veces seguidas
+        } while (TEST_SHAPES.length > 1 && randomShape === currentTest); 
         
         setCurrentTest(randomShape);
         setTestAnswers({});
@@ -964,9 +1213,7 @@
       return (
         <div className="animate-fade-in flex flex-col lg:flex-row gap-6 relative w-full items-start">
           
-          {/* MENÚ LATERAL IZQUIERDO FIJO */}
           <div className="w-full lg:w-48 flex-shrink-0 bg-white p-4 rounded-3xl shadow-xl border-4 border-sky-100 flex flex-col gap-3 sticky top-4 z-10">
-            {/* NUEVO BOTÓN VOLVER (Colocado a la izquierda) */}
             <button 
               onClick={onBack}
               className="bg-sky-100 text-sky-800 border-2 border-sky-200 p-2 rounded-xl text-sm font-bold shadow-sm hover:bg-sky-200 transition-all flex items-center justify-center gap-2 mb-1"
@@ -1002,7 +1249,7 @@
                 <div className="flex flex-col bg-slate-50 p-2 rounded-xl border border-slate-200">
                   <span className="text-[11px] font-bold text-slate-500 mb-1 px-1 text-center">Nivel Escolar:</span>
                   <div className="flex flex-col gap-1">
-                    <button onClick={() => {setCycle(1); setSelectedElements({});}} className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${cycle === 1 ? 'bg-white shadow text-sky-600' : 'text-slate-500 hover:bg-slate-200'}`}>Ciclo 1 (Básico)</button>
+                    <button onClick={() => {setCycle(1); setSelectedElements({}); setShowProtractor(false);}} className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${cycle === 1 ? 'bg-white shadow text-sky-600' : 'text-slate-500 hover:bg-slate-200'}`}>Ciclo 1 (Básico)</button>
                     <button onClick={() => {setCycle(2); setSelectedElements({});}} className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${cycle === 2 ? 'bg-white shadow text-sky-600' : 'text-slate-500 hover:bg-slate-200'}`}>Ciclo 2 (Medio)</button>
                     <button onClick={() => {setCycle(3); setSelectedElements({});}} className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${cycle === 3 ? 'bg-white shadow text-sky-600' : 'text-slate-500 hover:bg-slate-200'}`}>Ciclo 3 (Avanz.)</button>
                   </div>
@@ -1034,6 +1281,23 @@
                       <button onClick={() => setSegmentColor('#3B82F6')} className={`w-6 h-6 rounded-full bg-blue-500 border-2 transition-all ${segmentColor === '#3B82F6' ? 'border-slate-800 scale-110 shadow-md' : 'border-transparent hover:scale-105'}`} title="Azul" />
                     </div>
                   )}
+                  
+                  <button 
+                    onClick={() => setShowRuler(!showRuler)} 
+                    className={`p-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm ${showRuler ? 'bg-amber-500 text-white shadow-md scale-105' : 'bg-slate-50 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    <RulerIcon size={18} /> Regla Virtual
+                  </button>
+
+                  {cycle !== 1 && (
+                    <button 
+                      onClick={() => setShowProtractor(!showProtractor)} 
+                      className={`p-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-all text-sm ${showProtractor ? 'bg-sky-500 text-white shadow-md scale-105' : 'bg-slate-50 text-slate-600 hover:bg-slate-200'}`}
+                    >
+                      <ProtractorIcon size={18} /> Transportador
+                    </button>
+                  )}
+
                 </div>
 
                 <div className="h-px w-full bg-slate-200 my-1"></div>
@@ -1055,6 +1319,25 @@
             ) : (
               <div className="flex flex-col gap-3">
                 <span className="text-center text-sm font-extrabold text-indigo-700 bg-indigo-100 p-2 rounded-xl">MODO PRUEBA<br/>(Ciclo {cycle})</span>
+                
+                <button 
+                  onClick={() => setShowRuler(!showRuler)} 
+                  className={`p-3 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 text-sm ${showRuler ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'}`}
+                >
+                  <RulerIcon size={18} /> {showRuler ? 'Ocultar Regla' : 'Usar Regla'}
+                </button>
+
+                {cycle !== 1 && (
+                  <button 
+                    onClick={() => setShowProtractor(!showProtractor)} 
+                    className={`p-3 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 text-sm ${showProtractor ? 'bg-sky-500 text-white' : 'bg-sky-100 text-sky-800 hover:bg-sky-200'}`}
+                  >
+                    <ProtractorIcon size={18} /> {showProtractor ? 'Ocultar Transp.' : 'Transportador'}
+                  </button>
+                )}
+
+                <div className="h-px w-full bg-slate-200 my-1"></div>
+
                 <button onClick={checkTest} className="bg-green-500 text-white p-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-2 text-sm">✅ Corregir</button>
                 <button onClick={changeTestShape} className="bg-blue-500 text-white p-3 rounded-xl font-bold shadow-lg hover:bg-blue-600 transition-all flex items-center justify-center gap-2 text-sm">🔄 Cambiar</button>
                 <button onClick={exitTestMode} className="bg-red-500 text-white p-3 rounded-xl font-bold shadow-lg hover:bg-red-600 transition-all flex items-center justify-center gap-2 text-sm">❌ Salir</button>
@@ -1062,10 +1345,8 @@
             )}
           </div>
 
-          {/* ZONA PRINCIPAL DERECHA */}
           <div className="flex-1 flex flex-col gap-6 min-w-0 w-full relative">
             
-            {/* LEYENDA / TRUCOS */}
             {!isTestMode && (
               <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-2xl text-amber-900 shadow-sm w-full">
                 <h3 className="font-bold text-amber-800 mb-2 flex items-center gap-2 text-lg">
@@ -1095,7 +1376,6 @@
               </div>
             )}
 
-            {/* Pantalla de color arena con cuadrícula */}
             <div className={`relative border-4 rounded-3xl overflow-hidden shadow-inner bg-[#FDF5E6] transition-colors duration-300 w-full
               ${isTestMode ? 'border-indigo-400 cursor-default'
               : activeTool === 'pencil' ? 'border-amber-400 cursor-crosshair' 
@@ -1104,7 +1384,6 @@
               : activeTool === 'move' ? 'border-indigo-400 cursor-grab active:cursor-grabbing' 
               : 'border-blue-400 cursor-default'}
             `}>
-              {/* NUEVO: ViewBox adaptativo para hacer el lienzo más largo en la prueba */}
               <svg 
                 ref={svgRef}
                 viewBox={`0 0 1600 ${canvasHeight}`}
@@ -1126,10 +1405,8 @@
 
                 <rect width="100%" height="100%" fill="url(#grid-table)" />
 
-                {/* ----- MODO DIBUJO NORMAL ----- */}
                 {!isTestMode && (
                   <g>
-                    {/* Círculos Terminados */}
                     {circles.map((c, i) => {
                       const rCmRaw = c.radius / 40;
                       const rCm = formatLength(rCmRaw, cycle);
@@ -1175,7 +1452,6 @@
                       </g>
                     )})}
 
-                    {/* Segmentos Sueltos Terminados */}
                     {segments.map((seg, i) => {
                       const isSel = isSelected(`segment-${i}`);
                       const midX = (seg.p1.x + seg.p2.x) / 2;
@@ -1209,9 +1485,11 @@
                       );
                     })}
 
-                    {/* Polígonos Terminados */}
                     {polygons.map((poly, pIdx) => {
                       const info = getPolygonInfo(poly, cycle);
+                      
+                      const cx = poly.reduce((acc, p) => acc + p.x, 0) / poly.length;
+                      const cy = poly.reduce((acc, p) => acc + p.y, 0) / poly.length;
                       
                       const perimeterPx = poly.reduce((sum, pt, idx) => {
                         const nextPt = poly[(idx + 1) % poly.length];
@@ -1300,14 +1578,13 @@
                             );
                           })}
 
-                          {/* Tarjeta de Información Global Externa */}
                           {(isSelected(`poly-${pIdx}-interior`) || allEdgesSelected) && (
                             <InfoCard x={boxX} y={boxY} name={info.name} perimeter={`${perimeterCm} cm`} area={`${areaCm} cm²`} currentCycle={cycle} />
                           )}
                           
                           {allEdgesSelected && !isSelected(`poly-${pIdx}-interior`) && (
                              <g transform={`translate(${cx}, ${cy})`} className="pointer-events-none z-50">
-                                <g className="animate-bounce">
+                                <g className="animate-fade-in">
                                   <rect x="-138" y="-18" width="280" height="40" fill="rgba(0,0,0,0.2)" rx="20" />
                                   <rect x="-140" y="-20" width="280" height="40" fill="#10B981" rx="20" />
                                   <text x="0" y="2" fill="white" fontSize="20" textAnchor="middle" dominantBaseline="middle" fontWeight="bold">
@@ -1320,7 +1597,6 @@
                       );
                     })}
 
-                    {/* Progreso del COMPÁS (Dibujando radio) */}
                     {activeTool === 'compass' && currentCenter && cursorPos && (
                       <g className="pointer-events-none">
                         <circle cx={currentCenter.x} cy={currentCenter.y} r="4" fill="#DB2777" />
@@ -1329,7 +1605,6 @@
                       </g>
                     )}
 
-                    {/* Progreso del SEGMENTO SUELTO */}
                     {activeTool === 'segment' && currentSegmentStart && cursorPos && (
                       <g className="pointer-events-none">
                         <circle cx={currentSegmentStart.x} cy={currentSegmentStart.y} r="6" fill={segmentColor} />
@@ -1337,7 +1612,6 @@
                       </g>
                     )}
 
-                    {/* Progreso del LÁPIZ (Dibujando polígono) */}
                     {activeTool === 'pencil' && currentPoints.map((p, i) => {
                       if (i < currentPoints.length - 1) {
                         return <line key={`current-line-${i}`} x1={p.x} y1={p.y} x2={currentPoints[i+1].x} y2={currentPoints[i+1].y} stroke="#6B7280" strokeWidth="4" className="pointer-events-none" />;
@@ -1362,7 +1636,6 @@
                       );
                     })}
 
-                    {/* Línea guía (Preview Lápiz) */}
                     {activeTool === 'pencil' && currentPoints.length > 0 && cursorPos && (
                       <line 
                         x1={currentPoints[currentPoints.length - 1].x} 
@@ -1376,7 +1649,6 @@
                       />
                     )}
 
-                    {/* Cursores Interactivos Visuales */}
                     {cursorPos && activeTool !== 'arrow' && activeTool !== 'pencil' && (
                       <g transform={`translate(${cursorPos.exactX}, ${cursorPos.exactY})`} className="pointer-events-none transition-transform duration-75">
                         <text x="-5" y="-5" fontSize="48">
@@ -1387,7 +1659,6 @@
                   </g>
                 )}
 
-                {/* ----- MODO PRUEBA ACTIVO ----- */}
                 {isTestMode && currentTest && (
                   <g className="animate-drop-in">
                     {currentTest.render(800, 400)}
@@ -1419,12 +1690,126 @@
                     ))}
                   </g>
                 )}
+
+                {showRuler && (
+                  <g 
+                    transform={`translate(${rulerState.x}, ${rulerState.y}) rotate(${rulerState.angle})`} 
+                    className="pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <rect x="-20" y="0" width="840" height="40" fill="rgba(0,0,0,0.15)" rx="5" transform="translate(4, 4)" className="pointer-events-none" />
+                    <rect x="-20" y="0" width="840" height="40" fill="rgba(253, 224, 71, 0.85)" stroke="#CA8A04" strokeWidth="2" rx="5"
+                      className="cursor-move"
+                      onPointerDown={(e) => startDrag(e, (coords) => ({
+                        type: 'ruler-body',
+                        startX: coords.exactX,
+                        startY: coords.exactY,
+                        initialPos: { ...rulerState }
+                      }), true)}
+                    />
+                    {[...Array(21)].map((_, i) => (
+                      <g key={`tick-${i}`} transform={`translate(${i * 40}, 0)`} className="pointer-events-none">
+                        <line x1="0" y1="0" x2="0" y2={i % 5 === 0 ? "15" : "10"} stroke="#854D0E" strokeWidth="2" />
+                        <text x="0" y="28" fill="#854D0E" fontSize="14" textAnchor="middle" fontWeight="bold">{i}</text>
+                      </g>
+                    ))}
+                    {/* Punto de origen visible (El cero) */}
+                    <circle cx="0" cy="0" r="4" fill="#EF4444" className="pointer-events-none" />
+                    
+                    {/* Tirador de Rotación */}
+                    <circle cx="800" cy="20" r="24" fill="#EF4444" stroke="#FEE2E2" strokeWidth="3"
+                      className="cursor-grab active:cursor-grabbing"
+                      onPointerDown={(e) => startDrag(e, (coords) => ({
+                        type: 'ruler-rotate',
+                        originX: rulerState.x,
+                        originY: rulerState.y
+                      }), true)}
+                    />
+                    <text x="800" y="20" fill="white" fontSize="20" textAnchor="middle" dominantBaseline="middle" className="pointer-events-none font-bold">↻</text>
+                  </g>
+                )}
+
+                {/* --- NUEVO TRANSPORTADOR VIRTUAL (Ampliado) --- */}
+                {showProtractor && cycle !== 1 && (
+                  <g
+                    transform={`translate(${protractorState.x}, ${protractorState.y}) rotate(${protractorState.angle})`}
+                    className="pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Sombra */}
+                    <path d="M -200 0 A 200 200 0 0 1 200 0 L -200 0 Z" fill="rgba(0,0,0,0.15)" transform="translate(4, 4)" className="pointer-events-none" />
+                    {/* Fondo semicírculo */}
+                    <path d="M -200 0 A 200 200 0 0 1 200 0 Z" fill="rgba(14, 165, 233, 0.4)" stroke="#0284C7" strokeWidth="2"
+                      className="cursor-move backdrop-blur-sm"
+                      onPointerDown={(e) => startDrag(e, (coords) => ({
+                        type: 'protractor-body',
+                        startX: coords.exactX,
+                        startY: coords.exactY,
+                        initialPos: { ...protractorState }
+                      }), true)}
+                    />
+                    {/* Hueco central para ver mejor el vértice */}
+                    <path d="M -40 0 A 40 40 0 0 1 40 0" fill="none" stroke="#0284C7" strokeWidth="2" className="pointer-events-none" />
+
+                    {/* Marcas del transportador */}
+                    {[...Array(37)].map((_, i) => {
+                      const angleDeg = i * 5; // Cada 5 grados (De 0 a 180)
+                      const angleRad = Math.PI + (angleDeg * Math.PI / 180);
+                      const isMajor = i % 2 === 0; // Cada 10 grados
+                      const isLabel = isMajor && i % 6 === 0; // Cada 30 grados
+                      
+                      const r1 = 200;
+                      const r2 = isMajor ? 175 : 188;
+                      const x1 = r1 * Math.cos(angleRad);
+                      const y1 = r1 * Math.sin(angleRad);
+                      const x2 = r2 * Math.cos(angleRad);
+                      const y2 = r2 * Math.sin(angleRad);
+                      
+                      const textR = 150;
+                      const tx = textR * Math.cos(angleRad);
+                      const ty = textR * Math.sin(angleRad);
+
+                      return (
+                        <g key={`prot-tick-${i}`} className="pointer-events-none">
+                          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#0369A1" strokeWidth={isMajor ? 2 : 1} />
+                          {isLabel ? (
+                            <text x={tx} y={ty} fill="#0369A1" fontSize="16" textAnchor="middle" dominantBaseline="middle" transform={`rotate(${angleDeg - 90}, ${tx}, ${ty})`} fontWeight="bold">
+                              {180 - angleDeg}°
+                            </text>
+                          ) : isMajor && angleDeg !== 0 && angleDeg !== 180 ? (
+                            <text x={tx} y={ty} fill="#0369A1" fontSize="12" textAnchor="middle" dominantBaseline="middle" transform={`rotate(${angleDeg - 90}, ${tx}, ${ty})`} fontWeight="normal">
+                              {180 - angleDeg}
+                            </text>
+                          ) : null}
+                        </g>
+                      );
+                    })}
+
+                    {/* Base */}
+                    <line x1="-200" y1="0" x2="200" y2="0" stroke="#0284C7" strokeWidth="2" className="pointer-events-none" />
+
+                    {/* Centro */}
+                    <circle cx="0" cy="0" r="5" fill="#EF4444" className="pointer-events-none" />
+                    <line x1="0" y1="-10" x2="0" y2="10" stroke="#EF4444" strokeWidth="2" className="pointer-events-none" />
+                    <line x1="-10" y1="0" x2="10" y2="0" stroke="#EF4444" strokeWidth="2" className="pointer-events-none" />
+
+                    {/* Tirador de Rotación */}
+                    <circle cx="240" cy="0" r="26" fill="#0EA5E9" stroke="#E0F2FE" strokeWidth="3"
+                      className="cursor-grab active:cursor-grabbing"
+                      onPointerDown={(e) => startDrag(e, (coords) => ({
+                        type: 'protractor-rotate',
+                        originX: protractorState.x,
+                        originY: protractorState.y
+                      }), true)}
+                    />
+                    <text x="240" y="0" fill="white" fontSize="22" textAnchor="middle" dominantBaseline="middle" className="pointer-events-none font-bold">↻</text>
+                  </g>
+                )}
+
               </svg>
             </div>
-            {/* Hemos eliminado el Botón Volver de aquí abajo ya que ahora está en el menú izquierdo */}
           </div>
 
-          {/* Modal para introducir medida exacta */}
           {edgeInput && (
             <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
               <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-sky-200 animate-fade-in text-center">
@@ -1454,7 +1839,6 @@
             </div>
           )}
 
-          {/* Modal para cambiar el tipo de Triángulo */}
           {triangleTypeInput && (
             <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
               <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border-4 border-green-200 animate-fade-in text-center">
@@ -1500,7 +1884,6 @@
       { id: 'T. Escaleno', name: 'Triángulo\nEscaleno', color: '#059669', shape: <polygon points="5,55 55,55 20,5" fill="currentColor"/> },
       { id: 'Cuadrado', name: 'Cuadrado', color: '#60A5FA', shape: <rect x="10" y="10" width="40" height="40" fill="currentColor"/> },
       { id: 'Rectángulo', name: 'Rectángulo', color: '#3B82F6', shape: <rect x="5" y="15" width="50" height="30" fill="currentColor"/> },
-      // NUEVO: Rombo más estrecho ajustando sus vértices laterales (de X:5-55 a X:15-45)
       { id: 'Rombo', name: 'Rombo', color: '#2563EB', shape: <polygon points="30,5 45,30 30,55 15,30" fill="currentColor"/> },
       { id: 'Trapecio', name: 'Trapecio', color: '#FCD34D', shape: <polygon points="15,15 45,15 55,45 5,45" fill="currentColor"/> },
       { id: 'Pentágono', name: 'Pentágono', color: '#EF4444', shape: <polygon points="30,5 55,25 45,55 15,55 5,25" fill="currentColor"/> },
