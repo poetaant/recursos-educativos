@@ -2062,10 +2062,14 @@
               )}
             </div>
 
-            <div className="w-full flex h-40 border-t-8 border-slate-600 bg-slate-800 z-0">
+            {/* NUEVO SISTEMA DE BASES: CSS Grid matemático para alinear perfectamente con las caídas */}
+            <div 
+              className="w-full grid h-40 border-t-8 border-slate-600 bg-slate-800 z-0"
+              style={{ gridTemplateColumns: `repeat(${BINS.length}, minmax(0, 1fr))` }}
+            >
               {BINS.map((bin, i) => (
-                <div key={i} className="flex-1 border-r border-slate-600 flex flex-col items-center justify-center p-2 md:p-4 hover:bg-slate-700 transition-colors">
-                  <span className="text-xs sm:text-sm md:text-lg lg:text-xl xl:text-2xl font-bold text-center text-white leading-tight break-words">
+                <div key={i} className="border-r border-slate-600 flex flex-col items-center justify-center p-1 md:p-2 hover:bg-slate-700 transition-colors min-w-0">
+                  <span className="text-[9px] sm:text-[10px] md:text-sm lg:text-base font-bold text-center text-white leading-tight whitespace-pre-wrap break-words w-full">
                     {bin.name}
                   </span>
                 </div>
