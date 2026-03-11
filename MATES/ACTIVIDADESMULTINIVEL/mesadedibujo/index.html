@@ -136,6 +136,7 @@
         md_t3: 'Doble toque en esquinas para ver su ángulo.',
         md_t4: 'Toca todos los lados para calcular el Perímetro.',
         md_t5: 'Arrastra las esquinas de un polígono deformado y ¡mira cómo cambian sus medidas y ángulos en directo!',
+        md_t6: 'Selecciona una figura y pulsa Suprimir o Retroceso para borrarla individualmente.',
         md_mod_tit: 'Medida exacta', md_mod_p: 'Introduce la nueva medida. La figura ajustará su tamaño automáticamente.',
         md_can: 'Cancelar', md_apl: 'Aplicar',
         md_tri_tit: 'Transformar Triángulo', md_tri_p: 'Selecciona en qué tipo de triángulo quieres convertirlo.',
@@ -257,6 +258,7 @@
         md_t3: "Doble toque n'esquines pa ver el so ángulu.",
         md_t4: 'Toca tolos llaos pa calcular el Perímetru.',
         md_t5: "Arrastra les esquines d'un polígonu deformáu y ¡mira cómo camuden les sos midíes y ángulos en direutu!",
+        md_t6: 'Esbilla una figura y calca Suprimir o Retrocesu pa borrala individualmente.',
         md_mod_tit: 'Midida esauta', md_mod_p: 'Introduz la nueva midida. La figura va afacer el so tamañu automáticamente.',
         md_can: 'Atayar', md_apl: 'Aplicar',
         md_tri_tit: 'Tresformar Triángulu', md_tri_p: 'Escueye en qué tipu de triángulu quies convertilo.',
@@ -374,6 +376,7 @@
         md_t3: 'Double tap corners to see their angle.',
         md_t4: 'Tap all sides to calculate Perimeter.',
         md_t5: 'Drag the corners of a deformed polygon and watch how its measurements and angles change live!',
+        md_t6: 'Select a shape and press Delete or Backspace to remove it individually.',
         md_mod_tit: 'Exact measurement', md_mod_p: 'Enter the new measurement. The shape will adjust its size automatically.',
         md_can: 'Cancel', md_apl: 'Apply',
         md_tri_tit: 'Transform Triangle', md_tri_p: 'Select which type of triangle you want to convert it to.',
@@ -996,6 +999,38 @@
       const [testAnswers, setTestAnswers] = useState({});
       const [testResults, setTestResults] = useState(null);
 
+      // NUEVO: Escuchar teclas Suprimir o Retroceso para borrar elementos seleccionados
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          // Ignorar si el usuario está escribiendo en el campo de medida exacta
+          if (e.target.tagName.toLowerCase() === 'input') return;
+          
+          if (e.key === 'Delete' || e.key === 'Backspace') {
+            const keys = Object.keys(selectedElements).filter(k => selectedElements[k]);
+            if (keys.length === 0) return;
+
+            const polysToDelete = new Set();
+            const circlesToDelete = new Set();
+            const segmentsToDelete = new Set();
+
+            keys.forEach(key => {
+              if (key.startsWith('poly-')) polysToDelete.add(parseInt(key.split('-')[1], 10));
+              else if (key.startsWith('circle-')) circlesToDelete.add(parseInt(key.split('-')[1], 10));
+              else if (key.startsWith('segment-')) segmentsToDelete.add(parseInt(key.split('-')[1], 10));
+            });
+
+            if (polysToDelete.size > 0) setPolygons(prev => prev.filter((_, i) => !polysToDelete.has(i)));
+            if (circlesToDelete.size > 0) setCircles(prev => prev.filter((_, i) => !circlesToDelete.has(i)));
+            if (segmentsToDelete.size > 0) setSegments(prev => prev.filter((_, i) => !segmentsToDelete.has(i)));
+            
+            setSelectedElements({}); // Limpiamos la selección al borrar
+          }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [selectedElements]);
+
       const gridSize = 40;
       const snap = (val) => Math.round(val / gridSize) * gridSize;
       const canvasHeight = isTestMode ? 1200 : 800;
@@ -1530,9 +1565,14 @@
                   <div className="bg-white p-3 rounded-xl border border-amber-100 shadow-sm"><span className="font-bold text-sky-600 block mb-1">↖️ {t('md_sel')}</span><p>✌️ <strong>{t('md_t3')}</strong></p></div>
                   <div className="bg-white p-3 rounded-xl border border-amber-100 shadow-sm"><span className="font-bold text-sky-600 block mb-1">↖️ {t('md_sel')}</span><p>🔄 <strong>{t('md_t4')}</strong></p></div>
                 </div>
-                <p className="mt-3 text-sm text-indigo-700 font-medium bg-indigo-50 p-2 rounded-lg inline-block border border-indigo-100">
-                  🖐️ <strong>{t('md_mov')}:</strong> {t('md_t5')}
-                </p>
+                <div className="mt-3 flex flex-col items-start gap-2">
+                  <p className="text-sm text-indigo-700 font-medium bg-indigo-50 p-2 rounded-lg inline-block border border-indigo-100">
+                    🖐️ <strong>{t('md_mov')}:</strong> {t('md_t5')}
+                  </p>
+                  <p className="text-sm text-red-700 font-medium bg-red-50 p-2 rounded-lg inline-block border border-red-100">
+                    🗑️ <strong>{t('md_clr')}:</strong> {t('md_t6')}
+                  </p>
+                </div>
               </div>
             )}
 
