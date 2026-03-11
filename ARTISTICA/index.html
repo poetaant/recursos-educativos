@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>En Construcción - Web del Cole</title>
+    <title>Niveles - CP Poeta Antón de Marirreguera</title>
     <style>
+        /* --- Configuración General --- */
         :root {
             --mar-profundo: #1e3c72;
+            --mar-claro: #2a5298;
+            --flor-rosa: #e91e63;
+            --flor-amarilla: #fbc02d;
+            --hoja-verde: #4caf50;
             --arena: #fdfbf7;
-            --amarillo-obra: #fbc02d;
-            --rojo-aviso: #e91e63;
         }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Georgia', 'Times New Roman', serif;
             background-color: var(--arena);
             background-image: 
                 radial-gradient(circle at 10% 20%, rgba(30, 60, 114, 0.05) 0%, transparent 20%),
@@ -25,121 +28,203 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
         }
 
-        .contenedor-central {
-            background: white;
-            padding: 40px;
-            border-radius: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-            max-width: 800px;
-            width: 90%;
-            border: 8px solid white;
-            position: relative;
+        /* --- Perfil Pequeño (Superior Izquierda) --- */
+        .perfil-poeta {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .foto-marco {
+            width: 50px;
+            height: 50px;
             overflow: hidden;
+            border-radius: 50%;
+            border: 2px solid var(--mar-profundo);
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
         }
 
-        /* Cinta de "Precaución" decorativa */
-        .cinta-obra {
-            background: repeating-linear-gradient(
-                45deg,
-                var(--amarillo-obra),
-                var(--amarillo-obra) 20px,
-                #333 20px,
-                #333 40px
-            );
-            height: 20px;
-            width: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
+        .foto-poeta { width: 80%; height: 80%; object-fit: contain; }
 
-        .imagen-construccion {
-            width: 100%;
-            max-width: 600px;
-            height: auto;
-            border-radius: 15px;
-            margin-top: 20px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-
-        h1 {
+        .nombre-poeta {
+            font-size: 0.8rem;
+            font-weight: bold;
             color: var(--mar-profundo);
-            font-size: 2.5rem;
-            margin-bottom: 10px;
             text-transform: uppercase;
-            letter-spacing: 2px;
         }
 
-        p {
-            color: #666;
-            font-size: 1.2rem;
-            line-height: 1.6;
-            margin-bottom: 30px;
-        }
-
+        /* --- Botón Volver --- */
         .boton-volver {
-            display: inline-block;
-            background-color: var(--mar-profundo);
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--flor-rosa);
             color: white;
-            padding: 15px 30px;
-            border-radius: 50px;
+            padding: 10px 20px;
+            border-radius: 30px;
             text-decoration: none;
             font-weight: bold;
-            font-size: 1.1rem;
-            transition: transform 0.3s, background-color 0.3s;
-            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+            z-index: 100;
+        }
+        .boton-volver:hover { transform: scale(1.05); background: #c2185b; }
+
+        /* --- Rejilla del Menú --- */
+        .contenedor-menu {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            padding: 100px 20px 40px; 
+            max-width: 1000px;
+            width: 90%;
         }
 
-        .boton-volver:hover {
-            transform: scale(1.05);
-            background-color: var(--rojo-aviso);
+        /* --- Estilo de los Botones --- */
+        .boton-poetico {
+            position: relative;
+            height: 180px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            overflow: hidden;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* Iconos animados */
-        .iconos-flotantes {
-            font-size: 2rem;
+        /* Modificador para que la caja extra ocupe todo el ancho */
+        .boton-ancho-completo {
+            grid-column: 1 / -1;
+            height: 140px; /* Un poco más estrecho de alto por ser tan ancho */
+        }
+
+        .fondo-animado {
             position: absolute;
-            opacity: 0.2;
-            animation: spin 10s linear infinite;
+            top: 0; left: 0; width: 200%; height: 200%;
+            /* Estilo específico para esta sección (tonos verdes/tecnológicos/mates) */
+            background: linear-gradient(45deg, #009688, #4caf50, #8bc34a, #cddc39); 
+            background-size: 200% 200%;
+            z-index: 1;
+            animation: oleaje 8s ease infinite;
+            opacity: 0.9;
         }
-        .i1 { top: 10%; left: 5%; animation-duration: 15s; }
-        .i2 { bottom: 10%; right: 5%; animation-duration: 20s; animation-direction: reverse; }
 
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        /* Nuevo fondo especial para multinivel */
+        .fondo-especial {
+            background: linear-gradient(45deg, #673ab7, #9c27b0, #e91e63, #ff5722); 
+        }
 
+        .texto-nivel {
+            position: relative;
+            z-index: 3;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .boton-poetico:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 30px rgba(0,0,0,0.25);
+        }
+
+        @keyframes oleaje {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-25%, -25%); }
+            100% { transform: translate(0, 0); }
+        }
+
+        @media (max-width: 768px) {
+            .contenedor-menu { grid-template-columns: repeat(2, 1fr); padding-top: 120px; }
+        }
+        @media (max-width: 480px) {
+            .contenedor-menu { grid-template-columns: 1fr; }
+            .boton-ancho-completo { height: 180px; } /* Restaurar altura en móviles */
+        }
     </style>
 </head>
 <body>
 
-    <div class="contenedor-central">
-        <div class="cinta-obra"></div>
-        
-        <!-- Iconos decorativos de fondo -->
-        <span class="iconos-flotantes i1">⚙️</span>
-        <span class="iconos-flotantes i2">🧱</span>
-
-        <img src="http://googleusercontent.com/image_generation_content/2" alt="Poeta construyendo la web" class="imagen-construccion">
-
-        <h1>¡Estamos trabajando en ello!</h1>
-        <p>
-            El Poeta Antón está construyendo nuevos rincones de aprendizaje para nuestra web.<br>
-            Muy pronto podrás disfrutar de todo el contenido.
-        </p>
-
-        <!-- Enlace opcional para volver al inicio si esto es una subsección -->
-        <a href="index.html" class="boton-volver">Volver al Inicio</a>
+    <!-- Header Pequeño -->
+    <div class="perfil-poeta">
+        <div class="foto-marco">
+            <img src="https://cdn-icons-png.flaticon.com/512/2232/2232688.png" alt="Logo" class="foto-poeta">
+        </div>
+        <div class="nombre-poeta">CP Poeta Antón</div>
     </div>
+
+    <!-- Botón Volver -->
+    <a href="../index.html" class="boton-volver">↩ Volver al inicio</a>
+
+    <!-- Menú de Niveles -->
+    <main class="contenedor-menu">
+        
+        <!-- Botón 1º Primaria -->
+        <a href="1º/index.html" class="boton-poetico">
+            <div class="fondo-animado"></div>
+            <span class="texto-nivel">1º PRIMARIA</span>
+        </a>
+
+        <!-- Botón 2º Primaria -->
+        <a href="2º/index.html" class="boton-poetico">
+            <div class="fondo-animado"></div>
+            <span class="texto-nivel">2º PRIMARIA</span>
+        </a>
+
+        <!-- Botón 3º Primaria -->
+        <a href="3º/index.html" class="boton-poetico">
+            <div class="fondo-animado"></div>
+            <span class="texto-nivel">3º PRIMARIA</span>
+        </a>
+
+        <!-- Botón 4º Primaria -->
+        <a href="4º/index.html" class="boton-poetico">
+            <div class="fondo-animado"></div>
+            <span class="texto-nivel">4º PRIMARIA</span>
+        </a>
+
+        <!-- Botón 5º Primaria -->
+        <a href="5º/index.html" class="boton-poetico">
+            <div class="fondo-animado"></div>
+            <span class="texto-nivel">5º PRIMARIA</span>
+        </a>
+
+        <!-- Botón 6º Primaria -->
+        <a href="6º/index.html" class="boton-poetico">
+            <div class="fondo-animado"></div>
+            <span class="texto-nivel">6º PRIMARIA</span>
+        </a>
+
+        <!-- Botón Actividades Multinivel (Ocupa todo el ancho) -->
+        <a href="ACTIVIDADESMULTINIVEL/index.html" class="boton-poetico boton-ancho-completo">
+            <div class="fondo-animado fondo-especial"></div>
+            <span class="texto-nivel">ACTIVIDADES MULTINIVEL</span>
+        </a>
+
+    </main>
 
 </body>
 </html>
