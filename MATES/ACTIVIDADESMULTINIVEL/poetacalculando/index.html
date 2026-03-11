@@ -1,0 +1,2885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Máquina de Operaciones</title>
+    
+    <!-- Tailwind CSS para los estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React y ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para compilar JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Estilos adicionales para ocultar las flechas de los input de tipo número */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* Animaciones para los botones colgantes */
+        @keyframes swing {
+            0% { transform: rotate(15deg); }
+            50% { transform: rotate(-15deg); }
+            100% { transform: rotate(15deg); }
+        }
+        .hanging-container {
+            transform-origin: top center;
+            animation: swing 3s ease-in-out infinite alternate;
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            margin-left: -28px;
+            width: 56px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .hanging-rope {
+            width: 3px;
+            background-color: #8b5a2b;
+            transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .hanging-badge {
+            width: 56px;
+            height: 56px;
+            border-width: 4px;
+            border-style: solid;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 2.4rem;
+            margin-top: -2px;
+            box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.5);
+        }
+        .delay-1 { animation-delay: 0s; }
+        .delay-2 { animation-delay: -0.7s; }
+        .delay-3 { animation-delay: -1.4s; }
+        .delay-4 { animation-delay: -2.1s; }
+        
+        /* Checkbox personalizado (Toggle) */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #10b981;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10b981;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- ICONOS SVG ---
+        const Icon = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+        const Check = ({ className }) => <Icon className={className}><polyline points="20 6 9 17 4 12"></polyline></Icon>;
+        const CheckCircle2 = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></Icon>;
+        const ChevronRight = ({ className }) => <Icon className={className}><polyline points="9 18 15 12 9 6"></polyline></Icon>;
+        const ArrowDown = ({ className }) => <Icon className={className}><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></Icon>;
+        const HelpCircle = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></Icon>;
+        const RefreshCw = ({ className }) => <Icon className={className}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></Icon>;
+
+        // --- UTILS & MATH GENERATORS ---
+        const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        const generateNumber = (digits) => {
+            if (digits === 1) return randomInt(1, 9);
+            const min = Math.pow(10, digits - 1);
+            const max = Math.pow(10, digits) - 1;
+            return randomInt(min, max);
+        };
+
+        const countDecimals = (numStr) => {
+            if (!numStr) return 0;
+            const parts = String(numStr).replace(',', '.').split('.');
+            return parts.length > 1 ? parts[1].length : 0;
+        };
+
+        const stripDecimals = (numStr) => String(numStr || '').replace(/[.,]/g, '');
+
+        const padDecimals = (numStr, maxDec) => {
+            if (maxDec === 0) return String(numStr || '').replace(',', '.');
+            let str = String(numStr || '0').replace(',', '.');
+            if (!str.includes('.')) str += '.';
+            let [int, dec] = str.split('.');
+            return int + '.' + dec.padEnd(maxDec, '0');
+        };
+
+        const generateNumberWithDecimals = (digits, useDec, isDivisor = false) => {
+            const num = generateNumber(digits);
+            if (!useDec) return String(num);
+            if (Math.random() > 0.5) {
+                const decCount = randomInt(1, 2); 
+                const decPart = String(randomInt(1, Math.pow(10, decCount) - 1)).padStart(decCount, '0');
+                return `${num},${decPart}`;
+            }
+            return String(num);
+        };
+
+        const verifyCommas = (visualCommas, prefix, expectedPos) => {
+            const commas = Object.keys(visualCommas).filter(k => k.startsWith(prefix) && visualCommas[k]);
+            if (expectedPos >= 0) {
+                return commas.length === 1 && commas[0] === `${prefix}${expectedPos}`;
+            } else {
+                return commas.length === 0;
+            }
+        };
+
+        const getVisualNumberStrHelper = (raw, suffix, commaPrefix, vCommas) => {
+            if (!raw) return '';
+            const digits = stripDecimals(raw) + suffix;
+            const commaKey = Object.keys(vCommas).find(k => k.startsWith(commaPrefix + '-') && vCommas[k]);
+            if (commaKey) {
+                const power = parseInt(commaKey.split('-')[1], 10);
+                const pos = digits.length - 1 - power;
+                if (pos >= 0 && pos < digits.length) {
+                    let res = digits.slice(0, pos + 1) + ',' + digits.slice(pos + 1);
+                    if (res.startsWith(',')) res = '0' + res; 
+                    return res;
+                }
+            }
+            return digits;
+        };
+
+        // --- COMPONENTS ---
+
+        const DragPalette = ({ useDecimals, onDelD, onDelQ }) => {
+            if (!useDecimals) return null;
+            return (
+                <div className="mb-4 flex flex-col items-center p-3 bg-blue-50 rounded-xl border-2 border-blue-400 shadow-md z-[60] w-fit transition-transform hover:scale-105">
+                    <span className="text-xs font-bold text-blue-800 uppercase tracking-wide text-center leading-tight mb-2">Panel de ceros y comas<br/>(Arrastra o haz clic)</span>
+                    <div className="flex space-x-3 mb-2">
+                        <div draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', '0')} className="w-12 h-12 flex items-center justify-center text-3xl font-mono font-bold border-2 border-dashed border-blue-500 bg-white text-blue-700 rounded-xl cursor-grab active:cursor-grabbing hover:bg-blue-100 shadow-sm" title="Arrastra el cero">0</div>
+                        <div draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', ',')} className="w-12 h-12 flex items-center justify-center text-3xl font-mono font-bold border-2 border-dashed border-blue-500 bg-white text-blue-700 rounded-xl cursor-grab active:cursor-grabbing hover:bg-blue-100 shadow-sm" title="Arrastra la coma">,</div>
+                    </div>
+                    {(onDelD || onDelQ) && (
+                        <div className="flex space-x-2 w-full pt-2 border-t border-blue-200">
+                            {onDelD && <button onClick={onDelD} className="text-[10px] flex-1 bg-red-100 text-red-700 rounded py-1 font-bold hover:bg-red-200 transition-colors shadow-sm" title="Borrar último del dividendo">Borrar 0 Div.</button>}
+                            {onDelQ && <button onClick={onDelQ} className="text-[10px] flex-1 bg-red-100 text-red-700 rounded py-1 font-bold hover:bg-red-200 transition-colors shadow-sm" title="Borrar último del cociente">Borrar Coc.</button>}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const DigitInput = ({ value, onChange, className = "", isSmall = false, readOnly = false, id, isHelped = false }) => {
+            return (
+                <input
+                id={id}
+                type="text"
+                maxLength={1}
+                value={value}
+                onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    onChange(val);
+                    if (val !== '' && id) {
+                        const parts = id.split('-');
+                        const lastIdx = parts.length - 1;
+                        parts[lastIdx] = parseInt(parts[lastIdx]) + 1;
+                        const nextId = parts.join('-');
+                        const nextEl = document.getElementById(nextId);
+                        if (nextEl) nextEl.focus();
+                    }
+                }}
+                readOnly={readOnly}
+                className={`text-center font-mono border-2 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors
+                    ${isSmall ? 'w-6 h-8 text-sm' : 'w-10 h-12 text-2xl'} 
+                    ${isHelped ? 'animate-pulse !bg-green-200 !text-green-800 !border-green-500 font-bold' : readOnly ? 'bg-gray-100 border-gray-300' : 'bg-white border-blue-300'}
+                    ${className}`}
+                />
+            );
+        };
+
+        const DotSeparator = ({ isSmall }) => (
+            <span className={`absolute ${isSmall ? '-left-[4px] bottom-[2px] text-lg' : '-left-[6px] sm:-left-[8px] bottom-[4px] text-3xl'} font-extrabold text-slate-800 pointer-events-none z-20 select-none`}>.</span>
+        );
+
+        const InteractiveComma = ({ id, commasMap, setCommasMap, isSmall }) => {
+            const hasComma = commasMap[id];
+            const lastClick = useRef(0);
+            
+            const handleClick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const now = Date.now();
+                const timeDiff = now - lastClick.current;
+                
+                if (hasComma) {
+                    if (timeDiff < 400) { // Doble clic para borrar
+                        setCommasMap(prev => {
+                            const next = {...prev};
+                            delete next[id];
+                            return next;
+                        });
+                        lastClick.current = 0;
+                    } else {
+                        lastClick.current = now;
+                    }
+                } else {
+                    // Un clic para ponerla
+                    setCommasMap(prev => ({ ...prev, [id]: true }));
+                    lastClick.current = 0;
+                }
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault(); 
+                e.stopPropagation();
+                if (e.dataTransfer.getData('text/plain') === ',') {
+                    setCommasMap(prev => ({ ...prev, [id]: true }));
+                }
+            };
+
+            return (
+                <div 
+                    className={`absolute ${isSmall ? '-left-[8px] w-[16px]' : '-left-[12px] sm:-left-[14px] w-[24px]'} h-[120%] -bottom-[10%] z-[60] cursor-pointer flex items-end justify-center hover:bg-blue-300 hover:bg-opacity-30 rounded transition-colors group`}
+                    onClick={handleClick}
+                    onDragOver={e => e.preventDefault()} 
+                    onDrop={handleDrop}
+                    title={hasComma ? "Doble clic rápido para eliminar la coma" : "Haz clic o arrastra una coma aquí"}
+                >
+                    {hasComma && <span className={`text-red-600 font-extrabold select-none drop-shadow-sm leading-none ${isSmall ? 'text-2xl bottom-[2px]' : 'text-4xl bottom-0'} relative pointer-events-none group-hover:opacity-75`}>,</span>}
+                    {!hasComma && <span className={`text-gray-300 font-extrabold select-none drop-shadow-sm leading-none ${isSmall ? 'text-2xl bottom-[2px]' : 'text-4xl bottom-0'} relative pointer-events-none opacity-0 group-hover:opacity-60`}>,</span>}
+                </div>
+            );
+        };
+
+        // --- COLUMNA DE FACTORIZACIÓN ---
+        const FactorizationColumn = ({ number }) => {
+            const [rows, setRows] = useState([{ left: String(number), right: '' }]);
+
+            useEffect(() => {
+                setRows([{ left: String(number), right: '' }]);
+            }, [number]);
+
+            const updateRow = (index, field, value) => {
+                const val = value.replace(/[^0-9]/g, '');
+                const newRows = [...rows];
+                newRows[index][field] = val;
+                
+                // Añadir automáticamente fila siguiente si se escribió un factor y la fila actual es la última
+                if (field === 'right' && index === rows.length - 1 && val !== '') {
+                    newRows.push({ left: '', right: '' });
+                }
+                setRows(newRows);
+            };
+
+            return (
+                <div className="flex flex-col items-center">
+                    <div className="flex font-mono text-lg sm:text-xl md:text-2xl">
+                        {/* Columna Izquierda: Cocientes */}
+                        <div className="flex flex-col items-end pr-2 border-r-4 border-black border-solid min-w-[3rem]">
+                            {rows.map((r, i) => (
+                                i === 0 ? 
+                                <div key={`l-${i}`} className="h-8 sm:h-10 md:h-12 flex items-center justify-end font-bold text-gray-800 px-1">{r.left}</div> :
+                                <input 
+                                    key={`l-${i}`} value={r.left} onChange={e => updateRow(i, 'left', e.target.value)} 
+                                    maxLength={4} 
+                                    className="w-12 h-8 sm:w-16 sm:h-10 md:h-12 text-right font-bold text-gray-800 border-2 border-transparent focus:border-blue-400 focus:bg-blue-50 outline-none bg-transparent" 
+                                />
+                            ))}
+                        </div>
+                        {/* Columna Derecha: Factores primos */}
+                        <div className="flex flex-col items-start pl-2 min-w-[2.5rem]">
+                            {rows.map((r, i) => (
+                                (i === rows.length - 1 && rows[i].left === '1') ? 
+                                <div key={`r-${i}`} className="h-8 sm:h-10 md:h-12 flex items-center text-gray-400 text-xs sm:text-sm italic">Fin</div> :
+                                <input 
+                                    key={`r-${i}`} value={r.right} onChange={e => updateRow(i, 'right', e.target.value)} 
+                                    maxLength={2} 
+                                    className="w-8 h-8 sm:w-12 sm:h-10 md:h-12 text-left font-bold text-red-600 border-2 border-transparent focus:border-red-400 focus:bg-red-50 outline-none bg-transparent" 
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- OPERATION BOARDS ---
+
+        const AdditionBoard = ({ config, isManual, onNext, autoSolve, useDecimals, level }) => {
+            const [addendsRaw, setAddendsRaw] = useState([]);
+            const [setupMode, setSetupMode] = useState(isManual);
+            const [inputs, setInputs] = useState({});
+            const [carries, setCarries] = useState({});
+            const [visualCommas, setVisualCommas] = useState({});
+            const [helpedFields, setHelpedFields] = useState({});
+            const [status, setStatus] = useState('playing'); 
+
+            useEffect(() => {
+                if (!isManual) {
+                    const newAddends = [];
+                    for (let i = 0; i < config.numAddends; i++) {
+                        const digits = i === 0 ? config.maxDigits : randomInt(1, config.maxDigits);
+                        newAddends.push(generateNumberWithDecimals(digits, useDecimals));
+                    }
+                    setAddendsRaw(newAddends);
+                    resetState(newAddends);
+                } else {
+                    setAddendsRaw(Array(config.numAddends).fill(''));
+                    setSetupMode(true);
+                    setInputs({});
+                    setCarries({});
+                    setVisualCommas({});
+                    setHelpedFields({});
+                    setStatus('playing');
+                }
+            }, [config, isManual, useDecimals]);
+
+            const maxDec = useDecimals ? Math.max(...addendsRaw.map(countDecimals)) : 0;
+            const paddedAddends = addendsRaw.map(a => padDecimals(a, maxDec));
+            const addends = paddedAddends.map(stripDecimals); 
+            const expectedCommaPos = maxDec > 0 ? maxDec - 1 : -1;
+
+            const resetState = (adds = addendsRaw) => {
+                if (!isManual) setSetupMode(false);
+                setInputs({});
+                setCarries({});
+                setHelpedFields({});
+                setStatus('playing');
+
+                const newCommas = {};
+                if (useDecimals) {
+                    const mDec = Math.max(...adds.map(countDecimals));
+                    if (mDec > 0) {
+                        adds.forEach((_, rIndex) => {
+                            newCommas[`addend-${rIndex}-${mDec - 1}`] = true;
+                        });
+                    }
+                }
+                setVisualCommas(newCommas);
+            }
+
+            const maxLen = Math.max(...addends.map(a => String(a).length), 1);
+            const cols = maxLen + 2; 
+            const maxPower = maxLen; 
+
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && addendsRaw.length > 0) {
+                        const newInputs = {};
+                        const newCarries = {};
+                        
+                        const expectedStr = String(addends.reduce((acc, curr) => acc + (parseInt(curr, 10) || 0), 0));
+                        
+                        for (let i = 0; i < expectedStr.length; i++) {
+                            newInputs[`res-${i}`] = expectedStr[expectedStr.length - 1 - i];
+                        }
+
+                        let currentCarry = 0;
+                        for (let power = 0; power <= maxPower; power++) {
+                            if (currentCarry > 0 && power > 0 && power < maxLen) {
+                                newCarries[`c-${power}`] = String(currentCarry);
+                            }
+                            let colSum = currentCarry;
+                            addends.forEach(addend => {
+                                const numStr = String(addend);
+                                const charIdx = numStr.length - 1 - power;
+                                if (charIdx >= 0 && charIdx < numStr.length) {
+                                    colSum += parseInt(numStr[charIdx], 10) || 0;
+                                }
+                            });
+                            currentCarry = Math.floor(colSum / 10);
+                        }
+
+                        setInputs({...newInputs});
+                        setCarries({...newCarries});
+                        
+                        setVisualCommas(prev => {
+                            const next = {...prev};
+                            Object.keys(next).forEach(k => { if (k.startsWith('res-')) delete next[k]; });
+                            if (expectedCommaPos >= 0) next[`res-${expectedCommaPos}`] = true;
+                            return next;
+                        });
+
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, addendsRaw, maxPower, maxLen, expectedCommaPos]);
+
+            const handleHelp = () => {
+                const expectedStr = String(addends.reduce((acc, curr) => acc + (parseInt(curr, 10) || 0), 0));
+                let currentCarry = 0;
+                
+                for (let power = 0; power <= maxPower; power++) {
+                    if (currentCarry > 0 && power > 0 && power < maxLen) {
+                        const carryKey = `c-${power}`;
+                        if (carries[carryKey] !== String(currentCarry)) {
+                            setCarries(prev => ({...prev, [carryKey]: String(currentCarry)}));
+                            setHelpedFields({ [carryKey]: true });
+                            return;
+                        }
+                    }
+
+                    let colSum = currentCarry;
+                    addends.forEach(addend => {
+                        const numStr = String(addend);
+                        const charIdx = numStr.length - 1 - power;
+                        if (charIdx >= 0 && charIdx < numStr.length) {
+                            colSum += parseInt(numStr[charIdx], 10) || 0;
+                        }
+                    });
+                    currentCarry = Math.floor(colSum / 10);
+
+                    if (power < expectedStr.length) {
+                        const expectedChar = expectedStr[expectedStr.length - 1 - power];
+                        const resKey = `res-${power}`;
+                        if (inputs[resKey] !== expectedChar) {
+                            setInputs(prev => ({...prev, [resKey]: expectedChar}));
+                            setHelpedFields({ [resKey]: true });
+                            return;
+                        }
+                    }
+                }
+
+                if (useDecimals) {
+                    const hasExtraCommas = Object.keys(visualCommas).some(k => k.startsWith('res-') && (expectedCommaPos < 0 || k !== `res-${expectedCommaPos}`) && visualCommas[k]);
+                    if (hasExtraCommas || (expectedCommaPos >= 0 && !visualCommas[`res-${expectedCommaPos}`])) {
+                        setVisualCommas(prev => {
+                            const next = {...prev};
+                            Object.keys(next).forEach(k => { if (k.startsWith('res-')) delete next[k]; });
+                            if (expectedCommaPos >= 0) next[`res-${expectedCommaPos}`] = true;
+                            return next;
+                        });
+                        return;
+                    }
+                }
+            };
+
+            const checkResult = () => {
+                const sum = addends.reduce((acc, curr) => acc + (parseInt(curr, 10) || 0), 0);
+                let userStr = '';
+                for (let power = maxPower; power >= 0; power--) {
+                    userStr += (inputs[`res-${power}`] || '0');
+                }
+                const isDigitsCorrect = parseInt(userStr, 10) === sum;
+                const isCommaCorrect = !useDecimals || verifyCommas(visualCommas, 'res-', expectedCommaPos);
+
+                if (isDigitsCorrect && isCommaCorrect) setStatus('correct');
+                else setStatus('incorrect');
+            };
+
+            if (setupMode) {
+                return (
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los sumandos</h3>
+                    {addendsRaw.map((a, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                        <span className="font-bold text-2xl whitespace-nowrap">Sumando {i + 1}:</span>
+                        <input 
+                        type="text" 
+                        pattern="[0-9.,]*"
+                        className="border-4 border-blue-300 rounded-xl p-4 text-3xl font-mono w-64 focus:outline-none focus:border-blue-500"
+                        value={a}
+                        onChange={(e) => {
+                            const val = useDecimals ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value.replace(/[^0-9]/g, '');
+                            const newAddends = [...addendsRaw];
+                            newAddends[i] = val;
+                            setAddendsRaw(newAddends);
+                        }}
+                        />
+                    </div>
+                    ))}
+                    <button 
+                    onClick={() => {
+                        if (addendsRaw.every(a => String(a).trim() !== '')) {
+                            setSetupMode(false);
+                            const newCommas = {};
+                            const currentMaxDec = Math.max(...addendsRaw.map(countDecimals));
+                            if (useDecimals && currentMaxDec > 0) {
+                                addendsRaw.forEach((_, rIndex) => {
+                                    newCommas[`addend-${rIndex}-${currentMaxDec - 1}`] = true;
+                                });
+                            }
+                            setVisualCommas(newCommas);
+                        }
+                    }}
+                    className="bg-blue-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-blue-600 flex items-center shadow-lg"
+                    >
+                    <Check className="mr-3 w-8 h-8" /> Comenzar Suma
+                    </button>
+                </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col items-center">
+                <DragPalette useDecimals={useDecimals} />
+                <div className="bg-white p-8 rounded-xl shadow-lg border-2 border-blue-100 relative mt-4 w-max">
+                    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+                    
+                    {/* Carries Row */}
+                    <div className="col-span-1"></div>
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        return (
+                            <div key={`carry-${power}`} className="flex justify-center mb-2">
+                            {power > 0 && power < maxLen && (
+                                <DigitInput
+                                    isSmall
+                                    value={carries[`c-${power}`] || ''}
+                                    onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
+                                    className="bg-yellow-50 border-yellow-300 text-yellow-700"
+                                    isHelped={helpedFields[`c-${power}`]}
+                                />
+                            )}
+                            </div>
+                        );
+                    })}
+
+                    {/* Addends */}
+                    {addends.map((addend, rIndex) => {
+                        const numStr = String(addend);
+                        return (
+                        <React.Fragment key={`row-${rIndex}`}>
+                            <div className="flex items-center justify-center font-bold text-2xl text-blue-500">
+                                {rIndex === addends.length - 1 ? '+' : ''}
+                            </div>
+                            {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                                const power = cols - 2 - cIndex;
+                                const charIdx = numStr.length - 1 - power;
+                                const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
+                                return (
+                                    <div key={`c-${rIndex}-${power}`} className="flex justify-center relative">
+                                        {useDecimals && power >= 0 && <InteractiveComma id={`addend-${rIndex}-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} />}
+                                        <div className="w-10 h-12 flex items-center justify-center text-3xl font-mono">
+                                            {char}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </React.Fragment>
+                        );
+                    })}
+
+                    {/* Divider */}
+                    <div className={`col-span-${cols} border-b-4 border-black my-2`}></div>
+
+                    {/* Result Row */}
+                    <div className="col-span-1"></div>
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        const hasHigherInput = Object.keys(inputs).some(k => k.startsWith('res-') && parseInt(k.split('-')[1]) > power && inputs[k] !== '');
+                        return (
+                            <div key={`res-${power}`} className="flex justify-center relative">
+                                {useDecimals && power >= 0 && <InteractiveComma id={`res-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} />}
+                                {!useDecimals && power % 3 === 2 && hasHigherInput && <DotSeparator />}
+                                <DigitInput
+                                    id={`add-res-${cIndex}`}
+                                    value={inputs[`res-${power}`] || ''}
+                                    onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                    className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
+                                    isHelped={helpedFields[`res-${power}`]}
+                                />
+                            </div>
+                        );
+                    })}
+
+                    </div>
+                </div>
+
+                <div className="mt-8 flex space-x-4">
+                    {status !== 'correct' && (
+                    <button onClick={handleHelp} className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 flex items-center shadow-md">
+                        <HelpCircle className="mr-2" /> Ayuda
+                    </button>
+                    )}
+                    <button onClick={checkResult} className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 flex items-center shadow-md">
+                    <CheckCircle2 className="mr-2" /> Comprobar
+                    </button>
+                    <button onClick={onNext} className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 flex items-center shadow-md">
+                    Siguiente <ChevronRight className="ml-2" />
+                    </button>
+                </div>
+                
+                {status === 'correct' && <p className="mt-4 text-green-600 font-bold text-xl animate-bounce">¡Correcto! ¡Muy bien!</p>}
+                {status === 'incorrect' && <p className="mt-4 text-red-500 font-bold text-xl">Hay un error. Revisa los números y la posición de la coma.</p>}
+                </div>
+            );
+        };
+
+        const SubtractionBoard = ({ config, isManual, onNext, autoSolve, useDecimals, level }) => {
+            const [minuendRaw, setMinuendRaw] = useState('');
+            const [subtrahendRaw, setSubtrahendRaw] = useState('');
+            const [setupMode, setSetupMode] = useState(isManual);
+            const [inputs, setInputs] = useState({});
+            const [carries, setCarries] = useState({});
+            const [visualCommas, setVisualCommas] = useState({});
+            const [helpedFields, setHelpedFields] = useState({});
+            const [status, setStatus] = useState('playing');
+
+            useEffect(() => {
+                if (!isManual) {
+                    let m = parseFloat(generateNumberWithDecimals(config.digitsMin, useDecimals).replace(',', '.'));
+                    let s = parseFloat(generateNumberWithDecimals(config.digitsSub, useDecimals).replace(',', '.'));
+                    if (s > m) [m, s] = [s, m];
+                    const newM = String(m).replace('.', ',');
+                    const newS = String(s).replace('.', ',');
+                    setMinuendRaw(newM);
+                    setSubtrahendRaw(newS);
+                    resetState(newM, newS);
+                } else {
+                    setMinuendRaw('');
+                    setSubtrahendRaw('');
+                    setSetupMode(true);
+                    setInputs({});
+                    setCarries({});
+                    setVisualCommas({});
+                    setHelpedFields({});
+                    setStatus('playing');
+                }
+            }, [config, isManual, useDecimals]);
+
+            const resetState = (mRaw, sRaw) => {
+                if (!isManual) setSetupMode(false);
+                setInputs({});
+                setCarries({});
+                setHelpedFields({});
+                setStatus('playing');
+
+                const newCommas = {};
+                if (useDecimals) {
+                    const mDec = Math.max(countDecimals(mRaw), countDecimals(sRaw));
+                    if (mDec > 0) {
+                        newCommas[`minuend-${mDec - 1}`] = true;
+                        newCommas[`subtrahend-${mDec - 1}`] = true;
+                    }
+                }
+                setVisualCommas(newCommas);
+            };
+
+            const maxDec = useDecimals ? Math.max(countDecimals(minuendRaw), countDecimals(subtrahendRaw)) : 0;
+            const minuend = stripDecimals(padDecimals(minuendRaw, maxDec));
+            const subtrahend = stripDecimals(padDecimals(subtrahendRaw, maxDec));
+            const expectedCommaPos = maxDec > 0 ? maxDec - 1 : -1;
+
+            const cols = Math.max(minuend.length, subtrahend.length) + 1;
+            const maxPower = cols - 2;
+
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && minuend && subtrahend) {
+                        const newInputs = {};
+                        const newCarries = {};
+                        
+                        const expectedStr = String(parseInt(minuend || 0, 10) - parseInt(subtrahend || 0, 10));
+                        for (let i = 0; i < expectedStr.length; i++) {
+                            newInputs[`res-${i}`] = expectedStr[expectedStr.length - 1 - i];
+                        }
+
+                        let currentCarry = 0;
+                        for (let power = 0; power <= maxPower; power++) {
+                            if (currentCarry > 0 && power > 0) {
+                                newCarries[`c-${power}`] = String(currentCarry);
+                            }
+                            const charIdxM = minuend.length - 1 - power;
+                            const topDigit = charIdxM >= 0 && charIdxM < minuend.length ? (parseInt(minuend[charIdxM], 10) || 0) : 0;
+                            const charIdxS = subtrahend.length - 1 - power;
+                            const botDigitBase = charIdxS >= 0 && charIdxS < subtrahend.length ? (parseInt(subtrahend[charIdxS], 10) || 0) : 0;
+                            
+                            const bottomDigit = botDigitBase + currentCarry;
+                            let resDigit = topDigit - bottomDigit;
+                            let nextCarry = 0;
+                            if (resDigit < 0) {
+                                nextCarry = 1;
+                            }
+                            currentCarry = nextCarry;
+                        }
+
+                        setInputs({...newInputs});
+                        setCarries({...newCarries});
+
+                        setVisualCommas(prev => {
+                            const next = {...prev};
+                            Object.keys(next).forEach(k => { if (k.startsWith('res-')) delete next[k]; });
+                            if (expectedCommaPos >= 0) next[`res-${expectedCommaPos}`] = true;
+                            return next;
+                        });
+
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, minuend, subtrahend, maxPower, expectedCommaPos]);
+
+            const handleHelp = () => {
+                const expectedStr = String(parseInt(minuend || 0, 10) - parseInt(subtrahend || 0, 10));
+                let currentCarry = 0;
+                
+                for (let power = 0; power <= maxPower; power++) {
+                    if (currentCarry > 0 && power > 0) {
+                        const carryKey = `c-${power}`;
+                        if (carries[carryKey] !== String(currentCarry)) {
+                            setCarries(prev => ({...prev, [carryKey]: String(currentCarry)}));
+                            setHelpedFields({ [carryKey]: true });
+                            return;
+                        }
+                    }
+
+                    const charIdxM = minuend.length - 1 - power;
+                    const topDigit = charIdxM >= 0 && charIdxM < minuend.length ? (parseInt(minuend[charIdxM], 10) || 0) : 0;
+                    const charIdxS = subtrahend.length - 1 - power;
+                    const botDigitBase = charIdxS >= 0 && charIdxS < subtrahend.length ? (parseInt(subtrahend[charIdxS], 10) || 0) : 0;
+                    
+                    const bottomDigit = botDigitBase + currentCarry;
+                    let resDigit = topDigit - bottomDigit;
+                    let nextCarry = 0;
+                    if (resDigit < 0) { nextCarry = 1; }
+
+                    if (power < expectedStr.length) {
+                        const expectedChar = expectedStr[expectedStr.length - 1 - power];
+                        const resKey = `res-${power}`;
+                        if (inputs[resKey] !== expectedChar) {
+                            setInputs(prev => ({...prev, [resKey]: expectedChar}));
+                            setHelpedFields({ [resKey]: true });
+                            return;
+                        }
+                    }
+                    currentCarry = nextCarry;
+                }
+
+                if (useDecimals) {
+                    const hasExtraCommas = Object.keys(visualCommas).some(k => k.startsWith('res-') && (expectedCommaPos < 0 || k !== `res-${expectedCommaPos}`) && visualCommas[k]);
+                    if (hasExtraCommas || (expectedCommaPos >= 0 && !visualCommas[`res-${expectedCommaPos}`])) {
+                        setVisualCommas(prev => {
+                            const next = {...prev};
+                            Object.keys(next).forEach(k => { if (k.startsWith('res-')) delete next[k]; });
+                            if (expectedCommaPos >= 0) next[`res-${expectedCommaPos}`] = true;
+                            return next;
+                        });
+                        return;
+                    }
+                }
+            };
+
+            const checkResult = () => {
+                const res = parseInt(minuend, 10) - parseInt(subtrahend, 10);
+                let userStr = '';
+                for (let power = maxPower; power >= 0; power--) {
+                    userStr += (inputs[`res-${power}`] || '0');
+                }
+                const isDigitsCorrect = parseInt(userStr, 10) === res;
+                const isCommaCorrect = !useDecimals || verifyCommas(visualCommas, 'res-', expectedCommaPos);
+
+                if (isDigitsCorrect && isCommaCorrect) setStatus('correct');
+                else setStatus('incorrect');
+            };
+
+            if (setupMode) {
+                return (
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los números</h3>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Minuendo (arriba):</span>
+                    <input 
+                        type="text" 
+                        className="border-4 border-blue-300 rounded-xl p-4 text-3xl font-mono w-64 focus:outline-none focus:border-blue-500" 
+                        value={minuendRaw} 
+                        onChange={(e) => setMinuendRaw(useDecimals ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value.replace(/[^0-9]/g, ''))} 
+                    />
+                    </div>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Sustraendo (abajo):</span>
+                    <input 
+                        type="text" 
+                        className="border-4 border-blue-300 rounded-xl p-4 text-3xl font-mono w-64 focus:outline-none focus:border-blue-500" 
+                        value={subtrahendRaw} 
+                        onChange={(e) => setSubtrahendRaw(useDecimals ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value.replace(/[^0-9]/g, ''))} 
+                    />
+                    </div>
+                    <button 
+                    onClick={() => {
+                        const mVal = parseFloat(minuendRaw.replace(',','.'));
+                        const sVal = parseFloat(subtrahendRaw.replace(',','.'));
+                        if (minuendRaw && subtrahendRaw && mVal >= sVal) {
+                            setSetupMode(false);
+                            const newCommas = {};
+                            const mDec = Math.max(countDecimals(minuendRaw), countDecimals(subtrahendRaw));
+                            if (useDecimals && mDec > 0) {
+                                newCommas[`minuend-${mDec - 1}`] = true;
+                                newCommas[`subtrahend-${mDec - 1}`] = true;
+                            }
+                            setVisualCommas(newCommas);
+                        }
+                        else alert("Por favor, asegúrate de que el minuendo sea mayor o igual al sustraendo.");
+                    }}
+                    className="bg-blue-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-blue-600 flex items-center shadow-lg"
+                    >
+                    <Check className="mr-3 w-8 h-8" /> Comenzar Resta
+                    </button>
+                </div>
+                );
+            }
+
+            const renderRow = (numStr, isSubtrahend = false) => {
+                const idPrefix = isSubtrahend ? 'subtrahend' : 'minuend';
+                return (
+                <React.Fragment>
+                    <div className="flex items-center justify-center font-bold text-2xl text-red-500">
+                    {isSubtrahend ? '-' : ''}
+                    </div>
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        const charIdx = numStr.length - 1 - power;
+                        const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
+                        return (
+                            <div key={`c-${power}`} className="flex flex-col items-center justify-center relative h-16">
+                                {useDecimals && power >= 0 && <InteractiveComma id={`${idPrefix}-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} />}
+                                <div className="text-3xl font-mono leading-none">
+                                    {char}
+                                </div>
+                                {isSubtrahend && charIdx >= -1 && charIdx < numStr.length && power > 0 && (
+                                    <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2">
+                                    <DigitInput
+                                        isSmall
+                                        value={carries[`c-${power}`] || ''}
+                                        onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
+                                        className="bg-orange-50 border-orange-300 text-orange-700 text-xs w-5 h-6"
+                                        isHelped={helpedFields[`c-${power}`]}
+                                    />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </React.Fragment>
+                );
+            };
+
+            return (
+                <div className="flex flex-col items-center">
+                <DragPalette useDecimals={useDecimals} />
+                <div className="bg-white p-8 pb-12 rounded-xl shadow-lg border-2 border-red-100 mt-4 w-max">
+                    <div className="grid gap-x-2 gap-y-4 items-end" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+                    {renderRow(minuend, false)}
+                    {renderRow(subtrahend, true)}
+
+                    <div className={`col-span-${cols} border-b-4 border-black mt-4 mb-2`}></div>
+
+                    {/* Result Row */}
+                    <div className="col-span-1"></div>
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        const hasHigherInput = Object.keys(inputs).some(k => k.startsWith('res-') && parseInt(k.split('-')[1]) > power && inputs[k] !== '');
+                        return (
+                            <div key={`res-${power}`} className="flex justify-center relative">
+                                {useDecimals && power >= 0 && <InteractiveComma id={`res-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} />}
+                                {!useDecimals && power % 3 === 2 && hasHigherInput && <DotSeparator />}
+                                <DigitInput
+                                    id={`sub-res-${cIndex}`}
+                                    value={inputs[`res-${power}`] || ''}
+                                    onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                    className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : ''}
+                                    isHelped={helpedFields[`res-${power}`]}
+                                />
+                            </div>
+                        );
+                    })}
+                    </div>
+                </div>
+
+                <div className="mt-8 flex space-x-4">
+                    {status !== 'correct' && (
+                    <button onClick={handleHelp} className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 flex items-center shadow-md">
+                        <HelpCircle className="mr-2" /> Ayuda
+                    </button>
+                    )}
+                    <button onClick={checkResult} className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 shadow-md">
+                    Comprobar
+                    </button>
+                    <button onClick={onNext} className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 shadow-md">
+                    Siguiente
+                    </button>
+                </div>
+                {status === 'correct' && <p className="mt-4 text-green-600 font-bold text-xl animate-bounce">¡Perfecto!</p>}
+                {status === 'incorrect' && <p className="mt-4 text-red-500 font-bold text-xl">Revisa la resta, las llevadas y la posición de la coma.</p>}
+                </div>
+            );
+        };
+
+        const MultiplicationBoard = ({ config, isManual, onNext, autoSolve, useDecimals, level }) => {
+            const [multiplicandRaw, setMultiplicandRaw] = useState('');
+            const [multiplierRaw, setMultiplierRaw] = useState('');
+            const [setupMode, setSetupMode] = useState(isManual);
+            const [inputs, setInputs] = useState({});
+            const [carries, setCarries] = useState({});
+            const [visualCommas, setVisualCommas] = useState({});
+            const [helpedFields, setHelpedFields] = useState({});
+            const [status, setStatus] = useState('playing');
+            const [showTableFor, setShowTableFor] = useState(null);
+
+            useEffect(() => {
+                if (!isManual) setMinuendOrMul();
+                else {
+                    setMultiplicandRaw('');
+                    setMultiplierRaw('');
+                    setSetupMode(true);
+                    setInputs({});
+                    setCarries({});
+                    setVisualCommas({});
+                    setHelpedFields({});
+                    setStatus('playing');
+                    setShowTableFor(null);
+                }
+            }, [config, isManual, useDecimals]);
+
+            const setMinuendOrMul = () => {
+                const m1 = generateNumberWithDecimals(config.digitsMultiplicand, useDecimals);
+                const m2 = generateNumberWithDecimals(config.digitsMultiplier, useDecimals);
+                setMultiplicandRaw(m1);
+                setMultiplierRaw(m2);
+                
+                setSetupMode(false);
+                setInputs({});
+                setCarries({});
+                setHelpedFields({});
+                setStatus('playing');
+                setShowTableFor(null);
+
+                const newCommas = {};
+                if (useDecimals) {
+                    const cM1 = countDecimals(m1);
+                    const cM2 = countDecimals(m2);
+                    if (cM1 > 0) newCommas[`top-${cM1 - 1}`] = true;
+                    if (cM2 > 0) newCommas[`bot-${cM2 - 1}`] = true;
+                }
+                setVisualCommas(newCommas);
+            }
+
+            const decM1 = useDecimals ? countDecimals(multiplicandRaw) : 0;
+            const decM2 = useDecimals ? countDecimals(multiplierRaw) : 0;
+            const totalDec = decM1 + decM2;
+            const expectedCommaPos = totalDec > 0 ? totalDec - 1 : -1;
+
+            const multiplicand = stripDecimals(multiplicandRaw);
+            const multiplier = stripDecimals(multiplierRaw);
+
+            const L = multiplicand.length;
+            const M = multiplier.length;
+            const cols = L + M + 2;
+            const numPartials = multiplier.length;
+
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && multiplicand && multiplier) {
+                        const m1 = parseInt(multiplicand || 0, 10);
+                        const m2Str = String(multiplier || 0);
+                        const newInputs = {};
+                        const newCarries = {};
+                        
+                        if (m2Str.length > 1) {
+                            for (let rIndex = 0; rIndex < m2Str.length; rIndex++) {
+                                const digit = parseInt(m2Str[m2Str.length - 1 - rIndex], 10) || 0;
+                                const pStr = digit === 0 ? '0'.repeat(String(m1).length) : String(m1 * digit);
+                                for (let j = 0; j < pStr.length; j++) {
+                                    const char = pStr[pStr.length - 1 - j];
+                                    const power = rIndex + j;
+                                    newInputs[`p-${rIndex}-${power}`] = char;
+                                }
+                            }
+                        }
+                        const totalStr = String(m1 * (parseInt(multiplier, 10) || 0));
+                        for(let j = 0; j < totalStr.length; j++){
+                            const char = totalStr[totalStr.length - 1 - j];
+                            newInputs[`res-${j}`] = char;
+                        }
+
+                        if (m2Str.length > 0) {
+                            const firstDigit = parseInt(m2Str[m2Str.length - 1], 10) || 0;
+                            let carry = 0;
+                            const m1Str = String(m1);
+                            for (let i = m1Str.length - 1; i >= 0; i--) {
+                                const topDigit = parseInt(m1Str[i], 10) || 0;
+                                const prod = topDigit * firstDigit + carry;
+                                carry = Math.floor(prod / 10);
+                                const power = m1Str.length - 1 - i + 1;
+                                if (carry > 0 && power < L) {
+                                    newCarries[`c-${power}`] = String(carry);
+                                }
+                            }
+                        }
+
+                        setInputs({...newInputs});
+                        setCarries({...newCarries});
+
+                        setVisualCommas(prev => {
+                            const next = {...prev};
+                            Object.keys(next).forEach(k => { if (k.startsWith('res-')) delete next[k]; });
+                            if (expectedCommaPos >= 0) next[`res-${expectedCommaPos}`] = true;
+                            return next;
+                        });
+
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, multiplicand, multiplier, L, expectedCommaPos]);
+
+            const clearCarries = () => setCarries({});
+
+            const handleHelp = () => {
+                const m1 = parseInt(multiplicand || 0, 10);
+                const m2Str = String(multiplier || 0);
+
+                if (m2Str.length > 1) {
+                    for (let rIndex = 0; rIndex < m2Str.length; rIndex++) {
+                        const digit = parseInt(m2Str[m2Str.length - 1 - rIndex], 10) || 0;
+                        const pStr = digit === 0 ? '0'.repeat(String(m1).length) : String(m1 * digit);
+                        for (let j = 0; j < pStr.length; j++) {
+                            const power = rIndex + j;
+                            const expectedChar = pStr[pStr.length - 1 - j];
+                            const key = `p-${rIndex}-${power}`;
+                            if (inputs[key] !== expectedChar) {
+                                setInputs(prev => ({...prev, [key]: expectedChar}));
+                                setHelpedFields({ [key]: true });
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                const totalStr = String(m1 * (parseInt(multiplier, 10) || 0));
+                for(let j = 0; j < totalStr.length; j++){
+                    const key = `res-${j}`; 
+                    const expectedChar = totalStr[totalStr.length - 1 - j];
+                    if (inputs[key] !== expectedChar) {
+                        setInputs(prev => ({...prev, [key]: expectedChar}));
+                        setHelpedFields({ [key]: true });
+                        return;
+                    }
+                }
+
+                if (useDecimals) {
+                    const hasExtraCommas = Object.keys(visualCommas).some(k => k.startsWith('res-') && (expectedCommaPos < 0 || k !== `res-${expectedCommaPos}`) && visualCommas[k]);
+                    if (hasExtraCommas || (expectedCommaPos >= 0 && !visualCommas[`res-${expectedCommaPos}`])) {
+                        setVisualCommas(prev => {
+                            const next = {...prev};
+                            Object.keys(next).forEach(k => { if (k.startsWith('res-')) delete next[k]; });
+                            if (expectedCommaPos >= 0) next[`res-${expectedCommaPos}`] = true;
+                            return next;
+                        });
+                        return;
+                    }
+                }
+            };
+
+            const checkResult = () => {
+                const m1 = parseInt(multiplicand, 10);
+                const m2 = parseInt(multiplier, 10);
+                
+                let userTotalStr = '';
+                for (let power = L + M; power >= 0; power--) {
+                    userTotalStr += (inputs[`res-${power}`] || '0');
+                }
+
+                const isDigitsCorrect = parseInt(userTotalStr, 10) === m1 * m2;
+                const isCommaCorrect = !useDecimals || verifyCommas(visualCommas, 'res-', expectedCommaPos);
+
+                if (isDigitsCorrect && isCommaCorrect) setStatus('correct');
+                else setStatus('incorrect');
+            };
+
+            if (setupMode) {
+                return (
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los números</h3>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Multiplicando:</span>
+                    <input type="text" className="border-4 border-purple-300 rounded-xl p-4 text-3xl font-mono w-64 focus:outline-none focus:border-purple-500" value={multiplicandRaw} onChange={(e) => setMultiplicandRaw(useDecimals ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value.replace(/[^0-9]/g, ''))} />
+                    </div>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Multiplicador:</span>
+                    <input type="text" className="border-4 border-purple-300 rounded-xl p-4 text-3xl font-mono w-64 focus:outline-none focus:border-purple-500" value={multiplierRaw} onChange={(e) => setMultiplierRaw(useDecimals ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value.replace(/[^0-9]/g, ''))} />
+                    </div>
+                    <button 
+                    onClick={() => {
+                        if (multiplicandRaw && multiplierRaw) {
+                            setSetupMode(false);
+                            setInputs({});
+                            setCarries({});
+                            setHelpedFields({});
+                            setStatus('playing');
+
+                            const newCommas = {};
+                            if (useDecimals) {
+                                const cM1 = countDecimals(multiplicandRaw);
+                                const cM2 = countDecimals(multiplierRaw);
+                                if (cM1 > 0) newCommas[`top-${cM1 - 1}`] = true;
+                                if (cM2 > 0) newCommas[`bot-${cM2 - 1}`] = true;
+                            }
+                            setVisualCommas(newCommas);
+                        }
+                    }}
+                    className="bg-purple-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-purple-600 flex items-center shadow-lg"
+                    >
+                    <Check className="mr-3 w-8 h-8" /> Comenzar
+                    </button>
+                </div>
+                );
+            }
+
+            const renderTopNumber = (numStr, sign, idPrefix) => {
+                return (
+                <React.Fragment>
+                    <div className="flex items-center justify-center font-bold text-2xl text-purple-500">
+                    {sign}
+                    </div>
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        const charIdx = numStr.length - 1 - power;
+                        const char = charIdx >= 0 && charIdx < numStr.length ? numStr[charIdx] : '';
+                        const isClickable = idPrefix === 'bot' && char !== '';
+                        return (
+                            <div key={`top-${power}`} className="flex justify-center items-center h-12 text-3xl font-mono relative">
+                                {useDecimals && power >= 0 && <InteractiveComma id={`${idPrefix}-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} />}
+                                {isClickable ? (
+                                    <span 
+                                        className="cursor-pointer hover:bg-purple-200 hover:text-purple-800 rounded px-2 transition-colors font-bold"
+                                        onClick={() => setShowTableFor(char)}
+                                        title={`Ver tabla del ${char}`}
+                                    >
+                                        {char}
+                                    </span>
+                                ) : (
+                                    <span>{char}</span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </React.Fragment>
+                );
+            };
+
+            return (
+                <div className="flex flex-col items-center">
+                <DragPalette useDecimals={useDecimals} />
+                <div className="flex items-start max-w-full">
+                <div className="bg-white p-8 rounded-xl shadow-lg border-2 border-purple-100 relative mt-4 overflow-x-auto min-w-[300px] w-max">
+                    <button 
+                    onClick={clearCarries}
+                    className="absolute top-2 right-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200 border border-yellow-300 z-20"
+                    >
+                    Borrar Llevadas
+                    </button>
+
+                    <div className="grid gap-y-2 gap-x-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+                    
+                    <div className="col-span-1"></div>
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        return (
+                            <div key={`carry-${power}`} className="flex justify-center mb-2">
+                            {power > 0 && power < L && (
+                                <DigitInput
+                                    isSmall
+                                    value={carries[`c-${power}`] || ''}
+                                    onChange={(v) => setCarries({ ...carries, [`c-${power}`]: v })}
+                                    className="bg-yellow-50 border-yellow-300 text-yellow-700"
+                                />
+                            )}
+                            </div>
+                        );
+                    })}
+
+                    {renderTopNumber(multiplicand, '', 'top')}
+                    {renderTopNumber(multiplier, '×', 'bot')}
+
+                    <div className={`col-span-${cols} border-b-4 border-black my-2`}></div>
+
+                    {numPartials > 1 && Array.from({ length: numPartials }).map((_, rIndex) => (
+                        <React.Fragment key={`partial-${rIndex}`}>
+                        <div className="flex items-center justify-center font-bold text-2xl text-purple-500">
+                            {rIndex === numPartials - 1 ? '+' : ''}
+                        </div>
+                        {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                            const power = cols - 2 - cIndex;
+                            const isInput = power >= rIndex && power <= rIndex + L;
+                            
+                            if (!isInput) return <div key={`p-${rIndex}-${power}`} className="w-10 h-12"></div>;
+
+                            return (
+                            <div key={`p-${rIndex}-${power}`} className="flex justify-center">
+                                <DigitInput
+                                    id={`mul-p-${rIndex}-${cIndex}`}
+                                    value={inputs[`p-${rIndex}-${power}`] || ''}
+                                    onChange={(v) => setInputs({ ...inputs, [`p-${rIndex}-${power}`]: v })}
+                                    className="bg-blue-50 border-blue-200"
+                                    isHelped={helpedFields[`p-${rIndex}-${power}`]}
+                                />
+                            </div>
+                            );
+                        })}
+                        </React.Fragment>
+                    ))}
+
+                    {numPartials > 1 && <div className={`col-span-${cols} border-b-4 border-black my-2`}></div>}
+
+                    {/* Result Row */}
+                    <div className="col-span-1"></div>
+                    {Array.from({ length: cols - 1 }).map((_, cIndex) => {
+                        const power = cols - 2 - cIndex;
+                        const hasHigherInput = Object.keys(inputs).some(k => k.startsWith('res-') && parseInt(k.split('-')[1]) > power && inputs[k] !== '');
+                        return (
+                            <div key={`res-${power}`} className="flex justify-center relative">
+                                {useDecimals && power >= 0 && <InteractiveComma id={`res-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} />}
+                                {!useDecimals && power % 3 === 2 && hasHigherInput && <DotSeparator />}
+                                <DigitInput
+                                    id={`mul-res-${cIndex}`}
+                                    value={inputs[`res-${power}`] || ''}
+                                    onChange={(v) => setInputs({ ...inputs, [`res-${power}`]: v })}
+                                    className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-gray-50 border-gray-300 font-bold'}
+                                    isHelped={helpedFields[`res-${power}`]}
+                                />
+                            </div>
+                        );
+                    })}
+
+                    </div>
+                </div>
+
+                {showTableFor && (
+                    <div className="ml-8 p-5 bg-yellow-50 border-2 border-yellow-400 rounded-xl shadow-md min-w-[160px]">
+                        <h4 className="font-bold text-center mb-3 border-b-2 border-yellow-300 pb-2 text-yellow-800">
+                        Tabla del {showTableFor}
+                        </h4>
+                        <div className="space-y-1">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                            <div key={i} className="font-mono text-lg text-yellow-900 flex justify-between">
+                            <span>{showTableFor} × {i + 1}</span>
+                            <span className="font-bold ml-2 text-yellow-700">= {parseInt(showTableFor, 10) * (i + 1)}</span>
+                            </div>
+                        ))}
+                        </div>
+                        <button 
+                        onClick={() => setShowTableFor(null)} 
+                        className="mt-4 text-sm bg-red-100 text-red-600 px-3 py-2 rounded-lg hover:bg-red-200 w-full font-bold transition-colors"
+                        >
+                        Cerrar tabla
+                        </button>
+                    </div>
+                )}
+                </div>
+
+                <div className="mt-8 flex space-x-4">
+                    {status !== 'correct' && (
+                    <button onClick={handleHelp} className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 flex items-center shadow-md">
+                        <HelpCircle className="mr-2" /> Ayuda
+                    </button>
+                    )}
+                    <button onClick={checkResult} className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 shadow-md">
+                    Comprobar
+                    </button>
+                    <button onClick={onNext} className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 shadow-md">
+                    Siguiente
+                    </button>
+                </div>
+                {status === 'correct' && <p className="mt-4 text-green-600 font-bold text-xl animate-bounce">¡Genial!</p>}
+                {status === 'incorrect' && <p className="mt-4 text-red-500 font-bold text-xl">Revisa tus cuentas y la colocación de la coma.</p>}
+                </div>
+            );
+        };
+
+
+        // --- DIVISION COMPONENT ---
+        const DivisionBoard = ({ config, isManual, onNext, autoSolve, useDecimals, level }) => {
+            const [dividendRaw, setDividendRaw] = useState('');
+            const [divisorRaw, setDivisorRaw] = useState('');
+            const [setupMode, setSetupMode] = useState(isManual);
+            
+            const [arcLen, setArcLen] = useState(0);
+            const [stepRows, setStepRows] = useState([]); 
+            const [quotientInputs, setQuotientInputs] = useState([]);
+            const [visualCommas, setVisualCommas] = useState({});
+            const [status, setStatus] = useState('select_arc'); 
+            const [showTableFor, setShowTableFor] = useState(null);
+            const [helpedFields, setHelpedFields] = useState({});
+
+            const [draggedDividendSuffix, setDraggedDividendSuffix] = useState('');
+            const [draggedQuotientPrefix, setDraggedQuotientPrefix] = useState('');
+            
+            const [isTransformed, setIsTransformed] = useState(true);
+
+            const safeDividendRaw = dividendRaw || '';
+            const safeDivisorRaw = divisorRaw || '';
+            const trueD = parseFloat(safeDividendRaw.replace(',','.'));
+            const trued = parseFloat(safeDivisorRaw.replace(',','.'));
+
+            useEffect(() => {
+                if (!isManual) {
+                    const divDigits = Array.isArray(config.digitsDividend) ? randomInt(config.digitsDividend[0], config.digitsDividend[1]) : config.digitsDividend;
+                    let D = generateNumber(divDigits);
+                    let d = generateNumber(config.digitsDivisor);
+                    if (d === 0) d = 1;
+                    if (D < d) [D, d] = [d, D]; 
+                    
+                    let newDStr = String(D);
+                    if (useDecimals && Math.random() > 0.5) {
+                        const decCount = randomInt(1, 2); 
+                        const decPart = String(randomInt(1, Math.pow(10, decCount) - 1)).padStart(decCount, '0');
+                        newDStr = `${D},${decPart}`;
+                    }
+                    const newdStr = String(d);
+                    
+                    setDividendRaw(newDStr);
+                    setDivisorRaw(newdStr);
+                    resetBoard(newDStr, newdStr);
+                } else {
+                    setDividendRaw('');
+                    setDivisorRaw('');
+                    setSetupMode(true);
+                    
+                    setArcLen(0);
+                    setStepRows([]);
+                    setQuotientInputs([]);
+                    setVisualCommas({});
+                    setStatus('select_arc');
+                    setShowTableFor(null);
+                    setHelpedFields({});
+                    setDraggedDividendSuffix('');
+                    setDraggedQuotientPrefix('');
+                    setIsTransformed(true);
+                }
+            }, [config, isManual, useDecimals]);
+
+            const resetBoard = (dRaw, divRaw) => {
+                if (!isManual) setSetupMode(false);
+                setArcLen(0);
+                setStepRows([]);
+                setQuotientInputs([]);
+                setShowTableFor(null);
+                setHelpedFields({});
+                setDraggedDividendSuffix('');
+                setDraggedQuotientPrefix('');
+
+                const newCommas = {};
+                if (useDecimals) {
+                    const cD = countDecimals(dRaw);
+                    const cd = countDecimals(divRaw);
+                    if (cD > 0) newCommas[`dividend-${cD - 1}`] = true;
+                    if (cd > 0) newCommas[`divisor-${cd - 1}`] = true;
+                    
+                    if (cd > 0) {
+                        setIsTransformed(false);
+                        setStatus('transform_decimals');
+                    } else {
+                        setIsTransformed(true);
+                        setStatus('select_arc');
+                    }
+                } else {
+                    setIsTransformed(true);
+                    setStatus('select_arc');
+                }
+                
+                setVisualCommas(newCommas);
+            }
+
+            const userDStr = getVisualNumberStrHelper(safeDividendRaw, draggedDividendSuffix, 'dividend', visualCommas);
+            const userdStr = getVisualNumberStrHelper(safeDivisorRaw, '', 'divisor', visualCommas);
+
+            const effectiveDividend = stripDecimals(safeDividendRaw) + draggedDividendSuffix;
+            const divisor = stripDecimals(userdStr);
+
+            const decD_t = countDecimals(userDStr);
+            const decd_t = countDecimals(userdStr); 
+
+            const handleCheckTransformation = () => {
+                const userDVal = parseFloat((userDStr || '0').replace(',', '.'));
+                const userdVal = parseFloat((userdStr || '1').replace(',', '.'));
+                const userRatio = userdVal !== 0 ? (userDVal / userdVal) : 0;
+                const trueRatio = trued !== 0 ? (trueD / trued) : 0;
+                
+                const hasDivisorComma = userdStr.includes(',');
+
+                if (!hasDivisorComma && Math.abs(userRatio - trueRatio) < 0.000001) {
+                    setIsTransformed(true);
+                    setStatus('select_arc');
+                } else {
+                    alert("Incorrecto. Recuerda: si quitas la coma del divisor (haciendo doble clic), debes mover la coma del dividendo a la derecha (o añadir ceros arrastrándolos) tantas posiciones como decimales tenía el divisor.");
+                }
+            };
+
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    
+                    let targetDivSuffix = draggedDividendSuffix;
+                    let targetQPrefix = draggedQuotientPrefix;
+                    let targetCommas = {...visualCommas};
+
+                    if (status === 'transform_decimals') {
+                        const decd_orig = countDecimals(safeDivisorRaw);
+                        const decD_orig = countDecimals(safeDividendRaw);
+                        
+                        Object.keys(targetCommas).forEach(k => { if (k.startsWith('divisor-')) delete targetCommas[k] });
+                        Object.keys(targetCommas).forEach(k => { if (k.startsWith('dividend-')) delete targetCommas[k] });
+                        
+                        let newDecD = Math.max(0, decD_orig - decd_orig);
+                        if (newDecD > 0) targetCommas[`dividend-${newDecD - 1}`] = true;
+                        
+                        let zeroesToAdd = Math.max(0, decd_orig - decD_orig);
+                        if (zeroesToAdd > 0) {
+                            targetDivSuffix = '0'.repeat(zeroesToAdd);
+                        } else {
+                            targetDivSuffix = '';
+                        }
+                        
+                        setVisualCommas(targetCommas);
+                        setDraggedDividendSuffix(targetDivSuffix);
+                        setIsTransformed(true);
+                    }
+
+                    if (!setupMode && safeDividendRaw && safeDivisorRaw) {
+                        if (trueD < trued && targetQPrefix === '') {
+                            let tempD = trueD;
+                            let z = 0;
+                            while (tempD < trued) {
+                                tempD *= 10;
+                                z++;
+                            }
+                            targetQPrefix = '0,';
+                            if (z > 1) targetQPrefix += '0'.repeat(z - 1);
+                            targetDivSuffix += '0'.repeat(z);
+                            
+                            setDraggedDividendSuffix(targetDivSuffix);
+                            setDraggedQuotientPrefix(targetQPrefix);
+                        }
+
+                        const currentDStr = getVisualNumberStrHelper(safeDividendRaw, targetDivSuffix, 'dividend', targetCommas);
+                        const currentdStr = getVisualNumberStrHelper(safeDivisorRaw, '', 'divisor', targetCommas);
+
+                        const D = stripDecimals(currentDStr);
+                        const d = parseInt(stripDecimals(currentdStr), 10);
+                        if(d === 0) return;
+
+                        let correctLen = 1;
+                        while (parseInt(D.substring(0, correctLen), 10) < d && correctLen < D.length) {
+                            correctLen++;
+                        }
+                        
+                        const currentDecD_t = countDecimals(currentDStr);
+                        let intDigits_t = D.length - currentDecD_t;
+                        if (intDigits_t <= 0) intDigits_t = 1;
+
+                        if (useDecimals && currentDecD_t > 0 && correctLen > intDigits_t && targetQPrefix === '') {
+                            correctLen = intDigits_t; 
+                        }
+
+                        setArcLen(correctLen); 
+                        
+                        let currentVal = parseInt(D.substring(0, correctLen), 10);
+                        const totalSteps = D.length - correctLen + 1;
+                        
+                        const newRows = [];
+                        const newQ = [];
+
+                        for (let step = 0; step < totalSteps; step++) {
+                            const qDigit = Math.floor(currentVal / d);
+                            newQ[step] = String(qDigit);
+                            
+                            const rem = currentVal % d;
+                            const remStr = String(rem);
+                            
+                            const remainderInputs = {};
+                            for (let i = 0; i < remStr.length; i++) {
+                                const c = (correctLen - 1 + step) - i;
+                                remainderInputs[c] = remStr[remStr.length - 1 - i];
+                            }
+                            
+                            let droppedChar = null;
+                            let dropColIndex = null;
+                            if (step < totalSteps - 1) {
+                                dropColIndex = correctLen + step;
+                                droppedChar = D[dropColIndex];
+                                remainderInputs[dropColIndex] = droppedChar; 
+                                currentVal = parseInt(remStr + droppedChar, 10);
+                            }
+
+                            newRows.push({
+                                remainderInputs,
+                                droppedChar,
+                                dropColIndex,
+                            });
+                        }
+                        
+                        setStepRows([...newRows]);
+                        setQuotientInputs([...newQ]);
+
+                        Object.keys(targetCommas).forEach(k => { if (k.startsWith('q-')) delete targetCommas[k]; });
+                        const currentDecd_t = countDecimals(currentdStr);
+                        const expQDecs = Math.max(0, currentDecD_t - currentDecd_t);
+                        const expectedCommaPos = expQDecs > 0 ? expQDecs - 1 : -1;
+                        if (expectedCommaPos >= 0 && targetQPrefix === '') targetCommas[`q-${expectedCommaPos}`] = true;
+                        
+                        setVisualCommas(targetCommas);
+                        setHelpedFields({});
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, safeDividendRaw, safeDivisorRaw, useDecimals, draggedDividendSuffix, draggedQuotientPrefix, visualCommas, status, trueD, trued]);
+
+            const selectArc = (len) => {
+                setArcLen(len);
+                setStatus('playing');
+                
+                const D = stripDecimals(userDStr);
+                const newRows = [];
+                const totalSteps = D.length - len + 1;
+                for (let i = 0; i < totalSteps; i++) {
+                newRows.push({
+                    remainderInputs: {},
+                    droppedChar: i < totalSteps - 1 ? D[len + i] : null,
+                    dropColIndex: i < totalSteps - 1 ? len + i : null,
+                });
+                }
+                setStepRows(newRows);
+                setQuotientInputs(Array(totalSteps).fill(''));
+            };
+
+            const handleRemainderChange = (rowIndex, colIndex, val) => {
+                const newRows = [...stepRows];
+                newRows[rowIndex].remainderInputs[colIndex] = val;
+                setStepRows(newRows);
+            };
+
+            const handleQuotientChange = (idx, val) => {
+                const newQ = [...quotientInputs];
+                newQ[idx] = val;
+                setQuotientInputs(newQ);
+            };
+
+            const getExpectedDivision = () => {
+                if (arcLen === 0) return { expRem: {}, expQ: {} };
+                const expRem = {};
+                const expQ = {};
+                const D = stripDecimals(userDStr);
+                const d = parseInt(stripDecimals(userdStr), 10);
+                
+                let currentVal = parseInt(D.substring(0, arcLen), 10);
+                
+                for (let step = 0; step < D.length - arcLen + 1; step++) {
+                    const qDigit = Math.floor(currentVal / d);
+                    expQ[step] = String(qDigit);
+                    
+                    const rem = currentVal % d;
+                    const remStr = String(rem);
+                    
+                    for (let i = 0; i < remStr.length; i++) {
+                        const c = (arcLen - 1 + step) - i;
+                        expRem[`${step}-${c}`] = remStr[remStr.length - 1 - i];
+                    }
+                    if (step < D.length - arcLen) {
+                        const dropCol = arcLen + step;
+                        const dropChar = D[dropCol];
+                        currentVal = parseInt(remStr + dropChar, 10);
+                    }
+                }
+                return { expRem, expQ };
+            };
+
+            const handleHelp = () => {
+                if (status === 'transform_decimals') {
+                    const decd_orig = countDecimals(safeDivisorRaw);
+                    const decD_orig = countDecimals(safeDividendRaw);
+                    
+                    let nextCommas = {...visualCommas};
+                    Object.keys(nextCommas).forEach(k => { if (k.startsWith('divisor-')) delete nextCommas[k] });
+                    Object.keys(nextCommas).forEach(k => { if (k.startsWith('dividend-')) delete nextCommas[k] });
+                    
+                    let newDecD = Math.max(0, decD_orig - decd_orig);
+                    if (newDecD > 0) nextCommas[`dividend-${newDecD - 1}`] = true;
+                    
+                    let zeroesToAdd = Math.max(0, decd_orig - decD_orig);
+                    if (zeroesToAdd > 0) {
+                        setDraggedDividendSuffix('0'.repeat(zeroesToAdd));
+                    } else {
+                        setDraggedDividendSuffix('');
+                    }
+                    
+                    setVisualCommas(nextCommas);
+                    return;
+                }
+                
+                if (trueD < trued && draggedQuotientPrefix === '') {
+                    let tempD = trueD;
+                    let z = 0;
+                    while (tempD < trued) {
+                        tempD *= 10;
+                        z++;
+                    }
+                    let qPref = '0,';
+                    if (z > 1) qPref += '0'.repeat(z - 1);
+                    
+                    setDraggedDividendSuffix('0'.repeat(z));
+                    setDraggedQuotientPrefix(qPref);
+                    return;
+                }
+
+                const D = stripDecimals(userDStr);
+                if (arcLen === 0) {
+                    let len = 1;
+                    while (parseInt(D.substring(0, len), 10) < parseInt(stripDecimals(userdStr), 10) && len < D.length) len++;
+                    let intDigits_t = D.length - decD_t;
+                    if (intDigits_t <= 0) intDigits_t = 1;
+                    if (useDecimals && decD_t > 0 && len > intDigits_t && draggedQuotientPrefix === '') len = intDigits_t;
+                    selectArc(len);
+                    return;
+                }
+
+                const { expRem, expQ } = getExpectedDivision();
+                const totalSteps = D.length - arcLen + 1;
+
+                for (let step = 0; step < totalSteps; step++) {
+                    if (quotientInputs[step] !== expQ[step]) {
+                        handleQuotientChange(step, expQ[step]);
+                        setHelpedFields(prev => ({...prev, [`q-${step}`]: true}));
+                        return;
+                    }
+                    
+                    const rightmostC = arcLen - 1 + step;
+                    for (let c = rightmostC; c >= 0; c--) {
+                        const expVal = expRem[`${step}-${c}`];
+                        if (expVal !== undefined) {
+                            const actualVal = stepRows[step]?.remainderInputs[c];
+                            if (actualVal !== expVal) {
+                                handleRemainderChange(step, c, expVal);
+                                setHelpedFields(prev => ({...prev, [`rem-${step}-${c}`]: true}));
+                                return;
+                            }
+                        }
+                    }
+
+                    if (step < totalSteps - 1) {
+                        const dropCol = arcLen + step;
+                        const expDrop = D[dropCol];
+                        const actualVal = stepRows[step]?.remainderInputs[dropCol];
+                        if (actualVal !== expDrop) {
+                            handleRemainderChange(step, dropCol, expDrop);
+                            setHelpedFields(prev => ({...prev, [`rem-${step}-${dropCol}`]: true}));
+                            return;
+                        }
+                    }
+                }
+
+                const expectedCommaPos = Math.max(0, decD_t - decd_t) > 0 ? Math.max(0, decD_t - decd_t) - 1 : -1;
+                if (useDecimals && draggedQuotientPrefix === '') {
+                    const qCommas = Object.keys(visualCommas).filter(k => k.startsWith('q-') && visualCommas[k]);
+                    const hasWrongCommas = qCommas.some(k => expectedCommaPos < 0 || k !== `q-${expectedCommaPos}`);
+                    if (hasWrongCommas || (expectedCommaPos >= 0 && !visualCommas[`q-${expectedCommaPos}`])) {
+                        setVisualCommas(prev => {
+                            const next = {...prev};
+                            Object.keys(next).forEach(k => { if (k.startsWith('q-')) delete next[k]; });
+                            if (expectedCommaPos >= 0) next[`q-${expectedCommaPos}`] = true;
+                            return next;
+                        });
+                        return;
+                    }
+                }
+            };
+
+            const checkResult = () => {
+                if (userdStr.includes(',')) {
+                    setStatus('incorrect'); return;
+                }
+
+                let expectedQPrefix = '';
+                if (trueD < trued) {
+                    let tempD = trueD;
+                    let z = 0;
+                    while (tempD < trued) { tempD *= 10; z++; }
+                    expectedQPrefix = '0,';
+                    if (z > 1) expectedQPrefix += '0'.repeat(z - 1);
+                }
+                
+                const isQPrefixCorrect = draggedQuotientPrefix === expectedQPrefix;
+
+                let prefixMultiplier = 1;
+                if (draggedQuotientPrefix === '0,') prefixMultiplier = 0.1;
+                else if (draggedQuotientPrefix.startsWith('0,0')) {
+                    prefixMultiplier = Math.pow(10, -(draggedQuotientPrefix.length - 1));
+                }
+                
+                const userDVal = parseFloat((userDStr||'0').replace(',','.'));
+                const userdVal = parseFloat((userdStr||'1').replace(',','.'));
+                const userRatio = userdVal !== 0 ? (userDVal / userdVal) : 0;
+                const trueRatio = trued !== 0 ? (trueD / trued) : 0;
+                const isRatioCorrect = Math.abs((userRatio * prefixMultiplier) - trueRatio) < 0.000001;
+
+                const { expRem, expQ } = getExpectedDivision();
+                const expectedQStr = Object.keys(expQ).sort((a,b)=>a-b).map(k => expQ[k]).join('');
+                
+                const D = stripDecimals(userDStr);
+                const totalSteps = D.length - arcLen + 1;
+                const lastStep = totalSteps - 1;
+                
+                let expectedRemStr = '';
+                if (lastStep >= 0) {
+                    const keys = Object.keys(expRem).filter(k => k.startsWith(`${lastStep}-`)).sort((a,b) => parseInt(a.split('-')[1]) - parseInt(b.split('-')[1]));
+                    expectedRemStr = keys.map(k => expRem[k]).join('');
+                }
+
+                const userQ = quotientInputs.join('');
+                let userRemStr = '';
+                if (stepRows.length > 0) {
+                    const lastRow = stepRows[stepRows.length - 1];
+                    userRemStr = Object.keys(lastRow.remainderInputs)
+                        .sort((a,b) => parseInt(a, 10) - parseInt(b, 10))
+                        .map(k => lastRow.remainderInputs[k])
+                        .join('');
+                }
+
+                const isQCorrect = userQ === expectedQStr;
+                const isRemCorrect = userRemStr !== '' && parseInt(userRemStr || '0', 10) === parseInt(expectedRemStr || '0', 10);
+                
+                const expectedCommaPos = Math.max(0, decD_t - decd_t) > 0 ? Math.max(0, decD_t - decd_t) - 1 : -1;
+                const isCommaCorrect = (!useDecimals || draggedQuotientPrefix !== '') ? true : verifyCommas(visualCommas, 'q-', expectedCommaPos);
+
+                if (isQCorrect && isRemCorrect && isCommaCorrect && isQPrefixCorrect && isRatioCorrect) {
+                    setStatus('correct');
+                } else {
+                    setStatus('incorrect');
+                }
+            };
+
+            const renderArc = () => {
+                if (arcLen === 0) return null;
+                const widthPerChar = 40; 
+                const width = arcLen * widthPerChar;
+                return (
+                <svg className="absolute -top-3 left-0" width={width} height="16" style={{ pointerEvents: 'none' }}>
+                    <path d={`M 4 12 Q ${width/2} -4 ${width-4} 12`} fill="none" stroke="#0d9488" strokeWidth="3" strokeLinecap="round"/>
+                </svg>
+                );
+            };
+
+            if (setupMode) {
+                return (
+                <div className="flex flex-col items-center space-y-6">
+                    <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce los números</h3>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Dividendo:</span>
+                    <input type="text" className="border-4 border-teal-300 rounded-xl p-4 text-3xl font-mono w-64 focus:outline-none focus:border-teal-500" value={dividendRaw} onChange={(e) => setDividendRaw(useDecimals ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value.replace(/[^0-9]/g, ''))} />
+                    </div>
+                    <div className="flex items-center space-x-4">
+                    <span className="font-bold text-2xl whitespace-nowrap">Divisor:</span>
+                    <input type="text" className="border-4 border-teal-300 rounded-xl p-4 text-3xl font-mono w-64 focus:outline-none focus:border-teal-500" value={divisorRaw} onChange={(e) => setDivisorRaw(useDecimals ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value.replace(/[^0-9]/g, ''))} />
+                    </div>
+                    <button 
+                    onClick={() => {
+                        let currentD = safeDividendRaw.replace(',', '.');
+                        let currentd = safeDivisorRaw.replace(',', '.');
+                        
+                        if (!currentD || !currentd || parseFloat(currentd) === 0) {
+                            alert("Números inválidos. Asegúrate de que el divisor no sea 0.");
+                            return;
+                        }
+
+                        let mVal = parseFloat(currentD);
+                        let sVal = parseFloat(currentd);
+                        
+                        if (mVal < sVal && level < 6) {
+                            alert("Las divisiones manuales con dividendo menor que el divisor solo están permitidas seleccionando 6º curso.");
+                            return;
+                        }
+
+                        setDividendRaw(currentD.replace('.', ','));
+                        setDivisorRaw(currentd.replace('.', ','));
+                        setSetupMode(false);
+                        resetBoard(currentD.replace('.', ','), currentd.replace('.', ','));
+                    }}
+                    className="bg-teal-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-teal-600 flex items-center shadow-lg"
+                    >
+                    <Check className="mr-3 w-8 h-8" /> Comenzar División
+                    </button>
+                </div>
+                );
+            }
+
+            const isDividendReady = parseFloat((userDStr||'0').replace(',','.')) >= parseFloat((userdStr||'1').replace(',','.'));
+            const showDecimalsUI = useDecimals || (level === 6 && (!isDividendReady || draggedQuotientPrefix !== '' || draggedDividendSuffix !== ''));
+
+            return (
+                <div className="flex flex-col items-center relative">
+
+                {/* --- PALETA PARA ARRASTRAR Y SOLTAR --- */}
+                {showDecimalsUI && arcLen === 0 && (
+                    <DragPalette 
+                        useDecimals={true} 
+                        onDelD={() => { 
+                            if (draggedDividendSuffix.length > 0) {
+                                setDraggedDividendSuffix(p => p.slice(0,-1)); 
+                                setVisualCommas(prev => {
+                                    const next = {};
+                                    for (let k in prev) {
+                                        if (k.startsWith('dividend-')) {
+                                            const power = parseInt(k.split('-')[1], 10);
+                                            if (power > 0) next[`dividend-${power - 1}`] = prev[k];
+                                        } else {
+                                            next[k] = prev[k];
+                                        }
+                                    }
+                                    return next;
+                                });
+                                setArcLen(0); 
+                                if(status==='playing') setStatus('select_arc'); 
+                            }
+                        }}
+                        onDelQ={() => setDraggedQuotientPrefix(p => p.slice(0,-1))}
+                    />
+                )}
+
+                {status === 'transform_decimals' ? (
+                    <div className="mb-6 flex flex-col items-center p-4 bg-purple-50 rounded-xl border border-purple-400 shadow-md animate-pulse z-20 max-w-sm text-center">
+                        <p className="font-bold text-purple-800 text-lg mb-2">El divisor tiene decimales.</p>
+                        <p className="text-purple-700 text-sm mb-4"><strong>1.</strong> Haz doble clic en la coma del divisor para quitarla.<br/><strong>2.</strong> Arrastra ceros o haz clic en el dividendo para compensar.</p>
+                        <button onClick={handleCheckTransformation} className="bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow hover:bg-purple-600">
+                            Comprobar Transformación
+                        </button>
+                    </div>
+                ) : status === 'select_arc' && !isDividendReady ? (
+                    <div className="mb-6 flex flex-col items-center p-4 bg-yellow-50 rounded-xl border border-yellow-400 shadow-md animate-pulse z-20">
+                        <p className="font-bold text-yellow-800 text-lg text-center">El dividendo es menor que el divisor.<br/>¡Arrastra ceros al dividendo y '0,' al cociente!</p>
+                    </div>
+                ) : status === 'select_arc' && isDividendReady && (
+                    <div className="mb-6 p-4 bg-teal-50 rounded-xl border border-teal-200 text-center animate-pulse z-20">
+                        <p className="font-bold text-teal-800 mb-2">¿Cuántas cifras coges para empezar?</p>
+                        <div className="flex justify-center space-x-2">
+                            {effectiveDividend.split('').map((_, i) => {
+                                const isValidArc = !useDecimals || decD_t === 0 || (i + 1) <= effectiveDividend.length - decD_t || draggedQuotientPrefix !== '';
+                                return (
+                                    <button 
+                                        key={i} 
+                                        onClick={() => selectArc(i+1)} 
+                                        disabled={!isValidArc}
+                                        className={`px-4 py-2 bg-white border-2 rounded font-bold ${isValidArc ? 'border-teal-500 hover:bg-teal-500 hover:text-white' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex items-start max-w-full mt-2 w-max">
+                    <div className="bg-white p-8 rounded-xl shadow-lg border-2 border-teal-100 overflow-x-auto min-w-[300px] relative w-max">
+                    
+                    <div className="flex items-start">
+                        
+                        <div className="flex flex-col items-end pr-12 sm:pr-20 relative">
+                        
+                        <div className="flex relative mb-2 items-center">
+                            {renderArc()}
+                            {effectiveDividend.split('').map((char, i) => {
+                                const power = effectiveDividend.length - 1 - i;
+                                return (
+                                    <div key={i} className="w-10 h-12 flex items-center justify-center text-3xl font-mono font-bold tracking-widest relative">
+                                        {showDecimalsUI && power >= 0 && <InteractiveComma id={`dividend-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} />}
+                                        {char}
+                                        {stepRows.some((r) => r.dropColIndex === i) && (
+                                        <ArrowDown className="absolute -bottom-6 text-orange-500 h-6 w-6 z-10" />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            
+                            {/* ZONA DE CAÍDA DIVIDENDO */}
+                            {((!isDividendReady || !isTransformed) && arcLen === 0) && (
+                                <div
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={(e) => {
+                                        const val = e.dataTransfer.getData('text/plain');
+                                        if (val === '0') {
+                                            setDraggedDividendSuffix(prev => prev + val);
+                                            setVisualCommas(prev => {
+                                                const next = {};
+                                                for (let k in prev) {
+                                                    if (k.startsWith('dividend-')) {
+                                                        const power = parseInt(k.split('-')[1], 10);
+                                                        next[`dividend-${power + 1}`] = prev[k];
+                                                    } else {
+                                                        next[k] = prev[k];
+                                                    }
+                                                }
+                                                return next;
+                                            });
+                                            setArcLen(0);
+                                            if (status === 'playing') setStatus('select_arc');
+                                        } else if (val === ',') {
+                                            setVisualCommas(prev => ({...prev, [`dividend-0`]: true}));
+                                        }
+                                    }}
+                                    className={`w-10 h-12 ml-2 border-2 border-dashed ${draggedDividendSuffix ? 'border-gray-400 bg-gray-50' : 'border-teal-400 bg-teal-50'} flex items-center justify-center text-xl font-mono text-gray-400 rounded-lg opacity-60 hover:opacity-100 hover:bg-gray-100 transition-all`}
+                                    title="Suelta ceros o comas aquí para añadir al dividendo"
+                                >
+                                    <span className="animate-bounce">⬇️</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {arcLen > 0 && stepRows.map((row, rIndex) => (
+                            <div key={`rem-row-${rIndex}`} className="flex mt-1 relative">
+                            
+                            {Array.from({ length: effectiveDividend.length }).map((_, cIndex) => {
+                                const maxActiveCol = row.dropColIndex !== null ? row.dropColIndex : (arcLen - 1 + rIndex); 
+                                
+                                if (cIndex <= maxActiveCol) {
+
+                                    if (row.droppedChar && cIndex === row.dropColIndex) {
+                                        return (
+                                        <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
+                                            <div className="relative w-full h-full">
+                                                <DigitInput
+                                                    isSmall
+                                                    readOnly={status === 'correct'}
+                                                    value={row.remainderInputs[cIndex] || ''}
+                                                    onChange={(v) => handleRemainderChange(rIndex, cIndex, v)}
+                                                    className={`w-full h-full text-xl font-bold border-blue-300 text-blue-600 bg-blue-50 focus:bg-blue-100 ${status === 'incorrect' ? 'border-red-300' : ''}`}
+                                                    isHelped={helpedFields[`rem-${rIndex}-${cIndex}`]}
+                                                />
+                                            </div>
+                                        </div>
+                                        )
+                                    }
+
+                                    return (
+                                        <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12 relative">
+                                            <div className="relative w-full h-full">
+                                                <DigitInput
+                                                    isSmall
+                                                    readOnly={status === 'correct'}
+                                                    value={row.remainderInputs[cIndex] || ''}
+                                                    onChange={(v) => handleRemainderChange(rIndex, cIndex, v)}
+                                                    className={`w-full h-full text-xl border-gray-300 ${status === 'incorrect' ? 'border-red-300' : ''}`}
+                                                    isHelped={helpedFields[`rem-${rIndex}-${cIndex}`]}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                
+                                return <div key={`rem-${rIndex}-${cIndex}`} className="w-10 h-12"></div>;
+                            })}
+
+                            {status === 'correct' && rIndex === stepRows.length - 1 && (
+                                <svg className="absolute -bottom-5 right-0" width="30" height="15">
+                                <path d="M 0 0 Q 15 15 30 0" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round"/>
+                                </svg>
+                            )}
+                            </div>
+                        ))}
+
+                        </div>
+
+                        <div className="flex flex-col">
+                        <div className="border-l-4 border-b-4 border-black pl-3 pb-2 flex relative">
+                            {divisor.split('').map((char, i) => {
+                                const power = divisor.length - 1 - i;
+                                return (
+                                <div key={i} className="w-6 flex items-center justify-center text-3xl font-mono font-bold tracking-widest relative">
+                                    {showDecimalsUI && power >= 0 && <InteractiveComma id={`divisor-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} isSmall />}
+                                    <span 
+                                        className="cursor-pointer hover:text-teal-600 hover:bg-teal-100 rounded px-1 transition-colors"
+                                        title={`Pulsa para ver la tabla del ${char}`}
+                                        onClick={() => setShowTableFor(char)}
+                                    >
+                                        {char}
+                                    </span>
+                                </div>
+                                );
+                            })}
+                        </div>
+                        
+                        <div className="pl-4 pt-2 flex space-x-1 items-end">
+                            {/* ZONA DE CAÍDA COCIENTE */}
+                            {(isTransformed && !isDividendReady && arcLen === 0) && (
+                                <div
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={(e) => {
+                                        const val = e.dataTransfer.getData('text/plain');
+                                        if (val === '0' || val === ',') {
+                                            setDraggedQuotientPrefix(prev => prev + val);
+                                        }
+                                    }}
+                                    className={`min-w-[40px] px-2 h-12 pb-1 border-2 border-dashed flex items-end justify-center text-3xl font-mono font-bold text-teal-800 rounded-lg select-none transition-all ${draggedQuotientPrefix ? 'border-transparent' : 'border-teal-400 bg-teal-50 opacity-60 hover:opacity-100 hover:bg-teal-100'} mr-1`}
+                                    title="Suelta ceros o comas aquí para el cociente"
+                                >
+                                    {draggedQuotientPrefix || <span className="text-xl text-teal-600 pb-1 animate-bounce">⬇️</span>}
+                                </div>
+                            )}
+                            
+                            {((isDividendReady || arcLen > 0) && draggedQuotientPrefix) && (
+                                 <div className="flex items-end justify-center h-12 pb-1 text-3xl font-mono font-bold text-teal-800 mr-1 select-none whitespace-nowrap">
+                                    {draggedQuotientPrefix}
+                                </div>
+                            )}
+
+                            {arcLen > 0 && Array.from({ length: effectiveDividend.length - arcLen + 1 }).map((_, i) => {
+                                const power = (effectiveDividend.length - arcLen) - i;
+                                const hasHigher = quotientInputs.some((val, idx) => idx < i && val !== '');
+                                return (
+                                    <div key={`q-${i}`} className="relative">
+                                        {showDecimalsUI && power >= 0 && draggedQuotientPrefix === '' && <InteractiveComma id={`q-${power}`} commasMap={visualCommas} setCommasMap={setVisualCommas} isSmall />}
+                                        {!showDecimalsUI && power % 3 === 2 && hasHigher && <DotSeparator isSmall />}
+                                        <DigitInput
+                                            isSmall
+                                            readOnly={status === 'correct'}
+                                            value={quotientInputs[i] || ''}
+                                            onChange={(v) => handleQuotientChange(i, v)}
+                                            className={status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-teal-50'}
+                                            isHelped={helpedFields[`q-${i}`]}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        </div>
+
+                    </div>
+                    </div>
+
+                    {showTableFor && (
+                        <div className="ml-8 p-5 bg-yellow-50 border-2 border-yellow-400 rounded-xl shadow-md min-w-[160px]">
+                            <h4 className="font-bold text-center mb-3 border-b-2 border-yellow-300 pb-2 text-yellow-800">
+                            Tabla del {showTableFor}
+                            </h4>
+                            <div className="space-y-1">
+                            {Array.from({ length: 9 }).map((_, i) => (
+                                <div key={i} className="font-mono text-lg text-yellow-900 flex justify-between">
+                                <span>{showTableFor} × {i + 1}</span>
+                                <span className="font-bold ml-2 text-yellow-700">= {parseInt(showTableFor, 10) * (i + 1)}</span>
+                                </div>
+                            ))}
+                            </div>
+                            <button 
+                            onClick={() => setShowTableFor(null)} 
+                            className="mt-4 text-sm bg-red-100 text-red-600 px-3 py-2 rounded-lg hover:bg-red-200 w-full font-bold transition-colors"
+                            >
+                            Cerrar tabla
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="mt-8 flex space-x-4">
+                    {status !== 'correct' && status !== 'transform_decimals' && (
+                    <button onClick={handleHelp} className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 flex items-center shadow-md">
+                        <HelpCircle className="mr-2" /> Ayuda
+                    </button>
+                    )}
+                    {status === 'transform_decimals' && (
+                    <button onClick={handleHelp} className="bg-purple-300 text-purple-900 px-6 py-3 rounded-xl font-bold hover:bg-purple-400 flex items-center shadow-md">
+                        <HelpCircle className="mr-2" /> Ayuda
+                    </button>
+                    )}
+                    {status === 'incorrect' && (
+                    <button onClick={() => resetBoard(safeDividendRaw, safeDivisorRaw)} className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 flex items-center shadow-md">
+                        <RefreshCw className="mr-2" /> Elegir otro arco
+                    </button>
+                    )}
+                    {(status === 'playing' || status === 'incorrect') && (
+                    <button onClick={checkResult} className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 shadow-md">
+                        Comprobar Operación
+                    </button>
+                    )}
+                    <button onClick={onNext} className="bg-teal-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-teal-600 shadow-md">
+                    Siguiente Operación
+                    </button>
+                </div>
+
+                {status === 'correct' && <p className="mt-4 text-green-600 font-bold text-xl animate-bounce">¡División completada correctamente!</p>}
+                {status === 'incorrect' && <p className="mt-4 text-red-500 font-bold text-xl">Hay algún fallo. Revisa la operación o los ceros y comas.</p>}
+                </div>
+            );
+        };
+
+        // --- FRACTION BOARD COMPONENT ---
+        const FractionBoard = ({ operation, isManual, onNext, autoSolve, level }) => {
+            const [fracs, setFracs] = useState([{n: '', d: ''}, {n: '', d: ''}]);
+            const [steps, setSteps] = useState([{n: '', d: ''}, {n: '', d: ''}]);
+            const [res, setRes] = useState({n: '', d: ''});
+            const [simps, setSimps] = useState([{n: '', d: ''}, {n: '', d: ''}, {n: '', d: ''}]);
+            const [setupMode, setSetupMode] = useState(isManual);
+            const [status, setStatus] = useState('playing');
+            const [helpedFields, setHelpedFields] = useState({});
+
+            const [lcmFactors, setLcmFactors] = useState([{b: '', e: ''}]);
+            const [lcmResult, setLcmResult] = useState('');
+            const [cleanLcmDisplay, setCleanLcmDisplay] = useState(false);
+
+            const symMap = { 'add': '+', 'sub': '−', 'mul': '×', 'div': '÷' };
+            const symbol = symMap[operation];
+
+            // Comprueba si se necesita calcular el mcm y hacer pasos intermedios
+            const requiresLcm = (operation === 'add' || operation === 'sub') && fracs.length > 0 && !fracs.every(f => f.d === fracs[0].d && f.d !== '');
+
+            useEffect(() => {
+                if (!isManual) {
+                    const count = (operation === 'add') ? randomInt(2, 3) : 2;
+                    let commonD = null;
+                    
+                    // Si estamos en 5º, obligamos a que el denominador sea el mismo
+                    if (level === 5 && (operation === 'add' || operation === 'sub')) {
+                        commonD = String(randomInt(2, 10));
+                    }
+
+                    const newFracs = Array.from({length: count}, () => ({
+                        n: String(randomInt(1, 10)), 
+                        d: commonD || String(randomInt(2, 10))
+                    }));
+
+                    if (operation === 'sub' && newFracs.length === 2) {
+                        const v1 = parseInt(newFracs[0].n)/parseInt(newFracs[0].d);
+                        const v2 = parseInt(newFracs[1].n)/parseInt(newFracs[1].d);
+                        if (v1 < v2) {
+                            const temp = newFracs[0];
+                            newFracs[0] = newFracs[1];
+                            newFracs[1] = temp;
+                        }
+                    } else if (operation === 'div') {
+                        if (newFracs[1].n === '0') newFracs[1].n = '1';
+                    }
+
+                    setFracs(newFracs);
+                    setSteps(Array.from({length: count}, () => ({n: '', d: ''})));
+                    setRes({n: '', d: ''});
+                    setSimps([{n: '', d: ''}, {n: '', d: ''}, {n: '', d: ''}]);
+                    setLcmFactors([{b: '', e: ''}]);
+                    setLcmResult('');
+                    setCleanLcmDisplay(false);
+                    setSetupMode(false);
+                    setStatus('playing');
+                    setHelpedFields({});
+                } else {
+                    setFracs([{n: '', d: ''}, {n: '', d: ''}]);
+                    setSteps([{n: '', d: ''}, {n: '', d: ''}]);
+                    setRes({n: '', d: ''});
+                    setSimps([{n: '', d: ''}, {n: '', d: ''}, {n: '', d: ''}]);
+                    setLcmFactors([{b: '', e: ''}]);
+                    setLcmResult('');
+                    setCleanLcmDisplay(false);
+                    setSetupMode(true);
+                    setStatus('playing');
+                    setHelpedFields({});
+                }
+            }, [operation, isManual, level]);
+
+            const changeAddends = (count) => {
+                setFracs(Array.from({length: count}, (_, i) => fracs[i] || {n: '', d: ''}));
+                setSteps(Array.from({length: count}, () => ({n: '', d: ''})));
+            };
+
+            const getGcd = (a, b) => b === 0 ? a : getGcd(b, a % b);
+            const getLcm = (a, b) => (a * b) / getGcd(a, b);
+            const getArrayLcm = (arr) => arr.reduce((acc, val) => getLcm(acc, val), 1);
+
+            const getExpectedSteps = () => {
+                const parsedFracs = fracs.map(f => ({ n: parseInt(f.n, 10)||0, d: parseInt(f.d, 10)||1 }));
+                if (requiresLcm) {
+                    const trueLcm = getArrayLcm(parsedFracs.map(f => f.d));
+                    return parsedFracs.map(f => ({
+                        n: f.n * (trueLcm / f.d),
+                        d: trueLcm
+                    }));
+                } else {
+                    return parsedFracs;
+                }
+            };
+
+            const getExpected = () => {
+                const parsedFracs = fracs.map(f => ({ n: parseInt(f.n, 10)||0, d: parseInt(f.d, 10)||1 }));
+                let rn = 0, rd = 1;
+                
+                if (operation === 'add') {
+                    rd = getArrayLcm(parsedFracs.map(f => f.d));
+                    rn = parsedFracs.reduce((acc, f) => acc + f.n * (rd / f.d), 0);
+                } else if (operation === 'sub') {
+                    rd = getArrayLcm(parsedFracs.map(f => f.d));
+                    rn = (parsedFracs[0].n * (rd / parsedFracs[0].d)) - (parsedFracs[1].n * (rd / parsedFracs[1].d));
+                } else if (operation === 'mul') {
+                    rn = parsedFracs.reduce((acc, f) => acc * f.n, 1);
+                    rd = parsedFracs.reduce((acc, f) => acc * f.d, 1);
+                } else if (operation === 'div') {
+                    rn = parsedFracs[0].n * parsedFracs[1].d;
+                    rd = parsedFracs[0].d * parsedFracs[1].n;
+                }
+                return { n: rn, d: rd };
+            };
+
+            // Evalúa dinámicamente si una fracción insertada puede simplificarse más
+            const canSimplify = (frac) => {
+                if (frac.n === '' || frac.d === '') return false;
+                const n = parseInt(frac.n, 10);
+                const d = parseInt(frac.d, 10);
+                if (isNaN(n) || isNaN(d) || d === 0 || n === 0) return false;
+                return getGcd(Math.abs(n), Math.abs(d)) > 1;
+            };
+
+            const showSimp0 = canSimplify(res);
+            const showSimp1 = showSimp0 && canSimplify(simps[0]);
+            const showSimp2 = showSimp1 && canSimplify(simps[1]);
+
+            const prevAutoSolve = useRef(autoSolve);
+            useEffect(() => {
+                if (autoSolve > prevAutoSolve.current) {
+                    prevAutoSolve.current = autoSolve;
+                    if (!setupMode && fracs.every(f => f.n !== '' && f.d !== '')) {
+                        const expRes = getExpected();
+                        
+                        if (requiresLcm) {
+                            const expSteps = getExpectedSteps();
+                            setSteps(expSteps.map(s => ({n: String(s.n), d: String(s.d)})));
+                            setLcmResult(String(getArrayLcm(fracs.map(f => parseInt(f.d, 10) || 1))));
+                        }
+                        
+                        setRes({n: String(expRes.n), d: String(expRes.d)});
+                        
+                        const g = getGcd(Math.abs(expRes.n), Math.abs(expRes.d));
+                        if (g > 1 && expRes.n !== 0) {
+                            setSimps([{n: String(expRes.n / g), d: String(expRes.d / g)}, {n: '', d: ''}, {n: '', d: ''}]);
+                        } else {
+                            setSimps([{n: '', d: ''}, {n: '', d: ''}, {n: '', d: ''}]);
+                        }
+                        setStatus('playing');
+                    }
+                }
+            }, [autoSolve, setupMode, fracs, operation, requiresLcm]);
+
+            const handleHelp = () => {
+                const expRes = getExpected();
+                
+                if (requiresLcm) {
+                    const expSteps = getExpectedSteps();
+                    for (let i = 0; i < steps.length; i++) {
+                        if (steps[i].n !== String(expSteps[i].n)) {
+                            const newSteps = [...steps]; newSteps[i] = {...newSteps[i], n: String(expSteps[i].n)};
+                            setSteps(newSteps); setHelpedFields({...helpedFields, [`s${i}n`]: true}); return;
+                        }
+                        if (steps[i].d !== String(expSteps[i].d)) {
+                            const newSteps = [...steps]; newSteps[i] = {...newSteps[i], d: String(expSteps[i].d)};
+                            setSteps(newSteps); setHelpedFields({...helpedFields, [`s${i}d`]: true}); return;
+                        }
+                    }
+                }
+                
+                if (res.n !== String(expRes.n)) { setRes({...res, n: String(expRes.n)}); setHelpedFields({...helpedFields, rn: true}); return; }
+                if (res.d !== String(expRes.d)) { setRes({...res, d: String(expRes.d)}); setHelpedFields({...helpedFields, rd: true}); return; }
+
+                if (showSimp0) {
+                    const currentN = parseInt(res.n, 10); const currentD = parseInt(res.d, 10);
+                    const g = getGcd(Math.abs(currentN), Math.abs(currentD));
+                    if (simps[0].n !== String(currentN / g)) { 
+                        const nS = [...simps]; nS[0].n = String(currentN / g); setSimps(nS); 
+                        setHelpedFields({...helpedFields, s0n: true}); return; 
+                    }
+                    if (simps[0].d !== String(currentD / g)) { 
+                        const nS = [...simps]; nS[0].d = String(currentD / g); setSimps(nS); 
+                        setHelpedFields({...helpedFields, s0d: true}); return; 
+                    }
+                }
+                if (showSimp1) {
+                    const currentN = parseInt(simps[0].n, 10); const currentD = parseInt(simps[0].d, 10);
+                    const g = getGcd(Math.abs(currentN), Math.abs(currentD));
+                    if (simps[1].n !== String(currentN / g)) { 
+                        const nS = [...simps]; nS[1].n = String(currentN / g); setSimps(nS); 
+                        setHelpedFields({...helpedFields, s1n: true}); return; 
+                    }
+                    if (simps[1].d !== String(currentD / g)) { 
+                        const nS = [...simps]; nS[1].d = String(currentD / g); setSimps(nS); 
+                        setHelpedFields({...helpedFields, s1d: true}); return; 
+                    }
+                }
+
+                if (requiresLcm) {
+                    const trueLcm = getArrayLcm(fracs.map(f => parseInt(f.d, 10) || 1));
+                    if (lcmResult !== String(trueLcm)) {
+                        setLcmResult(String(trueLcm));
+                        return;
+                    }
+                }
+            };
+
+            const checkResult = () => {
+                const parsedFracs = fracs.map(f => ({ n: parseInt(f.n, 10), d: parseInt(f.d, 10) }));
+                const rn = parseInt(res.n, 10); const rd = parseInt(res.d, 10);
+
+                if (isNaN(rn) || isNaN(rd) || rd === 0) {
+                    setStatus('incorrect'); return;
+                }
+
+                const exp = getExpected();
+                
+                let stepsEquivalent = true;
+                let hasCommonDenominatorIfRequired = true;
+                let isLcmCorrect = true;
+
+                if (requiresLcm) {
+                    const parsedSteps = steps.map(s => ({ n: parseInt(s.n, 10), d: parseInt(s.d, 10) }));
+                    if (parsedSteps.some(s => isNaN(s.n) || isNaN(s.d) || s.d === 0)) {
+                        setStatus('incorrect'); return;
+                    }
+                    stepsEquivalent = parsedSteps.every((s, i) => s.n * parsedFracs[i].d === s.d * parsedFracs[i].n);
+                    const commonD = parsedSteps[0].d;
+                    hasCommonDenominatorIfRequired = parsedSteps.every(s => s.d === commonD);
+                    if (lcmResult !== '') {
+                        isLcmCorrect = parseInt(lcmResult, 10) === getArrayLcm(parsedFracs.map(f => f.d));
+                    }
+                }
+
+                const isResEquivalent = rn * exp.d === rd * exp.n;
+
+                let isSimpCorrect = true;
+                let intermediatesValid = true;
+
+                if (showSimp0) {
+                    const s0n = parseInt(simps[0].n, 10); const s0d = parseInt(simps[0].d, 10);
+                    if (isNaN(s0n) || isNaN(s0d) || s0d === 0 || s0n * exp.d !== s0d * exp.n) intermediatesValid = false;
+                }
+                if (showSimp1) {
+                    const s1n = parseInt(simps[1].n, 10); const s1d = parseInt(simps[1].d, 10);
+                    if (isNaN(s1n) || isNaN(s1d) || s1d === 0 || s1n * exp.d !== s1d * exp.n) intermediatesValid = false;
+                }
+                if (showSimp2) {
+                    const s2n = parseInt(simps[2].n, 10); const s2d = parseInt(simps[2].d, 10);
+                    if (isNaN(s2n) || isNaN(s2d) || s2d === 0 || s2n * exp.d !== s2d * exp.n) intermediatesValid = false;
+                }
+
+                let finalFrac = res;
+                if (showSimp2) finalFrac = simps[2];
+                else if (showSimp1) finalFrac = simps[1];
+                else if (showSimp0) finalFrac = simps[0];
+
+                const fn = parseInt(finalFrac.n, 10);
+                const fd = parseInt(finalFrac.d, 10);
+
+                if (isNaN(fn) || isNaN(fd) || fd === 0) {
+                    isSimpCorrect = false;
+                } else {
+                    const isFinalEquivalent = (fn * exp.d === fd * exp.n);
+                    const isFinalIrreducible = getGcd(Math.abs(fn), Math.abs(fd)) === 1 || fn === 0;
+                    isSimpCorrect = isFinalEquivalent && isFinalIrreducible;
+                }
+
+                if (stepsEquivalent && hasCommonDenominatorIfRequired && isResEquivalent && isLcmCorrect && isSimpCorrect && intermediatesValid) {
+                    setStatus('correct');
+                } else {
+                    setStatus('incorrect');
+                }
+            };
+
+            const updateLcmFactor = (index, field, val) => {
+                const cleanVal = val.replace(/[^0-9]/g, '');
+                const newFactors = [...lcmFactors];
+                newFactors[index][field] = cleanVal;
+                
+                if (index === lcmFactors.length - 1 && field === 'b' && cleanVal !== '' && lcmFactors.length < 5) {
+                    newFactors.push({b: '', e: ''});
+                }
+                setLcmFactors(newFactors);
+            };
+
+            const handleLcmResultFocus = () => {
+                setLcmFactors(prev => {
+                    const valid = prev.filter(f => f.b.trim() !== '');
+                    return valid.length > 0 ? valid : [{b: '', e: ''}];
+                });
+                setCleanLcmDisplay(true);
+            };
+
+            const handleFactorFocus = () => {
+                setCleanLcmDisplay(false);
+                setLcmFactors(prev => {
+                    if (prev.length > 0 && prev[prev.length - 1].b !== '' && prev.length < 5) {
+                        return [...prev, {b: '', e: ''}];
+                    }
+                    return prev;
+                });
+            };
+
+            if (setupMode) {
+                return (
+                    <div className="flex flex-col items-center space-y-6 w-max mx-auto">
+                        <h3 className="text-3xl font-bold text-gray-700 mb-2">Introduce las fracciones</h3>
+                        
+                        {operation === 'add' && (
+                            <div className="flex flex-col items-center space-y-4 mb-4">
+                                <span className="font-bold text-xl text-gray-700">¿Cuántos sumandos?</span>
+                                <div className="flex space-x-2">
+                                    {[2, 3, 4].map(num => (
+                                        <button key={num} onClick={() => changeAddends(num)} className={`px-4 py-2 border-2 rounded-xl font-bold transition-colors shadow-sm ${fracs.length === num ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-gray-700 hover:bg-purple-100 border-gray-300'}`}>{num}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex flex-nowrap justify-center items-center gap-2 sm:gap-4 bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-md border-4 border-purple-200 w-max">
+                            {fracs.map((f, i) => (
+                                <React.Fragment key={`setup-${i}`}>
+                                    {i > 0 && <div className="text-3xl md:text-5xl font-bold text-purple-500">{symbol}</div>}
+                                    <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                                        <input type="text" className="w-12 h-12 sm:w-16 sm:h-16 text-center font-mono text-2xl sm:text-3xl border-4 border-blue-300 rounded-xl focus:border-blue-500 focus:outline-none" value={f.n} onChange={e => {const newF=[...fracs]; newF[i] = {...newF[i], n: e.target.value.replace(/[^0-9]/g, '')}; setFracs(newF);}} placeholder="N" />
+                                        <div className="w-16 sm:w-20 border-b-[4px] border-black"></div>
+                                        <input type="text" className="w-12 h-12 sm:w-16 sm:h-16 text-center font-mono text-2xl sm:text-3xl border-4 border-blue-300 rounded-xl focus:border-blue-500 focus:outline-none" value={f.d} onChange={e => {const newF=[...fracs]; newF[i] = {...newF[i], d: e.target.value.replace(/[^0-9]/g, '')}; setFracs(newF);}} placeholder="D" />
+                                    </div>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                        <button 
+                        onClick={() => {
+                            if (fracs.some(f => !f.n || !f.d || parseInt(f.d, 10) === 0)) {
+                                alert("Rellena todas las casillas. Los denominadores no pueden ser 0.");
+                                return;
+                            }
+                            if (level === 5 && (operation === 'add' || operation === 'sub')) {
+                                if (!fracs.every(f => f.d === fracs[0].d)) {
+                                    alert("En 5º curso, las fracciones para sumar o restar deben tener el mismo denominador.");
+                                    return;
+                                }
+                            }
+                            if (operation === 'sub' && (parseInt(fracs[0].n, 10)/parseInt(fracs[0].d, 10) < parseInt(fracs[1].n, 10)/parseInt(fracs[1].d, 10))) {
+                                alert("Para restar, la primera fracción debe ser mayor o igual a la segunda.");
+                                return;
+                            }
+                            if (operation === 'div' && parseInt(fracs[1].n, 10) === 0) {
+                                alert("No puedes dividir por una fracción con numerador cero.");
+                                return;
+                            }
+                            setSetupMode(false);
+                        }}
+                        className="bg-purple-500 text-white px-8 py-4 mt-4 text-2xl rounded-2xl font-bold hover:bg-purple-600 flex items-center shadow-lg"
+                        >
+                        <Check className="mr-3 w-8 h-8" /> Comenzar
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col items-center relative w-max">
+                    <div className="relative flex flex-col xl:flex-row items-center gap-8 xl:gap-12 w-max">
+                        
+                        {/* Pizarra Principal */}
+                        <div className="bg-white p-4 sm:p-6 md:p-8 rounded-3xl shadow-2xl border-4 border-purple-200 flex flex-nowrap justify-center items-center gap-2 sm:gap-3 md:gap-5 mt-4 w-max mx-auto">
+                            {/* Fracciones Originales */}
+                            {fracs.map((f, i) => (
+                                <React.Fragment key={`orig-${i}`}>
+                                    {i > 0 && <div className="text-3xl md:text-4xl font-bold text-purple-500 pb-1">{symbol}</div>}
+                                    <div className="flex flex-col items-center space-y-1">
+                                        <div className="text-2xl md:text-3xl font-mono font-bold text-gray-800">{f.n}</div>
+                                        <div className="w-10 md:w-14 border-b-[4px] border-black rounded-full"></div>
+                                        <div className="text-2xl md:text-3xl font-mono font-bold text-gray-800">{f.d}</div>
+                                    </div>
+                                </React.Fragment>
+                            ))}
+
+                            {/* Solo mostrar pasos intermedios si se requiere LCM */}
+                            {requiresLcm && (
+                                <React.Fragment>
+                                    <div className="text-3xl md:text-4xl font-bold text-gray-700 pb-1">=</div>
+
+                                    {/* Fracciones Intermedias (Pasos) */}
+                                    {steps.map((s, i) => (
+                                        <React.Fragment key={`step-${i}`}>
+                                            {i > 0 && <div className="text-3xl md:text-4xl font-bold text-purple-500 pb-1">{symbol}</div>}
+                                            <div className="flex flex-col items-center space-y-2">
+                                                <input 
+                                                    type="text" value={s.n} onChange={e => {const nS=[...steps]; nS[i] = {...nS[i], n: e.target.value.replace(/[^0-9]/g, '')}; setSteps(nS);}} 
+                                                    className={`w-12 h-12 md:w-14 md:h-14 text-center font-mono text-xl md:text-2xl font-bold border-4 rounded-xl focus:outline-none transition-colors ${status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-white border-purple-300 focus:border-purple-500'} ${helpedFields[`s${i}n`] ? 'animate-pulse bg-green-200 border-green-500' : ''}`} 
+                                                    readOnly={status === 'correct'}
+                                                />
+                                                <div className="w-14 md:w-16 border-b-[4px] border-black rounded-full"></div>
+                                                <input 
+                                                    type="text" value={s.d} onChange={e => {const nS=[...steps]; nS[i] = {...nS[i], d: e.target.value.replace(/[^0-9]/g, '')}; setSteps(nS);}} 
+                                                    className={`w-12 h-12 md:w-14 md:h-14 text-center font-mono text-xl md:text-2xl font-bold border-4 rounded-xl focus:outline-none transition-colors ${status === 'correct' ? 'bg-green-100 border-green-500' : status === 'incorrect' ? 'bg-red-100 border-red-500' : 'bg-white border-purple-300 focus:border-purple-500'} ${helpedFields[`s${i}d`] ? 'animate-pulse bg-green-200 border-green-500' : ''}`} 
+                                                    readOnly={status === 'correct'}
+                                                />
+                                            </div>
+                                        </React.Fragment>
+                                    ))}
+                                </React.Fragment>
+                            )}
+                            
+                            <div className="text-3xl md:text-4xl font-bold text-gray-700 pb-1">=</div>
+                            
+                            {/* Fracción Resultado */}
+                            <div className="flex flex-col items-center space-y-2">
+                                <input 
+                                    type="text" value={res.n} onChange={e => setRes({...res, n: e.target.value.replace(/[^0-9]/g, '')})} 
+                                    className={`w-14 h-14 md:w-16 md:h-16 text-center font-mono text-2xl md:text-3xl font-bold border-4 rounded-2xl focus:outline-none transition-colors ${status === 'correct' ? 'bg-green-100 border-green-500 text-green-800' : status === 'incorrect' ? 'bg-red-100 border-red-500 text-red-800' : 'bg-white border-purple-300 focus:border-purple-500 text-gray-800'} ${helpedFields.rn ? 'animate-pulse bg-green-200 border-green-500 text-green-800' : ''}`} 
+                                    readOnly={status === 'correct'}
+                                />
+                                <div className="w-16 md:w-20 border-b-[6px] border-black rounded-full"></div>
+                                <input 
+                                    type="text" value={res.d} onChange={e => setRes({...res, d: e.target.value.replace(/[^0-9]/g, '')})} 
+                                    className={`w-14 h-14 md:w-16 md:h-16 text-center font-mono text-2xl md:text-3xl font-bold border-4 rounded-2xl focus:outline-none transition-colors ${status === 'correct' ? 'bg-green-100 border-green-500 text-green-800' : status === 'incorrect' ? 'bg-red-100 border-red-500 text-red-800' : 'bg-white border-purple-300 focus:border-purple-500 text-gray-800'} ${helpedFields.rd ? 'animate-pulse bg-green-200 border-green-500 text-green-800' : ''}`} 
+                                    readOnly={status === 'correct'}
+                                />
+                            </div>
+
+                            {/* Simplificaciones Dinámicas (Máximo 3 pasos) */}
+                            {[showSimp0, showSimp1, showSimp2].map((show, i) => {
+                                if (!show) return null;
+                                return (
+                                    <React.Fragment key={`simp-${i}`}>
+                                        <div className="text-3xl md:text-4xl font-bold text-gray-700 pb-1">=</div>
+                                        <div className="flex flex-col items-center space-y-2">
+                                            <input 
+                                                type="text" value={simps[i].n} 
+                                                onChange={e => {const nS=[...simps]; nS[i].n = e.target.value.replace(/[^0-9]/g, ''); setSimps(nS);}} 
+                                                className={`w-14 h-14 md:w-16 md:h-16 text-center font-mono text-2xl md:text-3xl font-bold border-4 rounded-2xl focus:outline-none transition-colors ${status === 'correct' ? 'bg-green-100 border-green-500 text-green-800' : status === 'incorrect' ? 'bg-red-100 border-red-500 text-red-800' : 'bg-white border-purple-300 focus:border-purple-500 text-gray-800'} ${helpedFields[`s${i}n`] ? 'animate-pulse bg-green-200 border-green-500 text-green-800' : ''}`} 
+                                                readOnly={status === 'correct'}
+                                            />
+                                            <div className="w-16 md:w-20 border-b-[6px] border-black rounded-full"></div>
+                                            <input 
+                                                type="text" value={simps[i].d} 
+                                                onChange={e => {const nS=[...simps]; nS[i].d = e.target.value.replace(/[^0-9]/g, ''); setSimps(nS);}} 
+                                                className={`w-14 h-14 md:w-16 md:h-16 text-center font-mono text-2xl md:text-3xl font-bold border-4 rounded-2xl focus:outline-none transition-colors ${status === 'correct' ? 'bg-green-100 border-green-500 text-green-800' : status === 'incorrect' ? 'bg-red-100 border-red-500 text-red-800' : 'bg-white border-purple-300 focus:border-purple-500 text-gray-800'} ${helpedFields[`s${i}d`] ? 'animate-pulse bg-green-200 border-green-500 text-green-800' : ''}`} 
+                                                readOnly={status === 'correct'}
+                                            />
+                                        </div>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </div>
+
+                        {/* PANEL DE FACTORIZACIÓN (Solo si requiere LCM) */}
+                        { requiresLcm && !setupMode && (
+                            <div className="mt-8 xl:mt-0 bg-white p-4 sm:p-6 rounded-3xl shadow-2xl border-4 border-blue-300 flex flex-col items-center gap-4 z-[70] w-max">
+                                <span className="text-sm font-bold text-blue-800 uppercase tracking-wide text-center">Descompón los denominadores</span>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 sm:gap-x-12 gap-y-8 justify-items-center w-max">
+                                    {fracs.map((f, i) => (
+                                        <FactorizationColumn key={`fact-${i}`} number={f.d} />
+                                    ))}
+                                </div>
+                                
+                                {/* SECCIÓN DEL MÍNIMO COMÚN MÚLTIPLO */}
+                                <div className="w-full pt-4 border-t-4 border-blue-200 flex flex-col items-center gap-2 mt-2">
+                                    <div className="flex flex-col items-center text-center">
+                                        <span className="text-sm font-bold text-blue-800 uppercase tracking-wide">Mínimo Común Múltiplo</span>
+                                        <span className="text-[10px] sm:text-xs font-semibold text-blue-600">(comunes y no comunes con mayor exponente)</span>
+                                    </div>
+                                    <div className="flex flex-row flex-nowrap items-center justify-center gap-1 sm:gap-2 mt-1 overflow-x-auto w-max pb-2 px-2">
+                                        <span className="font-bold text-xl text-blue-700 whitespace-nowrap">mcm =</span>
+                                        {lcmFactors.map((factor, i) => (
+                                            <React.Fragment key={i}>
+                                                {i > 0 && <span className="font-bold text-gray-400 whitespace-nowrap">×</span>}
+                                                <div className="relative inline-block mt-2 mb-2 mr-2 shrink-0">
+                                                    <input
+                                                        value={factor.b}
+                                                        onChange={e => updateLcmFactor(i, 'b', e.target.value)}
+                                                        onFocus={handleFactorFocus}
+                                                        className="w-10 h-10 text-xl font-bold text-center border-2 border-blue-400 rounded-md focus:outline-none focus:border-blue-600"
+                                                    />
+                                                    {(!cleanLcmDisplay || factor.e !== '') && (
+                                                        <input
+                                                            value={factor.e}
+                                                            onChange={e => updateLcmFactor(i, 'e', e.target.value)}
+                                                            onFocus={handleFactorFocus}
+                                                            className="absolute -top-3 -right-3 w-6 h-6 text-sm font-bold text-center border-2 border-blue-400 rounded-md bg-blue-50 focus:outline-none focus:border-blue-600 z-10"
+                                                        />
+                                                    )}
+                                                </div>
+                                            </React.Fragment>
+                                        ))}
+                                        <span className="font-bold text-xl text-gray-700 ml-1 whitespace-nowrap">=</span>
+                                        <input
+                                            value={lcmResult}
+                                            onChange={e => setLcmResult(e.target.value.replace(/[^0-9]/g, ''))}
+                                            onFocus={handleLcmResultFocus}
+                                            onClick={handleLcmResultFocus}
+                                            className={`w-16 h-12 text-center font-bold text-2xl border-4 rounded-xl focus:outline-none ml-1 shrink-0 ${status === 'correct' && lcmResult !== '' ? 'bg-green-100 border-green-500 text-green-800' : status === 'incorrect' && lcmResult !== '' ? 'bg-red-100 border-red-500 text-red-800' : 'border-blue-400 focus:border-blue-600 text-blue-800'}`}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-10 flex space-x-4 z-50">
+                        {status !== 'correct' && (
+                        <button onClick={handleHelp} className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 flex items-center shadow-md">
+                            <HelpCircle className="mr-2" /> Ayuda
+                        </button>
+                        )}
+                        <button onClick={checkResult} className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 shadow-md flex items-center">
+                            <CheckCircle2 className="mr-2" /> Comprobar
+                        </button>
+                        <button onClick={onNext} className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 shadow-md flex items-center">
+                            Siguiente <ChevronRight className="ml-2" />
+                        </button>
+                    </div>
+                    {status === 'correct' && <p className="mt-6 text-green-600 font-bold text-2xl animate-bounce">¡Correcto! ¡Muy bien!</p>}
+                    {status === 'incorrect' && <p className="mt-6 text-red-500 font-bold text-xl">Hay un error. Revisa tus cálculos.</p>}
+                </div>
+            );
+        }
+
+        // --- MAIN APP ---
+        function App() {
+            const [hasStarted, setHasStarted] = useState(false);
+            const [operation, setOperation] = useState('add'); 
+            const [mode, setMode] = useState('auto'); 
+            const [level, setLevel] = useState(3);
+            const [useDecimals, setUseDecimals] = useState(false);
+            const [useFractions, setUseFractions] = useState(false);
+            const [refreshKey, setRefreshKey] = useState(0);
+            const [autoSolveCount, setAutoSolveCount] = useState(0);
+
+            const config = useMemo(() => {
+                switch(level) {
+                case 1: return { numAddends: 2, maxDigits: 1, digitsMin: 1, digitsSub: 1, digitsMultiplicand: 1, digitsMultiplier: 1, digitsDividend: 2, digitsDivisor: 1 };
+                case 2: return { numAddends: 2, maxDigits: 2, digitsMin: 2, digitsSub: 2, digitsMultiplicand: 2, digitsMultiplier: 1, digitsDividend: 3, digitsDivisor: 1 };
+                case 3: return { numAddends: 3, maxDigits: 3, digitsMin: 3, digitsSub: 3, digitsMultiplicand: 3, digitsMultiplier: 1, digitsDividend: [3, 6], digitsDivisor: 1 };
+                case 4: return { numAddends: 3, maxDigits: 4, digitsMin: 4, digitsSub: 4, digitsMultiplicand: 3, digitsMultiplier: 2, digitsDividend: 4, digitsDivisor: 2 };
+                case 5: return { numAddends: 4, maxDigits: 5, digitsMin: 5, digitsSub: 5, digitsMultiplicand: 4, digitsMultiplier: 3, digitsDividend: 5, digitsDivisor: 2 };
+                case 6: return { numAddends: 4, maxDigits: 6, digitsMin: 6, digitsSub: 6, digitsMultiplicand: 4, digitsMultiplier: 3, digitsDividend: 5, digitsDivisor: 3 };
+                default: return { numAddends: 2, maxDigits: 2, digitsMin: 2, digitsSub: 2, digitsMultiplicand: 2, digitsMultiplier: 1, digitsDividend: 2, digitsDivisor: 1 };
+                }
+            }, [level]);
+
+            useEffect(() => {
+                if (level < 5 && useDecimals) setUseDecimals(false);
+                if (level < 5 && useFractions) setUseFractions(false);
+                // Si estamos en 5º, las fracciones solo se permiten para sumar y restar
+                if (level === 5 && useFractions && (operation === 'mul' || operation === 'div')) setUseFractions(false);
+            }, [level, useDecimals, useFractions, operation]);
+
+            const nextOperation = () => {
+                setRefreshKey(prev => prev + 1);
+                setAutoSolveCount(0);
+            };
+
+            const handlePoetClick = () => {
+                const pwd = prompt("Introduce la contraseña del poeta:");
+                if (pwd === "padm2026") {
+                    setAutoSolveCount(prev => prev + 1);
+                } else if (pwd && pwd.toLowerCase() === "salir") {
+                    setHasStarted(false);
+                } else if (pwd !== null && pwd !== "") {
+                    alert("Contraseña incorrecta.");
+                }
+            };
+
+            const activeClasses = "bg-white text-blue-600 shadow-md rounded-xl font-extrabold border-2 border-blue-200 scale-105";
+            const inactiveClasses = "text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-xl transition-colors border-2 border-transparent font-semibold";
+
+            const operationsConfig = [
+                { id: 'add', name: 'Suma', sym: '+', delay: 'delay-1', bg: '#3b82f6', border: '#1d4ed8', text: '#ffffff' },
+                { id: 'sub', name: 'Resta', sym: '−', delay: 'delay-2', bg: '#ef4444', border: '#b91c1c', text: '#ffffff' },
+                { id: 'mul', name: 'Multiplicación', sym: '×', delay: 'delay-3', bg: '#D4AF37', border: '#998022', text: '#ffffff' },
+                { id: 'div', name: 'División', sym: '÷', delay: 'delay-4', bg: '#C0C0C0', border: '#808080', text: '#000000' },
+            ];
+
+            if (!hasStarted) {
+                return (
+                <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                    <img 
+                    src="poeta2.jpg" 
+                    alt="¿Quieres que te ayude a calcular?" 
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/600x400/e2e8f0/1e40af?text=Foto+del+Poeta+(poeta2.jpg)"; }}
+                    className="max-w-xl w-full cursor-pointer hover:scale-105 transition-transform duration-300 drop-shadow-xl rounded-2xl"
+                    onClick={() => setHasStarted(true)}
+                    />
+                    <p 
+                    className="mt-8 text-2xl font-bold text-blue-600 animate-pulse cursor-pointer text-center" 
+                    onClick={() => setHasStarted(true)}
+                    >
+                    ¡Pulsa en el poeta para comenzar!
+                    </p>
+                </div>
+                );
+            }
+
+            const showFractionsToggle = level === 6 || (level === 5 && (operation === 'add' || operation === 'sub'));
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans p-4 overflow-x-auto">
+                <div className="w-[98%] max-w-[1920px] mx-auto">
+                    
+                    <div className="w-full overflow-x-auto pb-28 -mb-16 pt-2 px-2 z-20 relative">
+                        
+                        <div className="bg-white p-4 lg:p-6 rounded-2xl shadow-md mb-2 flex flex-nowrap gap-6 lg:gap-10 items-center justify-between border-4 border-gray-200 min-w-max mx-auto">
+                        
+                        <div className="flex bg-gray-100 p-2 rounded-2xl gap-2 shrink-0">
+                            {operationsConfig.map((op) => {
+                                const isActive = operation === op.id;
+                                return (
+                                <div key={op.id} className="relative">
+                                    <button 
+                                        onClick={() => { setOperation(op.id); setAutoSolveCount(0); }} 
+                                        className={`px-6 sm:px-8 py-3 text-xl lg:text-2xl transition-all z-10 relative whitespace-nowrap ${isActive ? activeClasses : inactiveClasses}`}
+                                    >
+                                        {op.name}
+                                    </button>
+                                    <div className={`hanging-container ${op.delay}`}>
+                                        <div 
+                                            className="hanging-rope"
+                                            style={{ height: isActive ? '45px' : '15px' }}
+                                        ></div>
+                                        <div 
+                                            className="hanging-badge" 
+                                            style={{ backgroundColor: op.bg, borderColor: op.border, color: op.text }}
+                                        >
+                                            {op.sym}
+                                        </div>
+                                    </div>
+                                </div>
+                                );
+                            })}
+                        </div>
+
+                        <img 
+                            src="poeta2.jpg" 
+                            alt="Poeta calculador" 
+                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/100x100/e2e8f0/1e40af?text=Poeta"; }}
+                            className="h-24 lg:h-32 w-auto object-contain rounded-xl shadow-lg cursor-pointer hover:scale-110 transition-transform shrink-0 mx-4"
+                            onClick={handlePoetClick}
+                            title="Opciones mágicas"
+                        />
+
+                        <div className="flex items-center space-x-6 lg:space-x-8 shrink-0">
+                            <div className="flex flex-col items-center gap-2 w-full min-w-[280px]">
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-gray-700 font-extrabold text-xl lg:text-2xl whitespace-nowrap">Nivel:</span>
+                                    <select 
+                                        value={level} 
+                                        onChange={(e) => { setLevel(parseInt(e.target.value)); setAutoSolveCount(0); }}
+                                        className="border-2 border-gray-300 rounded-xl shadow-sm focus:border-blue-400 focus:ring focus:ring-blue-200 focus:ring-opacity-50 disabled:bg-gray-200 text-xl lg:text-2xl py-2 px-4 font-bold text-gray-700 cursor-pointer"
+                                    >
+                                        {[1,2,3,4,5,6].map(l => <option key={l} value={l}>{l}º Primaria</option>)}
+                                    </select>
+                                </div>
+                                
+                                <div className="flex flex-row space-x-2 w-full justify-center">
+                                    {level >= 5 && (
+                                        <div className={`flex items-center justify-center px-3 py-1.5 rounded-xl border-2 transition-all ${useDecimals ? 'bg-green-100 border-green-400' : 'bg-gray-100 border-gray-300'} flex-1`}>
+                                            <div className="relative inline-block w-9 mr-1 align-middle select-none transition duration-200 ease-in flex-shrink-0">
+                                                <input 
+                                                    type="checkbox" 
+                                                    name="toggle-decimals" 
+                                                    id="toggle-decimals" 
+                                                    checked={useDecimals}
+                                                    onChange={(e) => { 
+                                                        setUseDecimals(e.target.checked); 
+                                                        if (e.target.checked) setUseFractions(false);
+                                                        setAutoSolveCount(0); 
+                                                        setRefreshKey(prev => prev + 1); 
+                                                    }}
+                                                    className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 z-10"
+                                                />
+                                                <label htmlFor="toggle-decimals" className="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                            </div>
+                                            <label htmlFor="toggle-decimals" className={`font-bold text-sm lg:text-base cursor-pointer whitespace-nowrap ${useDecimals ? 'text-green-700' : 'text-gray-500'}`}>
+                                                Decimales
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {showFractionsToggle && (
+                                        <div className={`flex items-center justify-center px-3 py-1.5 rounded-xl border-2 transition-all ${useFractions ? 'bg-purple-100 border-purple-400' : 'bg-gray-100 border-gray-300'} flex-1`}>
+                                            <div className="relative inline-block w-9 mr-1 align-middle select-none transition duration-200 ease-in flex-shrink-0">
+                                                <input 
+                                                    type="checkbox" 
+                                                    name="toggle-frac" 
+                                                    id="toggle-frac" 
+                                                    checked={useFractions}
+                                                    onChange={(e) => { 
+                                                        setUseFractions(e.target.checked); 
+                                                        if (e.target.checked) setUseDecimals(false);
+                                                        setAutoSolveCount(0); 
+                                                        setRefreshKey(prev => prev + 1); 
+                                                    }}
+                                                    className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 z-10"
+                                                    style={useFractions ? { right: 0, borderColor: '#a855f7' } : {}}
+                                                />
+                                                <label htmlFor="toggle-frac" className="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer" style={useFractions ? { backgroundColor: '#a855f7' } : {}}></label>
+                                            </div>
+                                            <label htmlFor="toggle-frac" className={`font-bold text-sm lg:text-base cursor-pointer whitespace-nowrap ${useFractions ? 'text-purple-700' : 'text-gray-500'}`}>
+                                                Fracciones
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex bg-gray-100 p-2 rounded-2xl gap-2">
+                                <button onClick={() => { setMode('auto'); setAutoSolveCount(0); }} className={`px-6 py-2 text-xl lg:text-2xl whitespace-nowrap ${mode === 'auto' ? activeClasses : inactiveClasses}`}>Auto</button>
+                                <button onClick={() => { setMode('manual'); setAutoSolveCount(0); }} className={`px-6 py-2 text-xl lg:text-2xl whitespace-nowrap ${mode === 'manual' ? activeClasses : inactiveClasses}`}>Manual</button>
+                            </div>
+                        </div>
+
+                        </div>
+                    </div>
+
+                    <main className="min-h-[500px] w-full pt-2 pb-8 overflow-x-auto relative z-10">
+                        <div className="w-max min-w-full flex items-center justify-center p-4">
+                            <div id="main-circle-container" className={`shrink-0 relative flex flex-col items-center justify-center px-8 py-16 md:px-24 md:py-32 w-fit h-fit min-w-[95vw] lg:min-w-[850px] min-h-[95vw] lg:min-h-[850px] border-[16px] sm:border-[24px] shadow-[inset_0_0_80px_rgba(0,0,0,0.8),0_20px_40px_rgba(0,0,0,0.4)] transition-all duration-700 ease-in-out ${
+                                mode === 'manual' ? 'bg-[#EAE0C8]' : 'bg-[#2A3B32]'
+                            } ${
+                                useFractions ? 'border-purple-500' :
+                                operation === 'add' ? 'border-blue-500' :
+                                operation === 'sub' ? 'border-red-500' :
+                                operation === 'mul' ? 'border-[#D4AF37]' :
+                                'border-[#C0C0C0]'
+                            }`} style={{ borderRadius: '50%' }}>
+                                
+                                <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ borderRadius: '50%', backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.7%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E")'}}></div>
+                                
+                                <div className="z-10 flex items-center justify-center w-max max-w-none">
+                                    <div className="transform scale-[0.60] sm:scale-75 md:scale-90 lg:scale-100 origin-center transition-transform flex items-center justify-center w-max">
+                                        {useFractions ? (
+                                            <FractionBoard key={`frac-${operation}-${refreshKey}`} operation={operation} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} level={level} />
+                                        ) : (
+                                            <React.Fragment>
+                                                {operation === 'add' && <AdditionBoard key={`add-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} useDecimals={useDecimals} level={level} />}
+                                                {operation === 'sub' && <SubtractionBoard key={`sub-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} useDecimals={useDecimals} level={level} />}
+                                                {operation === 'mul' && <MultiplicationBoard key={`mul-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} useDecimals={useDecimals} level={level} />}
+                                                {operation === 'div' && <DivisionBoard key={`div-${refreshKey}`} config={config} isManual={mode === 'manual'} onNext={nextOperation} autoSolve={autoSolveCount} useDecimals={useDecimals} level={level} />}
+                                            </React.Fragment>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
