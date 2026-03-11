@@ -134,7 +134,7 @@
             }
           },
           { key: 'gen', title: 'Género', getOptions: (catId) => {
-              const invCats = ['preposición', 'conjunción', 'adverbio', 'interjección', 'numeral', 'indefinido', 'adjetivo'];
+              const invCats = ['preposición', 'conjunción', 'adverbio', 'interjección', 'numeral', 'indefinido', 'adjetivo', 'posesivo'];
               if (invCats.includes(catId)) return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}, {id: 'INV', label: 'Invariable (INV)'}];
               return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}];
             } 
