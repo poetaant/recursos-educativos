@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conciencia Fonológica - Clase 3ºB</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* Animaciones personalizadas */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        /* Ocultar scrollbar */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-sky-100 to-indigo-100 min-h-screen font-sans">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONOS (Inline SVGs para no depender de librerías externas) ---
+        const IconBase = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Volume2 = (props) => <IconBase {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></IconBase>;
+        const Star = (props) => <IconBase {...props}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></IconBase>;
+        const Users = (props) => <IconBase {...props}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></IconBase>;
+        const Music = (props) => <IconBase {...props}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></IconBase>;
+        const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M9 5h4" /><path d="M5 21v-4" /><path d="M9 19h4" /></IconBase>;
+        const Layout = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="3" x2="21" y1="9" y2="9" /><line x1="9" x2="9" y1="9" y2="21" /></IconBase>;
+        const Grid = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="3" x2="21" y1="9" y2="9" /><line x1="3" x2="21" y1="15" y2="15" /><line x1="9" x2="9" y1="3" y2="21" /><line x1="15" x2="15" y1="3" y2="21" /></IconBase>;
+        const PenTool = (props) => <IconBase {...props}><path d="m12 19 7-7 3 3-7 7-3-3z" /><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="m2 2 7.586 7.586" /><circle cx="11" cy="11" r="2" /></IconBase>;
+        const Trash2 = (props) => <IconBase {...props}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></IconBase>;
+        const Eraser = (props) => <IconBase {...props}><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconBase>;
+        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></IconBase>;
+
+        // --- COMPONENTE PRINCIPAL ---
+        function App() {
+            const [mode, setMode] = useState('alphabet'); // 'alphabet', 'syllables', 'writing', 'paragraph'
+            const [selectedLetter, setSelectedLetter] = useState(null);
+            const [currentExample, setCurrentExample] = useState(null);
+            const [animationClass, setAnimationClass] = useState('');
+            
+            // Estados para el modo Sílabas
+            const [syllableConsonant, setSyllableConsonant] = useState(null);
+            const [syllableVowel, setSyllableVowel] = useState(null);
+            const [formedSyllable, setFormedSyllable] = useState('');
+            const [syllableExample, setSyllableExample] = useState('');
+
+            // Estados para el modo Escritura
+            const [writtenWord, setWrittenWord] = useState('');
+            const [isAccentActive, setIsAccentActive] = useState(false);
+
+            // Estados para el modo Párrafo Loco
+            const [paragraphPhase, setParagraphPhase] = useState('setup1'); // setup1, setup2, memory, reading
+            const [paraSyllable1, setParaSyllable1] = useState('');
+            const [paraSyllable2, setParaSyllable2] = useState('');
+            const [currentParaLetters, setCurrentParaLetters] = useState([]);
+            const [paragraphTextWords, setParagraphTextWords] = useState([]);
+            const [foundWords, setFoundWords] = useState([]); 
+
+            // Mapeo de acentos
+            const accentedVowels = {
+                'A': 'Á', 'E': 'É', 'I': 'Í', 'O': 'Ó', 'U': 'Ú'
+            };
+
+            // DICCIONARIO FONÉTICO PERSONALIZADO
+            const phoneticSounds = {
+                'A': 'A', 'E': 'E', 'I': 'I', 'O': 'O', 'U': 'U',
+                'M': 'Emm', 'S': 'Sesss', 'L': 'Elll', 'F': 'Efff', 'N': 'Ennn',
+                'R': 'Errrrr', 'J': 'Jo', 
+                'Z': 'Cee', 'Y': 'Ye', 'X': 'Sesss',
+                'H': ' ', 
+                'B': 'B', 'C': 'C', 'D': 'D', 'G': 'G', 'K': 'K', 
+                'P': 'P', 'Q': 'Q', 'T': 'T', 'V': 'V', 'W': 'W', 'Ñ': 'Ñ'
+            };
+
+            // DATOS MASIVOS
+            const letterData = {
+                'A': ['Abie', 'Ander', 'Adrián', 'África', 'Ángel', 'Aida', 'Antromero', 'Albandi', 'abanico', 'abierto', 'abogado', 'abrazo', 'abril', 'abril', 'abuelo', 'acción', 'aceite', 'aceptar', 'acero', 'acto', 'actual', 'acuerdo', 'adelante', 'adivinar', 'admirar', 'aduana', 'adulto', 'aéreo', 'afectar', 'afición', 'agenda', 'agente', 'agitar', 'agosto', 'agua', 'aguja', 'ahora', 'aire', 'ajedrez', 'ala', 'alambre', 'alarma', 'alba', 'alcance', 'alcohol', 'alegría', 'alfa', 'algo', 'algodón', 'alguien', 'alma', 'almohada', 'almorzar', 'alto', 'altura', 'alumno', 'alzar', 'amable', 'amanecer', 'amargo', 'amarillo', 'ambiente', 'amigo', 'amistad', 'amor', 'amplio', 'analizar', 'ancho', 'anciano', 'andar', 'ángel', 'ángulo', 'anillo', 'animal', 'ánimo', 'anoche', 'ante', 'anteojos', 'antes', 'antiguo', 'anual', 'año', 'apagar', 'aparato', 'aparte', 'apellido', 'apenas', 'aplicar', 'apoyo', 'aprender', 'aprobar', 'apto', 'aquel', 'aquí', 'araña', 'árbol', 'archivo', 'arco', 'arder', 'área', 'arena', 'arma', 'armario', 'aroma', 'arriba', 'arroba', 'arroz', 'arte', 'arteria', 'artículo', 'artista', 'asado', 'asco', 'ascensor', 'asegurar', 'así', 'asiento', 'asignar', 'asistir', 'aspecto', 'áspero', 'asunto', 'atacar', 'atar', 'atención', 'atlántico', 'atmósfera', 'átomo', 'atrás', 'aula', 'aumento', 'ausencia', 'auto', 'autobús', 'autor', 'autorizar', 'avance', 'avanzar', 'avenida', 'aventura', 'avisar', 'aviso', 'ayer', 'ayuda', 'ayudar', 'ayuntamiento', 'azafrán', 'azar', 'azul'],
+                'B': ['Biblioteca Candás', 'Botánico', 'Bocata', 'baile', 'bajar', 'bajo', 'bala', 'balance', 'balcón', 'banco', 'bandera', 'baño', 'barato', 'barba', 'barco', 'barra', 'barrer', 'barrio', 'base', 'bastante', 'bastón', 'basura', 'batalla', 'batería', 'bebé', 'beber', 'bebida', 'beca', 'belleza', 'bello', 'besar', 'beso', 'bestia', 'biblioteca', 'bicicleta', 'bien', 'bienestar', 'bigote', 'billete', 'blanco', 'blando', 'bloquear', 'boca', 'boda', 'bodega', 'bola', 'boleto', 'bolsa', 'bolsillo', 'bomba', 'bondad', 'bonito', 'borde', 'bosque', 'bota', 'botella', 'botón', 'brazo', 'búho', 'buitre', 'buque', 'burbuja', 'buscar', 'butaca', 'buzón'],
+                'C': ['Candás', 'Cristina', 'Carnaval', 'Carreño', 'Centro de Consumo Lugones', 'caballo', 'cabaña', 'cabello', 'cabeza', 'cable', 'cabo', 'cabra', 'cacao', 'cacerola', 'cachete', 'cada', 'cadena', 'caer', 'café', 'caída', 'caja', 'cajón', 'cal', 'calamar', 'calcular', 'caldo', 'calendario', 'calentar', 'calidad', 'cálido', 'caliente', 'calle', 'calma', 'calor', 'calvo', 'cama', 'cámara', 'camarero', 'cambiar', 'cambio', 'caminar', 'camino', 'camión', 'camisa', 'campo', 'canal', 'canasta', 'cancelar', 'canción', 'candado', 'canela', 'cansar', 'cantar', 'cantidad', 'caña', 'capa', 'capacidad', 'capaz', 'capital', 'capricho', 'captar', 'cara', 'carácter', 'carbón', 'cárcel', 'careta', 'carga', 'cargar', 'cargo', 'caricia', 'caridad', 'cariño', 'carne', 'carrera', 'carretera', 'carro', 'carta', 'cartel', 'cartera', 'cartón', 'casa', 'casar', 'cascada', 'casco', 'casi', 'caso', 'castigo', 'castillo', 'casual', 'catálogo', 'causa', 'causar', 'cazar', 'cebolla', 'ceder', 'ciego', 'cielo', 'ciencia', 'ciento', 'cierre', 'cigarro', 'cima', 'cinco', 'cine', 'cinta', 'cinturón', 'círculo', 'ciruela', 'ciudad', 'civil', 'claro', 'clase', 'clave', 'clavo', 'cliente', 'clima', 'clínica', 'cobre', 'cocina', 'cocinar', 'coco', 'código', 'codo', 'coger', 'cohete', 'cola', 'colchón', 'colección', 'colegio', 'colgar', 'colina', 'collar', 'color', 'columna', 'combate', 'comer', 'comercio', 'comida', 'comienzo', 'como', 'cómodo', 'compañero', 'compañía', 'comparar', 'compás', 'compra', 'comprar', 'común', 'con', 'concepto', 'conciencia', 'concreto', 'condición', 'conducir', 'conducta', 'conejo', 'confianza', 'confiar', 'conflicto', 'congelar', 'conjunto', 'conocer', 'conocimiento', 'conquista', 'consejo', 'conservar', 'considerar', 'consuelo', 'contar', 'contacto', 'contener', 'contento', 'contestar', 'contigo', 'continuo', 'contra', 'control', 'convencer', 'conversar', 'copa', 'copia', 'copiar', 'corazón', 'corbata', 'corcho', 'cordero', 'cordón', 'corona', 'corral', 'correa', 'correo', 'correr', 'corriente', 'cortar', 'corte', 'corteza', 'cortina', 'corto', 'cosa', 'coser', 'cosmos', 'costa', 'costo', 'costumbre', 'crear', 'crecer', 'crédito', 'creer', 'crema', 'criar', 'crimen', 'cristal', 'cruce', 'crudo', 'cruel', 'cruzar', 'cruz', 'cuaderno', 'cuadro', 'cual', 'cualquier', 'cuando', 'cuanto', 'cuartel', 'cuarto', 'cuatro', 'cubrir', 'cuchara', 'cuchillo', 'cuello', 'cuerda', 'cuerno', 'cuero', 'cuerpo', 'cuestión', 'cueva', 'cuidado', 'cuidar', 'culpa', 'cultura', 'cumbre', 'cumplir', 'cuna', 'cuota', 'cupón', 'cura', 'curar', 'curioso', 'curso', 'curva'],
+                'D': ['Dedo', 'Delfín', 'dama', 'danza', 'dañar', 'daño', 'dar', 'dato', 'debate', 'deber', 'débil', 'década', 'decente', 'decir', 'decisión', 'declarar', 'decorar', 'dedo', 'defecto', 'defender', 'defensa', 'definir', 'dejar', 'del', 'delante', 'delgado', 'delicado', 'delito', 'demanda', 'demás', 'democracia', 'demonio', 'demostrar', 'denso', 'dentro', 'depender', 'deporte', 'derecho', 'derivar', 'derrota', 'desayuno', 'descansar', 'descanso', 'descender', 'desconocido', 'describir', 'descubrir', 'desde', 'desear', 'deseo', 'desierto', 'despacho', 'despertar', 'después', 'destino', 'destruir', 'detalle', 'detener', 'deuda', 'día', 'diablo', 'diálogo', 'diamante', 'diario', 'dibujar', 'dibujo', 'diccionario', 'diciembre', 'dictar', 'diente', 'dieta', 'diez', 'diferencia', 'diferente', 'difícil', 'digital', 'dignidad', 'dinero', 'dios', 'dirección', 'directo', 'director', 'dirigir', 'disco', 'diseño', 'disfrutar', 'disparo', 'distancia', 'distinto', 'diverso', 'divertir', 'dividir', 'divino', 'do', 'doblar', 'doble', 'doce', 'doctor', 'documento', 'dólar', 'doler', 'dolor', 'doméstico', 'domingo', 'don', 'donar', 'donde', 'dorado', 'dormir', 'dorso', 'dos', 'dosis', 'dragón', 'drama', 'droga', 'ducha', 'duda', 'dudar', 'dueño', 'dulce', 'duplicar', 'duro'],
+                'E': ['Elsa', 'Eloy', 'Eva', 'Escuela-cocina de Perlora', 'Escenarios', 'echar', 'eco', 'economía', 'edad', 'edificio', 'editor', 'educación', 'educar', 'efecto', 'eficaz', 'egoísmo', 'eje', 'ejecutar', 'ejemplo', 'ejercicio', 'ejército', 'el', 'elección', 'eléctrico', 'elefante', 'elegir', 'elemento', 'elevar', 'ella', 'ellos', 'embargo', 'emergencia', 'emitir', 'emoción', 'empujar', 'en', 'enamorar', 'encanto', 'encender', 'encierra', 'encima', 'encontrar', 'encuentro', 'enemigo', 'energía', 'enero', 'enfermedad', 'enfermo', 'engañar', 'enigma', 'enlace', 'enorme', 'enseñar', 'entender', 'enterar', 'entero', 'entonces', 'entrada', 'entrar', 'entre', 'entrega', 'entregar', 'entrenar', 'entrar', 'enviar', 'envidia', 'época', 'equilibrio', 'equipo', 'error', 'escalera', 'escapar', 'escena', 'esclavo', 'escribir', 'escrito', 'escuchar', 'escudo', 'escuela', 'ese', 'esfuerzo', 'espacio', 'espada', 'espalda', 'espejo', 'espera', 'esperanza', 'esperar', 'espeso', 'espía', 'espina', 'espíritu', 'esposa', 'esposo', 'espuma', 'esquema', 'esquina', 'esta', 'establecer', 'estación', 'estado', 'estallar', 'estanque', 'estar', 'estatua', 'este', 'estilo', 'estimar', 'estirar', 'esto', 'estrella', 'estructura', 'estudiar', 'estudio', 'estufa', 'etapa', 'eterno', 'etiqueta', 'europa', 'evento', 'evitar', 'evolución', 'exacto', 'examen', 'examinar', 'excelente', 'exceso', 'excusa', 'éxito', 'explicar', 'explorar', 'explosión', 'exponer', 'exportar', 'expresar', 'exterior', 'extraño', 'extremo'],
+                'F': ['Furada', 'fábrica', 'fabricar', 'fácil', 'factor', 'factura', 'facultad', 'falda', 'falta', 'faltar', 'fama', 'familia', 'famoso', 'fantasía', 'fantasma', 'farmacia', 'faro', 'fase', 'fatal', 'favor', 'fe', 'febrero', 'fecha', 'felicidad', 'feliz', 'feo', 'feria', 'feriado', 'fértil', 'fiar', 'fibra', 'ficha', 'fiel', 'fiesta', 'figura', 'fijar', 'fila', 'filete', 'filo', 'filtro', 'fin', 'final', 'financiar', 'finca', 'fino', 'firma', 'firmar', 'firme', 'física', 'flaco', 'flama', 'flecha', 'flor', 'flota', 'fluir', 'flujo', 'foco', 'folio', 'fondo', 'forma', 'formar', 'fórmula', 'fortuna', 'forzar', 'foto', 'fracaso', 'frágil', 'fragmento', 'frase', 'frasco', 'freno', 'frente', 'fresa', 'fresco', 'frío', 'frontera', 'frotar', 'fruta', 'fruto', 'fuego', 'fuente', 'fuera', 'fuerte', 'fuerza', 'fuga', 'fumar', 'función', 'funda', 'fundar', 'furia', 'fútbol', 'futuro'],
+                'G': ['Gijón', 'Gorra', 'Gusano', 'gabardina', 'gafas', 'gala', 'galaxia', 'galería', 'gallina', 'gallo', 'gana', 'ganancia', 'ganar', 'gancho', 'ganga', 'garaje', 'garantía', 'garganta', 'gas', 'gasolina', 'gastar', 'gasto', 'gato', 'general', 'género', 'generoso', 'genio', 'gente', 'geografía', 'gesto', 'gigante', 'girar', 'giro', 'globo', 'gloria', 'gobernar', 'gobierno', 'golpe', 'golpear', 'goma', 'gordo', 'gota', 'gozar', 'gracia', 'grado', 'gráfico', 'gran', 'grande', 'grano', 'grapa', 'gratis', 'grave', 'gris', 'gritar', 'grito', 'grueso', 'grupo', 'guante', 'guapo', 'guardia', 'guerra', 'guía', 'guiar', 'gusano', 'gusto'],
+                'H': ['Helio', 'Helados Helio', 'haber', 'hábil', 'habitación', 'hábito', 'hablar', 'hacer', 'hacia', 'hacha', 'hada', 'hallar', 'hambre', 'harina', 'hasta', 'hay', 'hazaña', 'hebilla', 'hecho', 'helado', 'hembra', 'herida', 'herir', 'hermana', 'hermano', 'hermoso', 'héroe', 'herramienta', 'hervir', 'hielo', 'hierba', 'hierro', 'hígado', 'hija', 'hijo', 'hilo', 'himno', 'historia', 'hogar', 'hoja', 'hola', 'hombre', 'hombro', 'hondo', 'honor', 'honra', 'hora', 'horario', 'horizonte', 'hormiga', 'horno', 'horror', 'hospital', 'hotel', 'hoy', 'hoyo', 'hueco', 'huelga', 'huella', 'huerta', 'hueso', 'huevo', 'huir', 'humanidad', 'humano', 'húmedo', 'humildad', 'humo', 'humor', 'hundir', 'huracán'],
+                'I': ['Izan', 'idea', 'ideal', 'idioma', 'ídolo', 'iglesia', 'ignorar', 'igual', 'ilegal', 'ilusión', 'imagen', 'imaginar', 'imán', 'imitar', 'impacto', 'impedir', 'imperio', 'implicar', 'importar', 'importe', 'imposible', 'imprenta', 'imprimir', 'impuesto', 'impulso', 'impuro', 'incendio', 'incluir', 'incluso', 'indicar', 'índice', 'industria', 'infantil', 'infierno', 'infinito', 'inflar', 'informar', 'informe', 'ingeniero', 'inglés', 'ingresar', 'ingreso', 'iniciar', 'inicio', 'injusto', 'inmediato', 'inmenso', 'inmóvil', 'inocente', 'inquieto', 'insecto', 'insistir', 'instalar', 'instante', 'instinto', 'insulto', 'intacto', 'íntegro', 'intelecto', 'intención', 'intentar', 'intento', 'interés', 'interior', 'interno', 'íntimo', 'inútil', 'invasión', 'inventar', 'invento', 'invierno', 'invitar', 'ir', 'ira', 'ironía', 'isla'],
+                'J': ['Jonás', 'Juanjo', 'Jardín Botánico', 'jabón', 'jamón', 'jardín', 'jarra', 'jaula', 'jefe', 'jerarquía', 'jeringa', 'jinete', 'jornada', 'joven', 'joya', 'judío', 'juego', 'jueves', 'juez', 'jugar', 'jugo', 'juguete', 'juicio', 'julio', 'junio', 'junta', 'juntar', 'junto', 'jurar', 'justicia', 'justo', 'juventud', 'juzgar'],
+                'K': ['Kiwi', 'Koala', 'kilo', 'kilómetro'], 
+                'L': ['Lucas', 'Lugones', 'Llinu', 'Luanco', 'Logrezana', 'labio', 'labor', 'labrar', 'lado', 'ladrillo', 'ladrón', 'lago', 'lágrima', 'laguna', 'lamentar', 'lámpara', 'lana', 'lanzar', 'lápiz', 'largo', 'lata', 'latín', 'latir', 'lavar', 'lazo', 'leal', 'lección', 'leche', 'lecho', 'leer', 'legal', 'legión', 'legislar', 'legítimo', 'lejos', 'lengua', 'lenguaje', 'lento', 'leña', 'león', 'lepra', 'lesión', 'letra', 'levantar', 'ley', 'leyenda', 'liberar', 'libertad', 'libra', 'libre', 'libro', 'licencia', 'líder', 'liebre', 'lienzo', 'liga', 'ligar', 'ligero', 'lima', 'límite', 'limón', 'limpiar', 'limpio', 'lindo', 'línea', 'lino', 'líquido', 'lista', 'listo', 'litro', 'lobo', 'local', 'loco', 'locura', 'lodo', 'lógica', 'lograr', 'lomo', 'lona', 'longitud', 'lote', 'lucha', 'luchar', 'luego', 'lugar', 'lujo', 'luna', 'lunes', 'lupa', 'luz', 'llama', 'llamar', 'llano', 'llanto', 'llave', 'llegar', 'llenar', 'lleno', 'llevar', 'llorar', 'llover', 'lluvia'],
+                'M': ['Mario', 'Museo Antón', 'Muelle', 'maceta', 'macho', 'madera', 'madre', 'maduro', 'maestro', 'magia', 'mágico', 'maíz', 'mal', 'maleta', 'maldad', 'malo', 'mamá', 'mancha', 'mandar', 'mando', 'manera', 'manga', 'mango', 'manía', 'manifestar', 'mano', 'manso', 'manta', 'manteca', 'mantener', 'manual', 'mañana', 'mapa', 'máquina', 'mar', 'maravilla', 'marca', 'marcar', 'marco', 'marcha', 'marea', 'mareo', 'margen', 'marido', 'marinero', 'mariposa', 'mármol', 'marrón', 'martes', 'marzo', 'mas', 'más', 'masa', 'máscara', 'matar', 'materia', 'matiz', 'matriz', 'máximo', 'mayo', 'mayor', 'mayoría', 'me', 'mecanismo', 'medalla', 'media', 'medicina', 'médico', 'medida', 'medio', 'medir', 'meditar', 'mejor', 'mejorar', 'melón', 'melodía', 'memoria', 'mención', 'menor', 'menos', 'mensaje', 'mente', 'menú', 'mercado', 'merecer', 'mérito', 'mermelada', 'mes', 'mesa', 'meta', 'metal', 'meter', 'método', 'metro', 'mezcla', 'mezclar', 'miedo', 'miel', 'miembro', 'mientras', 'miércoles', 'mil', 'milagro', 'militar', 'millón', 'mimar', 'mina', 'mineral', 'mínimo', 'ministro', 'minoría', 'minuto', 'mío', 'mirada', 'mirar', 'misa', 'miserable', 'miseria', 'misión', 'mismo', 'misterio', 'mitad', 'moda', 'modelo', 'modo', 'mojar', 'molde', 'moler', 'molino', 'momento', 'momia', 'moneda', 'monitor', 'monje', 'mono', 'montaña', 'montar', 'monte', 'montón', 'moral', 'morder', 'moreno', 'morir', 'mosca', 'mostrar', 'motivo', 'motor', 'mover', 'móvil', 'muchacho', 'mucho', 'mueble', 'muelle', 'muerte', 'muerto', 'muestra', 'mujer', 'multa', 'mundial', 'mundo', 'muñeca', 'muro', 'músculo', 'museo', 'música', 'muslo', 'mutuo', 'muy'],
+                'N': ['Nayara', 'Noa', 'Nira', 'Navidad', 'Navidades', 'nacer', 'nación', 'nada', 'nadar', 'nadie', 'naranja', 'nariz', 'narrar', 'nata', 'nativo', 'natural', 'nature', 'nave', 'navegar', 'navidad', 'necesario', 'necesidad', 'negar', 'negocio', 'negro', 'nervio', 'neto', 'neumático', 'neutro', 'nevada', 'nevar', 'ni', 'nido', 'niebla', 'nieto', 'nieve', 'ninguno', 'niña', 'niño', 'nivel', 'no', 'noble', 'noche', 'nombre', 'norma', 'norte', 'nota', 'notar', 'noticia', 'novela', 'novio', 'nube', 'núcleo', 'nudo', 'nuera', 'nuestro', 'nueve', 'nuevo', 'nuez', 'número', 'nunca', 'nutrir'],
+                'Ñ': ['Ñu', 'Piña', 'Caña', 'niño', 'niña', 'mañana', 'pañuelo', 'año', 'araña', 'baño', 'cabaña', 'caña', 'montaña', 'muñeca', 'puño', 'sueño', 'otoño', 'leña', 'acompañar', 'daño', 'pequeño', 'señal', 'señor'], 
+                'P': ['Perlora', 'Prendes', 'Peñá Furada', 'Playa de la Palmera', 'Plaza Bocata', 'Playas de Carreño', 'Playa', 'Palmera', 'Plaza', 'paciencia', 'paciente', 'pacto', 'padre', 'pagar', 'página', 'pago', 'país', 'paisaje', 'paja', 'pájaro', 'pala', 'palabra', 'palacio', 'pálido', 'palma', 'palo', 'paloma', 'pan', 'pánico', 'pañuelo', 'papá', 'papel', 'paquete', 'par', 'para', 'parada', 'parar', 'pared', 'pareja', 'pariente', 'parque', 'párrafo', 'parte', 'partido', 'partir', 'parto', 'pasar', 'pasear', 'paseo', 'pasión', 'paso', 'pasta', 'pastel', 'pasto', 'pata', 'patata', 'patio', 'patria', 'pausa', 'pauta', 'pavo', 'paz', 'pecado', 'pecho', 'pedazo', 'pedir', 'pegar', 'peinar', 'peine', 'pelea', 'pelícuar', 'peligro', 'pelo', 'pelota', 'pena', 'pendiente', 'pensar', 'pensión', 'peor', 'pequeño', 'pera', 'perder', 'perdón', 'perfil', 'perfume', 'periodista', 'perla', 'permiso', 'permitir', 'pero', 'perro', 'persona', 'personaje', 'pertenecer', 'pesar', 'pesca', 'peso', 'pestaña', 'petición', 'pez', 'piano', 'picar', 'pico', 'pie', 'piedad', 'piedra', 'piel', 'pierna', 'pieza', 'pila', 'pilar', 'piloto', 'pimienta', 'pino', 'pintar', 'pintor', 'pintura', 'piña', 'pipa', 'pirata', 'pisar', 'piscina', 'piso', 'pista', 'pistola', 'pito', 'placer', 'plan', 'plancha', 'planea', 'planeta', 'plano', 'planta', 'plantar', 'plata', 'plato', 'playa', 'plaza', 'plazo', 'pleito', 'plomo', 'pluma', 'plural', 'pobre', 'poco', 'poder', 'poema', 'poeta', 'poesía', 'policía', 'política', 'polvo', 'pollo', 'poner', 'popular', 'por', 'porcentaje', 'porque', 'portada', 'poseer', 'posible', 'posición', 'postal', 'poste', 'postre', 'potencia', 'pozo', 'práctica', 'prado', 'precio', 'preciso', 'preferir', 'pregunta', 'preguntar', 'premio', 'prensa', 'preocupar', 'preparar', 'presa', 'presencia', 'presentar', 'presente', 'presidente', 'preso', 'presión', 'prestar', 'préstamo', 'presumir', 'pretender', 'pretexto', 'previo', 'prima', 'primavera', 'primer', 'primo', 'principal', 'príncipe', 'principio', 'prisa', 'privar', 'probar', 'problema', 'proceso', 'producir', 'producto', 'profesión', 'profesor', 'profundo', 'programa', 'prohibir', 'promesa', 'prometer', 'p', 'ronto', 'propio', 'propiedad', 'proteger', 'protesta', 'provecho', 'próximo', 'proyectar', 'proyecto', 'prueba', 'público', 'pueblo', 'puente', 'puerta', 'puerto', 'pues', 'puesto', 'pulgar', 'pulso', 'punta', 'punto', 'puño', 'pupila', 'puro'],
+                'Q': ['Queta', 'Queso', 'qué', 'que', 'quedar', 'queja', 'quemar', 'querer', 'queso', 'quien', 'quieto', 'química', 'quince', 'quinto', 'quitar', 'quizá', 'parque', 'pequeño', 'toque', 'bosque', 'tanque', 'porque', 'aquel', 'aqui', 'equipo', 'esquema', 'esquina', 'etiqueta', 'izquierdo', 'maquina', 'orquesta', 'paquete', 'parque', 'raqueta', 'riqueza', 'seco', 'toque'],
+                'R': ['Rafa', 'Rocío', 'Rubén', 'Rebolleres', 'Rula de Candás', 'rabia', 'rabo', 'racha', 'radiar', 'radio', 'raíz', 'rama', 'ramo', 'rana', 'rápido', 'rapto', 'raro', 'rascacielos', 'rascar', 'rasgo', 'rastro', 'rata', 'rato', 'ratón', 'raya', 'rayo', 'raza', 'razón', 'reacción', 'real', 'realidad', 'rebelde', 'recibir', 'reciente', 'recio', 'reclamar', 'recoger', 'recomendar', 'reconocer', 'recordar', 'recto', 'recuerdo', 'red', 'redondo', 'reducir', 'reflejar', 'reforma', 'refrán', 'refugio', 'regalo', 'regar', 'régimen', 'región', 'registro', 'regla', 'regresar', 'reina', 'reino', 'reír', 'reja', 'relación', 'relato', 'relieve', 'religión', 'reloj', 'remar', 'remedio', 'remo', 'rencor', 'rendir', 'renta', 'reojo', 'reparar', 'reparo', 'repartir', 'repaso', 'repetir', 'reposo', 'representar', 'reprimir', 'reproche', 'reptil', 'república', 'reserva', 'resistir', 'resolver', 'resonar', 'respeto', 'respirar', 'responder', 'respuesta', 'resto', 'resultado', 'resumen', 'retirar', 'retiro', 'retrato', 'reunión', 'reunir', 'revelar', 'revés', 'revista', 'revocar', 'revolución', 'rey', 'rezar', 'rico', 'riesgo', 'rincón', 'río', 'riqueza', 'risa', 'ritmo', 'rito', 'rival', 'robar', 'robo', 'robusto', 'roca', 'rocío', 'rodar', 'rodear', 'rodilla', 'rogar', 'rojo', 'rollo', 'romper', 'ronco', 'ropa', 'rosa', 'rostro', 'roto', 'rubio', 'rueda', 'ruego', 'ruido', 'ruina', 'rumbo', 'rumor', 'ruptura', 'rural', 'ruta', 'rutina'],
+                'S': ['Selena', 'Sidrerías', 'Semana Santa', 'Salidas', 'saber', 'sabio', 'sabor', 'sacar', 'saco', 'sacudir', 'sagrado', 'sal', 'sala', 'salida', 'salir', 'salón', 'salsa', 'saltar', 'salto', 'salud', 'saludar', 'saludo', 'salvaje', 'salvar', 'sangre', 'sano', 'santo', 'sapo', 'sastre', 'satélite', 'satisfacer', 'sauce', 'seco', 'secreto', 'sector', 'secuestro', 'sed', 'seda', 'seguir', 'según', 'segundo', 'seguridad', 'seguro', 'seis', 'selva', 'sello', 'semana', 'sembrar', 'semejar', 'semilla', 'sencillo', 'senda', 'seno', 'sensación', 'sentido', 'sentir', 'señal', 'señalar', 'señor', 'separar', 'septiembre', 'sepulcro', 'ser', 'serie', 'serio', 'serpiente', 'servicio', 'servir', 'sesenta', 'sesión', 'setenta', 'severo', 'sexo', 'sexto', 'si', 'sí', 'siempre', 'sierra', 'siesta', 'siete', 'siglo', 'significar', 'signo', 'sílaba', 'silbar', 'silencio', 'silla', 'sillón', 'símbolo', 'simple', 'sin', 'sincero', 'singular', 'sino', 'síntoma', 'sistema', 'sitio', 'situación', 'soberbio', 'sobrar', 'sobre', 'sobrino', 'social', 'sociedad', 'socio', 'socorro', 'sofá', 'sol', 'sola', 'solar', 'soldado', 'soledad', 'solemne', 'soler', 'solicitar', 'sólido', 'solitario', 'solo', 'soltar', 'solución', 'sombra', 'sombrero', 'sonar', 'sonda', 'sonido', 'sonreír', 'sonrisa', 'soñar', 'sopa', 'soplar', 'sordo', 'sorpresa', 'sorteo', 'sospecha', 'sostener', 'sótano', 'suave', 'subir', 'submarino', 'sucio', 'sudor', 'suegra', 'sueldo', 'suelo', 'sueño', 'suerte', 'suficiente', 'sufrir', 'sugerir', 'suicidio', 'sujeto', 'suma', 'sumar', 'superar', 'superficie', 'superior', 'suplicar', 'suponer', 'sur', 'surco', 'surgir', 'suspiro', 'susto', 'sutil'],
+                'T': ['Tymofii', 'Tamara', 'TPA Gijon', 'Teatro Prendes', 'TPA', 'tabaco', 'tabla', 'tablero', 'tacto', 'tal', 'taladro', 'talón', 'talla', 'taller', 'tamaño', 'tambor', 'tampoco', 'tan', 'tanto', 'tapa', 'tapar', 'tapiz', 'tardar', 'tarde', 'tarea', 'tarjeta', 'tasa', 'taxi', 'taza', 'teatro', 'techo', 'tejer', 'tejido', 'tela', 'telaraña', 'teléfono', 'telegrama', 'tema', 'temblar', 'temer', 'temperatura', 'tempestad', 'templo', 'temporada', 'temprano', 'tenedor', 'tener', 'tensión', 'tentar', 'teoría', 'terapia', 'tercero', 'terminar', 'término', 'termómetro', 'terreno', 'terrible', 'terror', 'tesoro', 'testigo', 'texto', 'tía', 'tiempo', 'tienda', 'tierno', 'tierra', 'tigre', 'tijeras', 'timbre', 'tímido', 'tinta', 'tío', 'tipo', 'tirar', 'tiro', 'título', 'toalla', 'tobillo', 'tocar', 'todo', 'toldo', 'tomar', 'tomate', 'tono', 'tonto', 'top', 'tope', 'toque', 'tórax', 'tormenta', 'torneo', 'toro', 'torre', 'tortuga', 'total', 'trabajar', 'trabajo', 'traer', 'tráfico', 'trago', 'traición', 'traje', 'trampa', 'tramo', 'tranquilo', 'transformar', 'transporte', 'trapo', 'tras', 'traslado', 'tratar', 'trato', 'través', 'trazar', 'trébol', 'trece', 'tremendo', 'tren', 'tres', 'tribu', 'tribunal', 'trigo', 'trimestre', 'triste', 'triunfo', 'trompa', 'tronco', 'tropa', 'trozo', 'trueno', 'tu', 'tú', 'tubería', 'tubo', 'tumba', 'tumor', 'túnel', 'turismo', 'turno', 'tutor', 'tuyo'],
+                'U': ['Universo', 'Uvas', 'ubicar', 'uña', 'último', 'único', 'unidad', 'unificar', 'unión', 'unir', 'universo', 'uno', 'untar', 'urbano', 'urgente', 'usar', 'uso', 'usted', 'útil', 'uva'], 
+                'V': ['Vacaciones', 'Verano', 'vaca', 'vacación', 'vacío', 'vago', 'vaina', 'valer', 'válido', 'valle', 'valor', 'válvula', 'valla', 'vampiro', 'vapor', 'vara', 'variable', 'variar', 'variedad', 'varón', 'vaso', 'vecino', 'vegetal', 'vejez', 'veintena', 'vejez', 'vela', 'velo', 'velocidad', 'vena', 'vencer', 'vender', 'veneno', 'venir', 'venta', 'ventaja', 'ventana', 'ver', 'verano', 'veras', 'verbo', 'verdad', 'verde', 'verdura', 'vergüenza', 'verso', 'vertical', 'vestir', 'vestido', 'vez', 'vía', 'viajar', 'viaje', 'viajero', 'vibrar', 'vicio', 'víctima', 'vida', 'vidrio', 'viejo', 'viento', 'vientre', 'viernes', 'viga', 'vigilar', 'vigor', 'villa', 'vinagre', 'vino', 'violencia', 'violento', 'violeta', 'virgen', 'virtud', 'virus', 'visera', 'visible', 'visión', 'visita', 'visitar', 'víspera', 'vista', 'viuda', 'vivir', 'vivo', 'vocablo', 'vocal', 'volar', 'volcán', 'voluntad', 'volumen', 'volver', 'vos', 'vosotros', 'votación', 'votar', 'voto', 'voz', 'vuelo', 'vuelta', 'vuestro', 'vulgar'],
+                'W': ['Wifi', 'Waffle', 'Web', 'waterpolo', 'whisky'], 
+                'X': ['Xel', 'Xilófono', 'Taxi', 'texto', 'sexto', 'examen', 'éxito', 'óxido', 'oxígeno', 'proximo', 'tórax', 'boxeo', 'saxofón'],
+                'Y': ['Yadiel', 'Yoyó', 'y', 'ya', 'yacimiento', 'yate', 'yegua', 'yema', 'yerno', 'yeso', 'yo', 'yodo', 'yogur', 'yunque', 'zafiro', 'zanahoria', 'zapato', 'zarza', 'zona', 'zoo', 'zorro', 'zumo', 'zurdo'],
+                'Z': ['Zapato', 'Zorro', 'zafiro', 'zanahoria', 'zapato', 'zarza', 'zona', 'zoo', 'zorro', 'zumo', 'zurdo', 'azul', 'azúcar', 'caza', 'cazar', 'cereza', 'corazón', 'cruz', 'cruzar', 'diez', 'feliz', 'fuerza', 'garbanzo', 'gozar', 'hazaña', 'juez', 'juzgar', 'lanzar', 'lazo', 'luz', 'maíz', 'manzana', 'matiz', 'mezcla', 'nariz', 'nuez', 'paz', 'pez', 'pieza', 'plaza', 'pozo', 'raíz', 'raza', 'razón', 'rechazo', 'riqueza', 'taza', 'terraza', 'trozo', 'vez', 'voz'] 
+            };
+
+            const vowels = ['A', 'E', 'I', 'O', 'U'];
+            const consonants = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'Ñ', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'];
+
+            // --- FUNCIONES AUXILIARES ---
+            const speakText = (text, rate = 0.85) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text.toLowerCase());
+                    utterance.lang = 'es-ES';
+                    utterance.rate = rate;
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            const getSyllablePronunciation = (consonant, vowel) => {
+                let c = consonant.toUpperCase();
+                let v = vowel.toUpperCase();
+                let textToSpeak = (consonant + vowel).toLowerCase();
+                
+                if (c === 'X') {
+                    textToSpeak = 's' + v.toLowerCase();
+                } else if (c === 'Y') {
+                    if (v === 'U') textToSpeak = 'llu';
+                    else if (v === 'I') textToSpeak = 'lli';
+                } else if (c === 'Q') {
+                    if (v === 'E' || v === 'I') textToSpeak = 'qu' + v.toLowerCase();
+                    else textToSpeak = 'k' + v.toLowerCase();
+                } else if (c === 'T' && v === 'O') {
+                    textToSpeak = 'to'; 
+                } else if (c === 'G') {
+                    if (v === 'A') textToSpeak = 'ga'; // Aseguramos sonido suave
+                    else if (v === 'O') textToSpeak = 'go'; 
+                    else if (v === 'U') textToSpeak = 'gu';
+                } else if (c === 'J' && v === 'E') {
+                    textToSpeak = 'je'; 
+                }
+                return textToSpeak;
+            };
+
+            // --- HANDLERS MODO LETRAS ---
+            const handleLetterClick = (letter) => {
+                setSelectedLetter(letter);
+                setAnimationClass('scale-110');
+                setTimeout(() => setAnimationClass(''), 200);
+                const examples = letterData[letter] || ['Palabra'];
+                const randomExample = examples[Math.floor(Math.random() * examples.length)];
+                setCurrentExample(randomExample);
+                
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const sound = (phoneticSounds[letter] !== undefined ? phoneticSounds[letter] : letter).toLowerCase();
+                    const utteranceLetter = new SpeechSynthesisUtterance(sound);
+                    utteranceLetter.lang = 'es-ES'; 
+                    utteranceLetter.rate = 0.9;
+                    const utteranceWord = new SpeechSynthesisUtterance(randomExample.toLowerCase());
+                    utteranceWord.lang = 'es-ES';
+                    utteranceWord.rate = 0.9;
+                    
+                    utteranceLetter.onend = () => {
+                        setTimeout(() => window.speechSynthesis.speak(utteranceWord), 500);
+                    };
+                    window.speechSynthesis.speak(utteranceLetter);
+                }
+            };
+
+            // --- HANDLERS MODO SÍLABAS ---
+            const handleSyllableVowel = (vowel) => {
+                if (!syllableConsonant) return; 
+                setSyllableVowel(vowel);
+                let syllable = syllableConsonant + vowel;
+                setFormedSyllable(syllable);
+                
+                const allWords = Object.values(letterData).flat();
+                const foundWord = allWords.find(word => 
+                    word.toLowerCase().includes(syllable.toLowerCase())
+                ) || ''; 
+                
+                setSyllableExample(foundWord);
+                
+                const textToSpeak = getSyllablePronunciation(syllableConsonant, vowel);
+
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utteranceSyllable = new SpeechSynthesisUtterance(textToSpeak);
+                    utteranceSyllable.lang = 'es-ES';
+                    utteranceSyllable.rate = 0.8;
+
+                    const utteranceWord = new SpeechSynthesisUtterance(foundWord.toLowerCase());
+                    utteranceWord.lang = 'es-ES';
+                    utteranceWord.rate = 0.9;
+
+                    utteranceSyllable.onend = () => {
+                        if (foundWord) setTimeout(() => window.speechSynthesis.speak(utteranceWord), 500);
+                    };
+                    window.speechSynthesis.speak(utteranceSyllable);
+                }
+            };
+
+            // --- HANDLERS MODO ESCRITURA ---
+            const addLetterToWord = (letter) => {
+                let finalLetter = letter;
+                if (isAccentActive && accentedVowels[letter]) {
+                    finalLetter = accentedVowels[letter];
+                    setIsAccentActive(false);
+                } else if (isAccentActive) {
+                    setIsAccentActive(false);
+                }
+                setWrittenWord(prev => prev + finalLetter);
+            };
+
+            const deleteLastLetter = () => {
+                setWrittenWord(prev => prev.slice(0, -1));
+            };
+
+            const clearWord = () => {
+                setWrittenWord('');
+                setIsAccentActive(false);
+            };
+
+            const readFullWord = () => {
+                if (writtenWord.length > 0) {
+                    speakText(writtenWord, 0.8);
+                }
+            };
+
+            // --- HANDLERS MODO PÁRRAFO SONORO ---
+
+            // Validador fonológico estricto para asegurar que la coincidencia es una sílaba real aislada
+            const isExactSyllable = (word, target) => {
+                const removeAccents = (str) => {
+                    return str.toLowerCase()
+                              .replace(/[áäâà]/g, 'a')
+                              .replace(/[éëêè]/g, 'e')
+                              .replace(/[íïîì]/g, 'i')
+                              .replace(/[óöôò]/g, 'o')
+                              .replace(/[úüûù]/g, 'u');
+                };
+
+                const w = removeAccents(word);
+                const t = removeAccents(target);
+                
+                if (!w.includes(t)) return false;
+
+                const vowels = "aeiou";
+                // Grupos consonánticos inseparables en español (ataques silábicos)
+                const clusters = ['pr','br','tr','dr','cr','gr','fr','pl','bl','cl','gl','fl','ch','ll','rr', 'qu', 'gu'];
+
+                let startSearch = 0;
+                while (true) {
+                    const idx = w.indexOf(t, startSearch);
+                    if (idx === -1) break;
+
+                    let isValidStart = false;
+                    let isValidEnd = false;
+
+                    // 1. Validar el inicio de la sílaba
+                    if (idx === 0) {
+                        isValidStart = true;
+                    } else {
+                        const prevChar = w[idx - 1];
+                        const targetFirstChar = t[0];
+                        if (vowels.includes(prevChar)) {
+                            isValidStart = true; 
+                        } else {
+                            if (vowels.includes(targetFirstChar)) {
+                                isValidStart = false; 
+                            } else {
+                                if (clusters.includes(prevChar + targetFirstChar)) {
+                                    isValidStart = false;
+                                } else {
+                                    isValidStart = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Validar el final de la sílaba
+                    const endIdx = idx + t.length;
+                    if (endIdx === w.length) {
+                        isValidEnd = true;
+                    } else {
+                        const nextChar = w[endIdx];
+                        const nextNextChar = endIdx + 1 < w.length ? w[endIdx + 1] : '';
+                        
+                        if (vowels.includes(nextChar)) {
+                            if (!vowels.includes(t[t.length - 1])) {
+                                isValidEnd = false; 
+                            } else {
+                                isValidEnd = true; 
+                            }
+                        } else {
+                            if (nextNextChar === '') {
+                                isValidEnd = false;
+                            } else if (vowels.includes(nextNextChar)) {
+                                isValidEnd = true;
+                            } else {
+                                if (clusters.includes(nextChar + nextNextChar)) {
+                                    isValidEnd = true;
+                                } else {
+                                    isValidEnd = false;
+                                }
+                            }
+                        }
+                    }
+
+                    if (isValidStart && isValidEnd) return true;
+
+                    startSearch = idx + 1;
+                }
+
+                return false;
+            };
+
+            const handleParaLetterClick = (letter) => {
+                if (currentParaLetters.length < 3) {
+                    setCurrentParaLetters([...currentParaLetters, letter]);
+                }
+            };
+
+            const clearParaSelection = () => {
+                setCurrentParaLetters([]);
+            };
+
+            const confirmParaSyllable = () => {
+                const syllable = currentParaLetters.join('');
+                if (paragraphPhase === 'setup1') {
+                    setParaSyllable1(syllable);
+                    setParagraphPhase('setup2');
+                    setCurrentParaLetters([]);
+                } else if (paragraphPhase === 'setup2') {
+                    setParaSyllable2(syllable);
+                    setParagraphPhase('memory');
+                    generateParagraphText(paraSyllable1, syllable);
+                }
+            };
+
+            const generateParagraphText = (s1, s2) => {
+                const allWords = Object.values(letterData).flat();
+                const syl1Lower = s1.toLowerCase();
+                const syl2Lower = s2.toLowerCase();
+
+                // 1. Obtenemos palabras únicas de todas nuestras fuentes
+                const uniqueWords = [...new Set(allWords.map(w => w.toLowerCase()))];
+
+                // 2. Función para buscar palabras reales asegurando que mantienen las sílabas como SÍLABAS EXACTAS
+                const getRealWords = (targetSyl, avoidSyl, count) => {
+                    let matches = uniqueWords.filter(w => isExactSyllable(w, targetSyl) && !isExactSyllable(w, avoidSyl));
+                    
+                    if (matches.length < count) {
+                        const moreMatches = uniqueWords.filter(w => isExactSyllable(w, targetSyl));
+                        matches = [...new Set([...matches, ...moreMatches])];
+                    }
+                    
+                    return matches.sort(() => 0.5 - Math.random()).slice(0, count);
+                };
+
+                const wordsS1 = getRealWords(syl1Lower, syl2Lower, 2);
+                const wordsS2 = getRealWords(syl2Lower, syl1Lower, 2);
+                
+                // 3. Fallback: Solo si el diccionario no tiene palabras con esa sílaba (ej: una sílaba muy extraña)
+                const prefixes = ['ca', 'bo', 'mu', 'li', 'sa', 'tro', 'pe', 'ra'];
+                const suffixes = ['lo', 'ma', 'te', 'so', 'pa', 'na', 'ro', 'ta'];
+                
+                const getFallback = (syl) => {
+                    const usePrefix = Math.random() > 0.5;
+                    return usePrefix ? prefixes[Math.floor(Math.random() * prefixes.length)] + syl : syl + suffixes[Math.floor(Math.random() * suffixes.length)];
+                };
+
+                // Asignamos las palabras encontradas (o el fallback de emergencia)
+                const w1 = wordsS1[0] || getFallback(syl1Lower);
+                const w3 = wordsS1[1] || getFallback(syl1Lower);
+                
+                const w2 = wordsS2[0] || getFallback(syl2Lower);
+                const w4 = wordsS2[1] || getFallback(syl2Lower);
+
+                // Modificamos el texto para que tenga sentido
+                const lines = [
+                    `En nuestra clase hablamos mucho de ${w1}.`,
+                    `También nos gusta jugar con ${w2}.`,
+                    `Ayer vimos que ${w3} estaba en el patio.`,
+                    `¡Qué locura hacer una excursión para ver a ${w4}!`,
+                    `Al final, nos quedamos con ${w1}`,
+                    `y compartimos todo con ${w2}.`
+                ];
+                
+                const fullText = lines.join('\n');
+                const words = fullText.split(/[\s\n]+/);
+                setParagraphTextWords(words);
+                setFoundWords([]);
+            };
+
+            const handleWordClick = (word, index) => {
+                const cleanWord = word.toLowerCase().replace(/[.,!¡?¿]/g, "");
+                
+                // Ahora usamos el validador estricto de sílabas también para dar la respuesta correcta
+                if (isExactSyllable(cleanWord, paraSyllable1) || isExactSyllable(cleanWord, paraSyllable2)) {
+                    if (!foundWords.includes(index)) {
+                        setFoundWords([...foundWords, index]);
+                        const utterance = new SpeechSynthesisUtterance("¡Bien!");
+                        utterance.rate = 1.5;
+                        window.speechSynthesis.speak(utterance);
+                    }
+                }
+            };
+
+            const readParagraph = () => {
+                const fullText = paragraphTextWords.join(' ');
+                // Se reduce la velocidad de 0.6 a 0.4 para que lea más despacio
+                speakText(fullText, 0.4);
+            };
+
+            return (
+                <div className="p-2 md:p-8 pb-20 max-w-7xl mx-auto">
+                    
+                    <header className="flex flex-col items-center mb-6 gap-4">
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-indigo-600 drop-shadow-sm flex items-center justify-center gap-3 text-center">
+                            <Sparkles className="text-yellow-400 hidden sm:block" size={32}/>
+                            Conciencia fonológica
+                            <Sparkles className="text-yellow-400 hidden sm:block" size={32}/>
+                        </h1>
+                        
+                        <div className="bg-white p-1 rounded-full shadow-lg flex border-2 border-indigo-100 overflow-x-auto max-w-full w-full md:w-auto scrollbar-hide">
+                            <button onClick={() => setMode('alphabet')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all whitespace-nowrap text-sm md:text-base ${mode === 'alphabet' ? 'bg-indigo-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                <Layout size={18} /> Letras
+                            </button>
+                            <button onClick={() => setMode('syllables')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all whitespace-nowrap text-sm md:text-base ${mode === 'syllables' ? 'bg-pink-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                <Grid size={18} /> Sílabas
+                            </button>
+                            <button onClick={() => setMode('writing')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all whitespace-nowrap text-sm md:text-base ${mode === 'writing' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                <PenTool size={18} /> Escritura
+                            </button>
+                            <button onClick={() => { setMode('paragraph'); setParagraphPhase('setup1'); setCurrentParaLetters([]); setParaSyllable1(''); setParaSyllable2(''); }} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all whitespace-nowrap text-sm md:text-base ${mode === 'paragraph' ? 'bg-green-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                <BookOpen size={18} /> Párrafo loco
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* --- MODO 1: LETRAS --- */}
+                    {mode === 'alphabet' && (
+                        <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+                            <div className="bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center justify-center min-h-[180px] md:min-h-[220px] border-4 border-indigo-200 max-w-3xl mx-auto mb-8">
+                                {selectedLetter ? (
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-12 w-full animate-fade-in">
+                                        <div className={`text-8xl md:text-[10rem] font-black text-indigo-500 transition-transform ${animationClass}`}>
+                                            {selectedLetter}
+                                        </div>
+                                        <div className="flex flex-col items-center sm:items-start">
+                                            <div className="flex items-center gap-2 text-indigo-400 mb-1 uppercase tracking-wider text-xs font-bold bg-indigo-50 px-3 py-1 rounded-full">
+                                                <Volume2 size={14} /> Pronunciando...
+                                            </div>
+                                            <div className="text-5xl md:text-7xl font-bold text-gray-800 capitalize text-center sm:text-left leading-tight">
+                                                {currentExample}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : <div className="text-gray-400 text-xl font-bold text-center">¡Pulsa una letra para saludar a tus compañeros y profes!</div>}
+                            </div>
+
+                            <section className="bg-white/80 rounded-3xl p-6 shadow-xl border-b-8 border-pink-300 max-w-3xl mx-auto">
+                                <h2 className="text-center text-pink-600 font-black text-2xl mb-4">Vocales</h2>
+                                <div className="grid grid-cols-5 gap-3 px-4 md:px-12">
+                                    {vowels.map(l => (
+                                        <button key={l} onClick={() => handleLetterClick(l)} className="aspect-square bg-pink-500 text-white rounded-xl text-3xl font-bold shadow-md hover:-translate-y-1 transition-all flex items-center justify-center border-b-4 border-pink-700">{l}</button>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section className="bg-white/80 rounded-3xl p-6 shadow-xl border-b-8 border-indigo-300">
+                                <h2 className="text-indigo-600 font-black text-2xl mb-4 ml-2">Consonantes</h2>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2">
+                                    {consonants.map(l => (
+                                        <button key={l} onClick={() => handleLetterClick(l)} className="aspect-square bg-white text-indigo-600 rounded-xl text-xl md:text-2xl font-bold border-2 border-indigo-100 hover:border-indigo-400 shadow-sm transition-all flex items-center justify-center">{l}</button>
+                                    ))}
+                                </div>
+                            </section>
+                        </div>
+                    )}
+
+                    {/* --- MODO 2: SÍLABAS --- */}
+                    {mode === 'syllables' && (
+                        <div className="max-w-5xl mx-auto animate-fade-in">
+                            <div className="bg-white rounded-3xl shadow-2xl p-6 mb-8 border-4 border-pink-200 min-h-[180px] md:min-h-[250px] flex flex-col items-center justify-center transition-all max-w-4xl mx-auto px-4">
+                                {!syllableConsonant ? (
+                                    <div className="text-center text-gray-400">
+                                        <p className="text-2xl font-bold text-indigo-400">1. Elige una Consonante abajo 👇</p>
+                                    </div>
+                                ) : !syllableVowel ? (
+                                    <div className="text-center">
+                                        <div className="text-[8rem] md:text-[10rem] font-black text-indigo-200 leading-none">{syllableConsonant}</div>
+                                        <p className="text-xl font-bold text-pink-500 animate-bounce mt-4">2. ¡Ahora elige una Vocal! 👆</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-16 w-full animate-fade-in">
+                                        <div className="text-[8rem] md:text-[10rem] font-black leading-none flex items-center">
+                                            <span className="text-indigo-500">{syllableConsonant}</span>
+                                            <span className="text-pink-500">{syllableVowel}</span>
+                                        </div>
+                                        <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                                            {syllableExample ? (
+                                                <>
+                                                    <div className="flex items-center gap-2 text-indigo-400 mb-1 uppercase tracking-wider text-xs font-bold bg-indigo-50 px-3 py-1 rounded-full w-fit">
+                                                        <Volume2 size={14} /> La lleva la palabra...
+                                                    </div>
+                                                    <div className="text-5xl md:text-7xl font-bold text-gray-700 capitalize leading-tight">
+                                                        {syllableExample}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <p className="text-gray-400 italic">No encuentro palabras con "{syllableConsonant}{syllableVowel}" en tu lista.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <section className="mb-6 bg-white/90 rounded-2xl p-4 shadow-lg border-b-4 border-pink-300 max-w-xl mx-auto">
+                                <h3 className="text-center text-pink-600 font-bold text-xs uppercase tracking-widest mb-3">Vocales</h3>
+                                <div className="flex gap-3 justify-center">
+                                    {vowels.map(v => (
+                                        <button key={v} onClick={() => handleSyllableVowel(v)} disabled={!syllableConsonant} className={`w-14 h-14 rounded-xl text-2xl font-bold border-b-4 flex items-center justify-center transition-all ${!syllableConsonant ? 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed' : syllableVowel === v ? 'bg-pink-600 text-white border-pink-800 scale-110 shadow-lg' : 'bg-pink-100 text-pink-600 border-pink-200 hover:bg-pink-200'}`}>{v}</button>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section className="bg-white/90 rounded-3xl p-6 shadow-lg border-b-4 border-indigo-300">
+                                <h3 className="text-center text-indigo-600 font-bold text-xs uppercase tracking-widest mb-4">Consonantes</h3>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2">
+                                    {consonants.map(c => (
+                                        <button key={c} onClick={() => { setSyllableConsonant(c); setSyllableVowel(null); setFormedSyllable(''); setSyllableExample(''); }} className={`aspect-square rounded-xl text-2xl font-bold border-b-4 flex items-center justify-center transition-all ${syllableConsonant === c ? 'bg-indigo-600 text-white border-indigo-800 scale-105 shadow-xl' : 'bg-white text-indigo-600 border-indigo-100 hover:border-indigo-400'}`}>{c}</button>
+                                    ))}
+                                </div>
+                            </section>
+                        </div>
+                    )}
+
+                    {/* --- MODO 3: ESCRITURA --- */}
+                    {mode === 'writing' && (
+                        <div className="max-w-6xl mx-auto animate-fade-in space-y-6 px-2">
+                            <div className="bg-white rounded-3xl shadow-2xl p-8 border-4 border-orange-200 min-h-[200px] flex flex-col items-center justify-center relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
+                                <div className="absolute top-4 left-4 flex gap-2">
+                                    <button onClick={clearWord} className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Borrar todo">
+                                        <Trash2 size={24} />
+                                    </button>
+                                    <button onClick={deleteLastLetter} className="p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition-colors shadow-sm" title="Borrar última">
+                                        <Eraser size={24} />
+                                    </button>
+                                </div>
+                                
+                                <div className="absolute top-4 right-4">
+                                    <button onClick={readFullWord} className="p-4 bg-green-500 text-white rounded-full hover:bg-green-600 transition-transform active:scale-95 shadow-lg flex items-center gap-2" title="Leer palabra">
+                                        <Volume2 size={24} />
+                                        <span className="font-bold hidden sm:inline">Leer palabra</span>
+                                    </button>
+                                </div>
+
+                                <div className="text-4xl md:text-8xl font-black text-gray-800 tracking-wider break-all text-center mt-8 uppercase">
+                                    {writtenWord || <span className="text-gray-200 select-none normal-case text-2xl md:text-4xl">¡Escribe lo que quieras!</span>}
+                                </div>
+                            </div>
+
+                            <section className="bg-white/80 rounded-2xl p-4 shadow-xl border-b-4 border-pink-300 max-w-2xl mx-auto">
+                                <div className="flex gap-3 justify-center items-center">
+                                    <button 
+                                        onClick={() => setIsAccentActive(!isAccentActive)} 
+                                        className={`w-12 h-12 md:w-14 md:h-14 rounded-xl text-3xl font-black shadow transition-all flex items-center justify-center border-b-4 ${isAccentActive ? 'bg-orange-500 text-white border-orange-700 animate-pulse' : 'bg-gray-100 text-gray-600 border-gray-300'}`}
+                                        title="Poner tilde"
+                                    >
+                                        ´
+                                    </button>
+                                    <div className="w-px h-10 bg-gray-200 mx-2"></div>
+                                    {vowels.map(v => (
+                                        <button key={v} onClick={() => addLetterToWord(v)} className="w-12 h-12 md:w-14 md:h-14 bg-pink-500 text-white rounded-xl text-2xl font-bold shadow hover:-translate-y-1 transition-all active:scale-90 flex items-center justify-center border-b-4 border-pink-700">{v}</button>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section className="bg-white/80 rounded-3xl p-6 shadow-xl border-b-4 border-indigo-300">
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2">
+                                    {consonants.map(c => (
+                                        <button key={c} onClick={() => addLetterToWord(c)} className="aspect-square bg-white text-indigo-600 rounded-xl text-xl md:text-2xl font-bold border-2 border-indigo-100 hover:border-indigo-400 shadow-sm transition-all active:scale-90 flex items-center justify-center">{c}</button>
+                                    ))}
+                                </div>
+                            </section>
+                        </div>
+                    )}
+
+                    {/* --- MODO 4: PÁRRAFO SONORO --- */}
+                    {mode === 'paragraph' && (
+                        <div className="max-w-6xl mx-auto animate-fade-in space-y-6 px-2">
+                            
+                            {(paragraphPhase === 'setup1' || paragraphPhase === 'setup2') && (
+                                <>
+                                    <div className="bg-white rounded-3xl shadow-2xl p-8 border-4 border-green-200 min-h-[200px] flex flex-col items-center justify-center text-center">
+                                        <h2 className="text-2xl md:text-4xl font-bold text-green-600 mb-4">
+                                            {paragraphPhase === 'setup1' ? 'Elige 3 letras para la 1ª Sílaba' : 'Elige 3 letras para la 2ª Sílaba'}
+                                        </h2>
+                                        <div className="flex gap-4 mb-6">
+                                            {currentParaLetters.map((l, i) => (
+                                                <div key={i} className="w-16 h-16 md:w-20 md:h-20 bg-green-500 text-white rounded-2xl flex items-center justify-center text-4xl md:text-5xl font-black animate-fade-in">{l.toLowerCase()}</div>
+                                            ))}
+                                            {[...Array(3 - currentParaLetters.length)].map((_, i) => (
+                                                <div key={i} className="w-16 h-16 md:w-20 md:h-20 border-4 border-dashed border-green-200 rounded-2xl"></div>
+                                            ))}
+                                        </div>
+                                        
+                                        <div className="flex gap-4">
+                                            <button onClick={clearParaSelection} disabled={currentParaLetters.length === 0} className="px-6 py-3 bg-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-300 transition-colors disabled:opacity-50">Borrar</button>
+                                            <button onClick={confirmParaSyllable} disabled={currentParaLetters.length < 3} className="px-8 py-3 bg-green-600 text-white rounded-full font-bold text-xl hover:bg-green-700 transition-transform active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                                {paragraphPhase === 'setup1' ? 'Siguiente' : '¡Listo!'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <section className="bg-white/80 rounded-2xl p-4 shadow-xl border-b-4 border-green-300 max-w-2xl mx-auto">
+                                        <div className="flex gap-2 justify-center">
+                                            {vowels.map(v => (
+                                                <button key={v} onClick={() => handleParaLetterClick(v.toLowerCase())} disabled={currentParaLetters.length >= 3} className="w-12 h-12 bg-pink-500 text-white rounded-xl text-2xl font-bold shadow hover:-translate-y-1 transition-all flex items-center justify-center border-b-4 border-pink-700 disabled:opacity-50 lowercase">{v.toLowerCase()}</button>
+                                            ))}
+                                        </div>
+                                    </section>
+                                    <section className="bg-white/80 rounded-3xl p-6 shadow-xl border-b-4 border-green-300">
+                                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2">
+                                            {consonants.map(c => (
+                                                <button key={c} onClick={() => handleParaLetterClick(c.toLowerCase())} disabled={currentParaLetters.length >= 3} className="aspect-square bg-white text-indigo-600 rounded-xl text-xl font-bold border-2 border-indigo-100 hover:border-indigo-400 shadow-sm transition-all flex items-center justify-center disabled:opacity-50 lowercase">{c.toLowerCase()}</button>
+                                            ))}
+                                        </div>
+                                    </section>
+                                </>
+                            )}
+
+                            {paragraphPhase === 'memory' && (
+                                <div className="bg-white rounded-3xl shadow-2xl p-10 border-4 border-green-200 min-h-[400px] flex flex-col items-center justify-center text-center animate-fade-in">
+                                    <div className="flex gap-8 mb-8">
+                                        <div className="text-7xl md:text-9xl font-black text-indigo-500 animate-pulse">{paraSyllable1}</div>
+                                        <div className="text-7xl md:text-9xl font-black text-pink-500 animate-pulse delay-100">{paraSyllable2}</div>
+                                    </div>
+                                    <h2 className="text-3xl md:text-5xl font-black text-green-600 animate-bounce mb-8">
+                                        ¡RECUÉRDALAS, ATENTO!
+                                    </h2>
+                                    <button onClick={() => setParagraphPhase('reading')} className="px-8 py-4 bg-green-500 text-white rounded-full font-bold text-2xl hover:bg-green-600 shadow-xl transition-transform hover:scale-105">
+                                        Leer Texto
+                                    </button>
+                                </div>
+                            )}
+
+                            {paragraphPhase === 'reading' && (
+                                <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 border-4 border-green-200 min-h-[400px] flex flex-col items-center animate-fade-in relative">
+                                    
+                                    <div className="flex items-center gap-2 mb-4 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg border border-yellow-200 w-full max-w-4xl">
+                                        <Info size={20} />
+                                        <p className="text-sm font-medium">Atención: Hemos buscado palabras reales con tus sílabas por separado. Solo usaremos inventadas si es imposible encontrarlas en nuestro diccionario.</p>
+                                    </div>
+
+                                    <div className="absolute top-4 right-4 flex gap-3 opacity-50">
+                                        <span className="bg-indigo-100 text-indigo-600 px-2 py-1 rounded font-bold">{paraSyllable1}</span>
+                                        <span className="bg-pink-100 text-pink-600 px-2 py-1 rounded font-bold">{paraSyllable2}</span>
+                                    </div>
+
+                                    <div className="w-full max-w-4xl text-left mb-8 mt-4 leading-loose">
+                                        {paragraphTextWords.map((word, i) => {
+                                            const isNewLine = word.endsWith('\n');
+                                            const cleanW = word.trim();
+                                            return (
+                                                <React.Fragment key={i}>
+                                                    <span 
+                                                        onClick={() => handleWordClick(cleanW, i)}
+                                                        className={`inline-block mr-2 text-2xl md:text-4xl cursor-pointer transition-all px-1 rounded-lg select-none mb-2
+                                                            ${foundWords.includes(i) 
+                                                                ? 'bg-yellow-300 text-black font-black transform scale-110 shadow-sm border-2 border-yellow-400' 
+                                                                : 'hover:bg-green-50 text-gray-700'
+                                                            }`}
+                                                    >
+                                                        {cleanW}
+                                                    </span>
+                                                    {isNewLine && <br />}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="flex gap-4 mt-auto">
+                                        <button onClick={readParagraph} className="flex items-center gap-3 px-8 py-4 bg-green-600 text-white rounded-full font-bold text-xl hover:bg-green-700 shadow-lg transition-transform active:scale-95">
+                                            <Volume2 size={24} /> Escuchar Texto
+                                        </button>
+                                        <button onClick={() => { setParagraphPhase('setup1'); setParaSyllable1(''); setParaSyllable2(''); setCurrentParaLetters([]); setFoundWords([]); }} className="px-6 py-4 bg-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-300">
+                                            Reiniciar
+                                        </button>
+                                    </div>
+                                    
+                                    <p className="mt-4 text-gray-400 text-sm">Pulsa las palabras que tengan tus sílabas mágicas.</p>
+                                </div>
+                            )}
+
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

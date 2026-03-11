@@ -112,6 +112,12 @@
             align-items: center;
         }
 
+        /* Modificador para que la caja extra ocupe todo el ancho */
+        .boton-ancho-completo {
+            grid-column: 1 / -1;
+            height: 140px; /* Un poco más estrecho de alto por ser tan ancho */
+        }
+
         .fondo-animado {
             position: absolute;
             top: 0; left: 0; width: 200%; height: 200%;
@@ -123,6 +129,11 @@
             opacity: 0.9;
         }
 
+        /* Nuevo fondo especial para multinivel */
+        .fondo-especial {
+            background: linear-gradient(45deg, #673ab7, #9c27b0, #e91e63, #ff5722); 
+        }
+
         .texto-nivel {
             position: relative;
             z-index: 3;
@@ -132,6 +143,7 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             font-family: 'Segoe UI', sans-serif;
             text-align: center;
+            padding: 0 20px;
         }
 
         .boton-poetico:hover {
@@ -150,6 +162,7 @@
         }
         @media (max-width: 480px) {
             .contenedor-menu { grid-template-columns: 1fr; }
+            .boton-ancho-completo { height: 180px; } /* Restaurar altura en móviles */
         }
     </style>
 </head>
@@ -166,7 +179,7 @@
     <!-- Botón Volver -->
     <a href="../index.html" class="boton-volver">↩ Volver al inicio</a>
 
-    <!-- Menú de Niveles (1º a 6º) -->
+    <!-- Menú de Niveles -->
     <main class="contenedor-menu">
         
         <!-- Botón 1º Primaria -->
@@ -203,6 +216,12 @@
         <a href="6º/index.html" class="boton-poetico">
             <div class="fondo-animado"></div>
             <span class="texto-nivel">6º PRIMARIA</span>
+        </a>
+
+        <!-- Botón Actividades Multinivel (Ocupa todo el ancho) -->
+        <a href="ACTIVIDADESMULTINIVEL/index.html" class="boton-poetico boton-ancho-completo">
+            <div class="fondo-animado fondo-especial"></div>
+            <span class="texto-nivel">ACTIVIDADES MULTINIVEL</span>
         </a>
 
     </main>
