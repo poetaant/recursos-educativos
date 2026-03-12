@@ -59,7 +59,7 @@
             return "Hoy";
         };
 
-        // --- DATOS LINGÜÍSTICOS Y ALUMNADO (AMPLIADO CON TODOS LOS PDFs) ---
+        // --- DATOS LINGÜÍSTICOS Y ALUMNADO ---
         const studentsData = [
           { name: "Jorge", gen: "M" }, { name: "Mario", gen: "M" }, { name: "Maia", gen: "F" },
           { name: "Vega", gen: "F" }, { name: "Laia", gen: "F" }, { name: "Candela", gen: "F" },
@@ -102,6 +102,9 @@
           { name: "Sofía", gen: "F" }, { name: "Rodrigo", gen: "M" }, { name: "Antón", gen: "M" }
         ];
 
+        const properF = ["la Plaza de la Baragaña", "la Sidrería de Candás", "la playa"];
+        const properM = ["el Teatro Prendes", "el puerto deportivo", "el muelle"];
+
         const cyclesData = {
           1: [
             { num: "1", id: "adjetivo", label: "Adjetivos", bg: "bg-green-100", color: "text-green-800", border: "border-green-400" },
@@ -131,9 +134,10 @@
             { num: "8", id: "numeral", label: "Numerales", bg: "bg-cyan-100", color: "text-cyan-800", border: "border-cyan-400" },
             { num: "9", id: "posesivo", label: "Posesivos", bg: "bg-orange-100", color: "text-orange-700", border: "border-orange-400" },
             { num: "10", id: "preposición", label: "Prepos.", bg: "bg-red-100", color: "text-red-700", border: "border-red-400" },
-            { num: "11", id: "sustantivo común", label: "S. Común", bg: "bg-blue-100", color: "text-blue-800", border: "border-blue-400" },
-            { num: "12", id: "sustantivo propio", label: "S. Propio", bg: "bg-indigo-100", color: "text-indigo-800", border: "border-indigo-400" },
-            { num: "13", id: "verbo", label: "Verbos", bg: "bg-purple-100", color: "text-purple-800", border: "border-purple-400" }
+            { num: "11", id: "pronombre personal", label: "Pronombres", bg: "bg-fuchsia-100", color: "text-fuchsia-800", border: "border-fuchsia-400" },
+            { num: "12", id: "sustantivo común", label: "S. Común", bg: "bg-blue-100", color: "text-blue-800", border: "border-blue-400" },
+            { num: "13", id: "sustantivo propio", label: "S. Propio", bg: "bg-indigo-100", color: "text-indigo-800", border: "border-indigo-400" },
+            { num: "14", id: "verbo", label: "Verbos", bg: "bg-purple-100", color: "text-purple-800", border: "border-purple-400" }
           ]
         };
 
@@ -151,12 +155,13 @@
           "adverbio": "Indica circunstancias de lugar, tiempo, modo o cantidad (hoy, aquí, muy, rápidamente...).",
           "interjección": "Expresa emociones, sentimientos o llamadas de atención de forma exclamativa.",
           "numeral": "Indica una cantidad exacta (uno, dos...) o un orden (primero, segundo...).",
-          "indefinido": "Indica una cantidad de forma imprecisa o vaga (algunos, muchos, pocos...)."
+          "indefinido": "Indica una cantidad de forma imprecisa o vaga (algunos, muchos, pocos...).",
+          "pronombre personal": "Sustituye al nombre para referirse a personas, animales o cosas sin nombrarlos (yo, tú, él, nosotros...)."
         };
 
         const traitDefs = [
           { key: 'type', title: 'Tipo', getOptions: (catId) => { if (catId === 'numeral') return [{id: 'Cardinal', label: 'Cardinal'}, {id: 'Ordinal', label: 'Ordinal'}]; return [{id: 'DET', label: 'Definido (DET)'}, {id: 'INDET', label: 'Indefinido (INDET)'}]; } },
-          { key: 'gen', title: 'Género', getOptions: (catId) => { const invCats = ['preposición', 'conjunción', 'adverbio', 'interjección', 'numeral', 'indefinido', 'adjetivo', 'posesivo']; if (invCats.includes(catId)) return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}, {id: 'INV', label: 'Invariable (INV)'}]; return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}]; } },
+          { key: 'gen', title: 'Género', getOptions: (catId) => { const invCats = ['preposición', 'conjunción', 'adverbio', 'interjección', 'numeral', 'indefinido', 'adjetivo', 'posesivo', 'pronombre personal']; if (invCats.includes(catId)) return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}, {id: 'INV', label: 'Invariable (INV)'}]; return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}]; } },
           { key: 'num', title: 'Número', getOptions: () => [{id: 'S', label: 'Singular (S)'}, {id: 'P', label: 'Plural (P)'}] },
           { key: 'per', title: 'Persona', getOptions: () => [{id: '1ª', label: '1ª Persona'}, {id: '2ª', label: '2ª Persona'}, {id: '3ª', label: '3ª Persona'}] },
           { key: 'dist', title: 'Distancia', getOptions: () => [{id: 'Cercanía', label: 'Cercanía'}, {id: 'Dist. media', label: 'Dist. media'}, {id: 'Lejanía', label: 'Lejanía'}] },
@@ -198,15 +203,13 @@
           s: props.s || "", isCustom: false, isCorrect: false, initials: []
         });
 
-        // --- ORACIONES DINÁMICAS (Con Concordancia de Tiempos y Datos Reales) ---
+        // --- ORACIONES DINÁMICAS (Con Pronombres Personales limitados a ciclo 3) ---
         const stories = [
           (p1, p2, t) => { 
             const adv = getTimeAdvForTense(t);
             return [
               createW(adv, "adverbio", { advType: "Tiempo", gen: "INV", s: "," }),
-              createW(p1.name, "sustantivo propio", { gen: p1.gen, num: "S" }),
-              createW("y", "conjunción", { conjType: "Copulativa", gen: "INV" }),
-              createW(p2.name, "sustantivo propio", { gen: p2.gen, num: "S" }),
+              createW("ellos", "pronombre personal", { per: "3ª", gen: "M", num: "P" }),
               createW(verbsDict.buscar[t].P, "verbo", { per: "3ª", num: "P", tense: t, verbForm: "Personal", conjugation: verbsDict.buscar.conj }),
               createW("tres", "numeral", { type: "Cardinal", gen: "INV", num: "P" }),
               createW("tesoros", "sustantivo común", { gen: "M", num: "P" }),
@@ -253,9 +256,7 @@
             const adv = getTimeAdvForTense(t);
             return [
               createW(adv, "adverbio", { advType: "Tiempo", gen: "INV", s: "," }),
-              createW(p1.name, "sustantivo propio", { gen: p1.gen, num: "S" }),
-              createW("y", "conjunción", { conjType: "Copulativa", gen: "INV" }),
-              createW(p2.name, "sustantivo propio", { gen: p2.gen, num: "S" }),
+              createW("ellas", "pronombre personal", { per: "3ª", gen: "F", num: "P" }),
               createW(verbsDict.recoger[t].P, "verbo", { per: "3ª", num: "P", tense: t, verbForm: "Personal", conjugation: verbsDict.recoger.conj }),
               createW("algunos", "indefinido", { gen: "M", num: "P" }),
               createW("residuos", "sustantivo común", { gen: "M", num: "P" }),
@@ -302,7 +303,7 @@
             const adv = getTimeAdvForTense(t);
             return [
               createW(adv, "adverbio", { advType: "Tiempo", gen: "INV", s: "," }),
-              createW(p1.name, "sustantivo propio", { gen: p1.gen, num: "S" }),
+              createW("él", "pronombre personal", { per: "3ª", gen: "M", num: "S" }),
               createW(verbsDict.comprar[t].S, "verbo", { per: "3ª", num: "S", tense: t, verbForm: "Personal", conjugation: verbsDict.comprar.conj }),
               createW("dos", "numeral", { type: "Cardinal", gen: "INV", num: "P" }),
               createW("helados", "sustantivo común", { gen: "M", num: "P" }),
@@ -316,7 +317,7 @@
             const adv = getTimeAdvForTense(t);
             return [
               createW(adv, "adverbio", { advType: "Tiempo", gen: "INV", s: "," }),
-              createW(p1.name, "sustantivo propio", { gen: p1.gen, num: "S" }),
+              createW("ella", "pronombre personal", { per: "3ª", gen: "F", num: "S" }),
               createW(verbsDict.reciclar[t].S, "verbo", { per: "3ª", num: "S", tense: t, verbForm: "Personal", conjugation: verbsDict.reciclar.conj }),
               createW("aquellos", "demostrativo", { gen: "M", num: "P", dist: "Lejanía" }),
               createW("envases", "sustantivo común", { gen: "M", num: "P" }),
@@ -366,7 +367,10 @@
           { w: "dos", t3: "numeral" }, { w: "primer", t3: "numeral" },
           { w: "tres", t3: "numeral" }, { w: "algunos", t3: "indefinido" },
           { w: "bastante", t3: "indefinido" }, { w: "¡hala!", t3: "interjección" },
-          { w: "¡ay!", t3: "interjección" }
+          { w: "¡ay!", t3: "interjección" },
+          { w: "yo", t3: "pronombre personal" }, { w: "tú", t3: "pronombre personal" },
+          { w: "él", t3: "pronombre personal" }, { w: "ella", t3: "pronombre personal" },
+          { w: "nosotros", t3: "pronombre personal" }, { w: "ellas", t3: "pronombre personal" }
         ];
 
         const getCycleMappedTag = (t3, cycle) => {
@@ -382,7 +386,7 @@
                 t3 === "adjetivo" || t3 === "demostrativo" || t3 === "posesivo" || t3 === "preposición" ||
                 t3 === "numeral" || t3 === "indefinido") return t3;
             if (t3.includes("verbo")) return "verbo";
-            if (cycle === 3 && (t3 === "adverbio" || t3 === "conjunción" || t3 === "interjección")) return t3;
+            if (cycle === 3 && (t3 === "adverbio" || t3 === "conjunción" || t3 === "interjección" || t3 === "pronombre personal")) return t3;
           }
           return null; 
         };
@@ -394,6 +398,7 @@
           if (catId.includes("verbo")) return "VER";
           if (catId === "numeral") return "NUM";
           if (catId === "indefinido") return "IND";
+          if (catId === "pronombre personal") return "PRO";
           switch(catId) {
             case "artículo": return "ART";
             case "adjetivo": return "ADJ";
@@ -422,6 +427,7 @@
               else if (categoryId === 'adverbio') applicableKeys = ['advType', 'gen'];
               else if (categoryId === 'conjunción') applicableKeys = ['conjType', 'gen'];
               else if (categoryId === 'verbo') applicableKeys = ['tense', 'per', 'gen', 'num', 'verbForm', 'conjugation'];
+              else if (categoryId === 'pronombre personal') applicableKeys = ['per', 'gen', 'num'];
               traits = traitDefs.filter(t => applicableKeys.includes(t.key));
           } else {
               traits = traitDefs.filter(t => wordObj[t.key] !== "-" && wordObj[t.key] !== undefined);
@@ -449,6 +455,9 @@
           }
           if (categoryId === "indefinido" && !(wordObj.isCustom && !wordObj.apiAnalyzed)) {
               traits = traits.filter(t => ['gen', 'num'].includes(t.key));
+          }
+          if (categoryId === "pronombre personal" && !(wordObj.isCustom && !wordObj.apiAnalyzed)) {
+              traits = traits.filter(t => ['per', 'gen', 'num'].includes(t.key));
           }
           return traits;
         };
@@ -858,7 +867,7 @@
               setDraggedWordId(null);
           };
 
-          // --- LOGICA DE ANALISIS DE CONTENEDORES ---
+          // --- LÓGICA DE ANÁLISIS DE CONTENEDORES ---
           const startContainerAnalysis = () => {
               const caught = gameWords.filter(w => w.status === 'caught');
               if (caught.length === 0) return;
@@ -879,6 +888,7 @@
               if (catId === "verbo" && cycle === 1) requiredKeys = requiredKeys.filter(k => k === 'tense');
               if (catId === "numeral") requiredKeys = requiredKeys.filter(k => ['type', 'gen', 'num'].includes(k));
               if (catId === "indefinido") requiredKeys = requiredKeys.filter(k => ['gen', 'num'].includes(k));
+              if (catId === "pronombre personal") requiredKeys = requiredKeys.filter(k => ['per', 'gen', 'num'].includes(k));
 
               const isComplete = requiredKeys.every(k => modalState.tempSelections[k] !== undefined);
               if (!isComplete) {
@@ -1034,6 +1044,7 @@
                 if (modalState.category.id === "verbo" && cycle === 1) requiredKeys = requiredKeys.filter(k => k === 'tense');
                 if (modalState.category.id === "numeral") requiredKeys = requiredKeys.filter(k => ['type', 'gen', 'num'].includes(k));
                 if (modalState.category.id === "indefinido") requiredKeys = requiredKeys.filter(k => ['gen', 'num'].includes(k));
+                if (modalState.category.id === "pronombre personal") requiredKeys = requiredKeys.filter(k => ['per', 'gen', 'num'].includes(k));
                 isCorrect = requiredKeys.every(k => wordObj[k] === modalState.tempSelections[k]);
             } else {
                 const shownTraits = getActiveTraitsForWord(wordObj, cycle, modalState.category.id, modalState.tempSelections);
