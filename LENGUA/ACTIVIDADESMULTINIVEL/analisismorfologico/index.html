@@ -51,7 +51,6 @@
             return getRandom(["Candás", "Perlora", "Luanco", "Gijón", "Avilés", "Antromero", "Bañugues", "Logrezana", "Guimarán", "Oviedo", "León", "Cantabria", "Madrid", "Prendes"]);
         }
 
-        // Generador dinámico de adverbios de tiempo para asegurar la concordancia
         const getTimeAdvForTense = (tense) => {
             if (tense === 'pasado') return getRandom(["Ayer", "Anoche", "Recientemente", "Antes"]);
             if (tense === 'presente') return getRandom(["Hoy", "Ahora", "Actualmente"]);
@@ -59,7 +58,7 @@
             return "Hoy";
         };
 
-        // --- DATOS LINGÜÍSTICOS Y ALUMNADO ---
+        // --- DATOS LINGÜÍSTICOS Y ALUMNADO (AMPLIADO CON TODOS LOS PDFs) ---
         const studentsData = [
           { name: "Jorge", gen: "M" }, { name: "Mario", gen: "M" }, { name: "Maia", gen: "F" },
           { name: "Vega", gen: "F" }, { name: "Laia", gen: "F" }, { name: "Candela", gen: "F" },
@@ -160,8 +159,15 @@
         };
 
         const traitDefs = [
-          { key: 'type', title: 'Tipo', getOptions: (catId) => { if (catId === 'numeral') return [{id: 'Cardinal', label: 'Cardinal'}, {id: 'Ordinal', label: 'Ordinal'}]; return [{id: 'DET', label: 'Definido (DET)'}, {id: 'INDET', label: 'Indefinido (INDET)'}]; } },
-          { key: 'gen', title: 'Género', getOptions: (catId) => { const invCats = ['preposición', 'conjunción', 'adverbio', 'interjección', 'numeral', 'indefinido', 'adjetivo', 'posesivo', 'pronombre personal']; if (invCats.includes(catId)) return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}, {id: 'INV', label: 'Invariable (INV)'}]; return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}]; } },
+          { key: 'type', title: 'Tipo', getOptions: (catId) => { 
+              if (catId === 'numeral') return [{id: 'Cardinal', label: 'Cardinal'}, {id: 'Ordinal', label: 'Ordinal'}]; 
+              return [{id: 'DET', label: 'Determinado'}, {id: 'INDET', label: 'Indeterminado'}]; 
+          } },
+          { key: 'gen', title: 'Género', getOptions: (catId) => { 
+              const invCats = ['preposición', 'conjunción', 'adverbio', 'interjección', 'numeral', 'indefinido', 'adjetivo', 'posesivo', 'pronombre personal']; 
+              if (invCats.includes(catId)) return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}, {id: 'INV', label: 'Invariable (INV)'}]; 
+              return [{id: 'M', label: 'Masculino (M)'}, {id: 'F', label: 'Femenino (F)'}]; 
+          } },
           { key: 'num', title: 'Número', getOptions: () => [{id: 'S', label: 'Singular (S)'}, {id: 'P', label: 'Plural (P)'}] },
           { key: 'per', title: 'Persona', getOptions: () => [{id: '1ª', label: '1ª Persona'}, {id: '2ª', label: '2ª Persona'}, {id: '3ª', label: '3ª Persona'}] },
           { key: 'dist', title: 'Distancia', getOptions: () => [{id: 'Cercanía', label: 'Cercanía'}, {id: 'Dist. media', label: 'Dist. media'}, {id: 'Lejanía', label: 'Lejanía'}] },
@@ -330,49 +336,6 @@
           }
         ];
 
-        // Vocabulario para el modo Arcade
-        const gameVocab = [
-          { w: "Candás", t3: "sustantivo propio" }, { w: "Perlora", t3: "sustantivo propio" },
-          { w: "Luanco", t3: "sustantivo propio" }, { w: "Oviedo", t3: "sustantivo propio" },
-          { w: "Gijón", t3: "sustantivo propio" }, { w: "Alimerka", t3: "sustantivo propio" },
-          { w: "Alsa", t3: "sustantivo propio" }, { w: "Antromero", t3: "sustantivo propio" },
-          { w: "Bañugues", t3: "sustantivo propio" }, { w: "Logrezana", t3: "sustantivo propio" },
-          { w: "playa", t3: "sustantivo común" }, { w: "biblioteca", t3: "sustantivo común" },
-          { w: "muelle", t3: "sustantivo común" }, { w: "tren", t3: "sustantivo común" },
-          { w: "mochila", t3: "sustantivo común" }, { w: "tesoro", t3: "sustantivo común" },
-          { w: "helado", t3: "sustantivo común" }, { w: "residuos", t3: "sustantivo común" },
-          { w: "fútbol", t3: "sustantivo común" }, { w: "monólogo", t3: "sustantivo común" },
-          { w: "teatro", t3: "sustantivo común" }, { w: "colegio", t3: "sustantivo común" },
-          { w: "billete", t3: "sustantivo común" }, { w: "parque", t3: "sustantivo común" },
-          { w: "museo", t3: "sustantivo común" },
-          { w: "divertido", t3: "adjetivo" }, { w: "brillante", t3: "adjetivo" },
-          { w: "escolar", t3: "adjetivo" }, { w: "gracioso", t3: "adjetivo" },
-          { w: "nuevo", t3: "adjetivo" }, { w: "delicioso", t3: "adjetivo" },
-          { w: "plásticos", t3: "adjetivo" }, { w: "costera", t3: "adjetivo" },
-          { w: "pasear", t3: "verbo" }, { w: "buscó", t3: "verbo" },
-          { w: "leerá", t3: "verbo" }, { w: "juegan", t3: "verbo" },
-          { w: "recogiendo", t3: "verbo" }, { w: "viajado", t3: "verbo" },
-          { w: "reciclan", t3: "verbo" }, { w: "bailó", t3: "verbo" },
-          { w: "comprará", t3: "verbo" },
-          { w: "el", t3: "artículo" }, { w: "las", t3: "artículo" },
-          { w: "un", t3: "artículo" }, { w: "unos", t3: "artículo" },
-          { w: "este", t3: "demostrativo" }, { w: "aquella", t3: "demostrativo" },
-          { w: "esos", t3: "demostrativo" }, { w: "mi", t3: "posesivo" },
-          { w: "nuestra", t3: "posesivo" }, { w: "con", t3: "preposición" },
-          { w: "para", t3: "preposición" }, { w: "por", t3: "preposición" },
-          { w: "y", t3: "conjunción" }, { w: "pero", t3: "conjunción" },
-          { w: "o", t3: "conjunción" }, { w: "hoy", t3: "adverbio" },
-          { w: "rápidamente", t3: "adverbio" }, { w: "aquí", t3: "adverbio" },
-          { w: "tranquilamente", t3: "adverbio" },
-          { w: "dos", t3: "numeral" }, { w: "primer", t3: "numeral" },
-          { w: "tres", t3: "numeral" }, { w: "algunos", t3: "indefinido" },
-          { w: "bastante", t3: "indefinido" }, { w: "¡hala!", t3: "interjección" },
-          { w: "¡ay!", t3: "interjección" },
-          { w: "yo", t3: "pronombre personal" }, { w: "tú", t3: "pronombre personal" },
-          { w: "él", t3: "pronombre personal" }, { w: "ella", t3: "pronombre personal" },
-          { w: "nosotros", t3: "pronombre personal" }, { w: "ellas", t3: "pronombre personal" }
-        ];
-
         const getCycleMappedTag = (t3, cycle) => {
           if (!t3) return null;
           if (cycle === 1) {
@@ -456,9 +419,6 @@
           if (categoryId === "indefinido" && !(wordObj.isCustom && !wordObj.apiAnalyzed)) {
               traits = traits.filter(t => ['gen', 'num'].includes(t.key));
           }
-          if (categoryId === "pronombre personal" && !(wordObj.isCustom && !wordObj.apiAnalyzed)) {
-              traits = traits.filter(t => ['per', 'gen', 'num'].includes(t.key));
-          }
           return traits;
         };
 
@@ -490,8 +450,30 @@
           } catch (e) {}
         };
 
+        const playSpiralMusic = () => {
+          try {
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              const notes = [440, 554.37, 659.25, 880]; 
+              for (let i = 0; i < 40; i++) { 
+                  const osc = ctx.createOscillator();
+                  const gain = ctx.createGain();
+                  osc.type = 'sine';
+                  osc.frequency.value = notes[i % notes.length] * (1 + Math.floor(i / 16) * 0.5); 
+                  
+                  gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.125);
+                  gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + i * 0.125 + 0.05);
+                  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.125 + 0.125);
+                  
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  osc.start(ctx.currentTime + i * 0.125);
+                  osc.stop(ctx.currentTime + i * 0.125 + 0.125);
+              }
+          } catch(e) {}
+        };
+
         function App() {
-          const [inputMode, setInputMode] = useState('auto'); // 'auto', 'manual', 'game'
+          const [inputMode, setInputMode] = useState('auto'); 
           
           const [rawCustomText, setRawCustomText] = useState("");
           const [isCustomTextLoaded, setIsCustomTextLoaded] = useState(false);
@@ -509,12 +491,13 @@
           const [isCloudVisible, setIsCloudVisible] = useState(false);
 
           // ESTADOS MODO JUEGO ARCADE
-          const [gameState, setGameState] = useState('idle'); // idle, playing, analyzing, over
+          const [gameState, setGameState] = useState('idle'); 
           const [gameScore, setGameScore] = useState(0);
           const [highestScore, setHighestScore] = useState(0);
           const [lives, setLives] = useState(3);
           const [consecutiveErrors, setConsecutiveErrors] = useState(0);
           const [isRecycling, setIsRecycling] = useState(false);
+          const [isSpiraling, setIsSpiraling] = useState(false);
 
           const [gameWords, setGameWords] = useState([]);
           const [draggedWordId, setDraggedWordId] = useState(null);
@@ -525,7 +508,7 @@
           
           const [openDoors, setOpenDoors] = useState({}); 
           const [analysisQueue, setAnalysisQueue] = useState([]); 
-          const [gameSpeedMultiplier, setGameSpeedMultiplier] = useState(0.6);
+          const [gameSpeedMultiplier, setGameSpeedMultiplier] = useState(0.5);
 
           // --- FUNCIONES MODO PIZARRA ---
           const generateNewText = useCallback((targetCycle = cycle) => {
@@ -597,7 +580,8 @@
               }
 
               let playableWords = [];
-              let startY = 80;
+              // Aumentamos startY para que nazcan justo debajo de la máscara (altura 112px, startY 120px)
+              let startY = 120;
 
               rows.forEach((row, rIndex) => {
                   let currentX = marginOffset + (availableWidth - row.totalWidth) / 2;
@@ -630,12 +614,12 @@
               setIsSpawning(false);
               setAnalysisQueue([]);
               setIsRecycling(false);
-              setGameSpeedMultiplier(0.6); // Reseteo de velocidad a LENTA
+              setIsSpiraling(false);
+              setGameSpeedMultiplier(0.5); 
               setGameState('playing');
               loadGameSentence(true);
           };
 
-          // Hitos de Puntuación (Vidas y Reciclaje)
           const triggerRecycleAnimation = useCallback(() => {
               setIsRecycling(true);
               playSound('magic');
@@ -669,6 +653,28 @@
               }, 3500);
           }, []);
 
+          const triggerSpiralAnimation = useCallback(() => {
+              setIsSpiraling(true);
+              playSpiralMusic();
+              
+              setGameWords(prev => prev.map(w => {
+                  if (w.status !== 'caught' && w.status !== 'archived') {
+                      return { 
+                          ...w, 
+                          status: 'spiraling', 
+                          rotation: w.rotation + 1440 
+                      };
+                  }
+                  return w;
+              }));
+
+              setTimeout(() => {
+                  setGameWords(prev => prev.filter(w => w.status !== 'spiraling'));
+                  setFallenCount(0); 
+                  setIsSpiraling(false);
+              }, 5000); 
+          }, []);
+
           useEffect(() => {
               if (gameScore > highestScore) {
                   const old1000s = Math.floor(highestScore / 1000);
@@ -680,13 +686,19 @@
 
                   const old1500s = Math.floor(highestScore / 1500);
                   const new1500s = Math.floor(gameScore / 1500);
-                  if (new1500s > old1500s) {
+                  
+                  const old4000s = Math.floor(highestScore / 4000);
+                  const new4000s = Math.floor(gameScore / 4000);
+
+                  if (new4000s > old4000s) {
+                      triggerSpiralAnimation();
+                  } else if (new1500s > old1500s) {
                       triggerRecycleAnimation();
                   }
 
                   setHighestScore(gameScore);
               }
-          }, [gameScore, highestScore, triggerRecycleAnimation]);
+          }, [gameScore, highestScore, triggerRecycleAnimation, triggerSpiralAnimation]);
 
           useEffect(() => {
               if (consecutiveErrors >= 3) {
@@ -705,26 +717,28 @@
                   return;
               }
 
-              if (gameWords.length > 0 && !isRecycling) {
+              if (gameWords.length > 0 && !isRecycling && !isSpiraling) {
                   const hasActiveWords = gameWords.some(w => w.status === 'falling' || w.status === 'dragging' || w.status === 'failing');
                   if (!hasActiveWords && !isSpawning) {
                       setIsSpawning(true);
                       setTimeout(() => {
-                          if (gameState === 'playing') loadGameSentence(false);
+                          if (gameState === 'playing' && !isSpiraling) loadGameSentence(false);
                       }, 1000);
                   }
               }
-          }, [lives, gameWords, fallenCount, gameState, isSpawning, loadGameSentence, isRecycling]);
+          }, [lives, gameWords, fallenCount, gameState, isSpawning, loadGameSentence, isRecycling, isSpiraling]);
 
           // Loop de gravedad del juego
           useEffect(() => {
               let rafId;
-              let lastTime = performance.now();
-              const baseSpeed = cycle === 1 ? 0.005 : cycle === 2 ? 0.008 : 0.012;
+              let lastTime = null;
+              // Velocidades base REDUCIDAS A LA MITAD
+              const baseSpeed = cycle === 1 ? 0.02 : cycle === 2 ? 0.025 : 0.03;
               const speed = baseSpeed * gameSpeedMultiplier;
 
               const tick = (time) => {
                   if (gameState !== 'playing') return;
+                  if (!lastTime) lastTime = time;
                   const dt = Math.min(time - lastTime, 50);
                   lastTime = time;
 
@@ -740,7 +754,8 @@
                           if (w.status === 'falling' || w.status === 'failing') {
                               hasChanges = true;
                               const isFailing = w.status === 'failing';
-                              const currentSpeed = isFailing ? Math.max(0.8, speed * 3) : speed; 
+                              // Reducimos también a la mitad la velocidad de desplome cuando se falla una palabra
+                              const currentSpeed = isFailing ? Math.max(0.4, speed * 3) : speed; 
                               const newY = w.y + (currentSpeed * dt);
                               const newX = isFailing && w.driftX ? w.x + (w.driftX * dt) : w.x;
                               
@@ -798,14 +813,14 @@
                   rafId = requestAnimationFrame(tick);
               };
 
-              if (gameState === 'playing' && !isRecycling) {
+              if (gameState === 'playing' && !isRecycling && !isSpiraling) {
                   rafId = requestAnimationFrame(tick);
               }
               return () => cancelAnimationFrame(rafId);
-          }, [gameState, cycle, isRecycling, gameSpeedMultiplier]);
+          }, [gameState, cycle, isRecycling, isSpiraling, gameSpeedMultiplier]);
 
           const handlePointerDown = (e, id) => {
-              if (isRecycling) return;
+              if (isRecycling || isSpiraling) return;
               e.currentTarget.setPointerCapture(e.pointerId);
               setDraggedWordId(id);
               setGameWords(prev => prev.map(w => w.id === id ? { ...w, status: 'dragging' } : w));
@@ -1148,7 +1163,7 @@
                          <h2 className="text-5xl md:text-7xl font-black text-cyan-300 mb-6 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)] tracking-widest uppercase">Atrapa Palabras</h2>
                          <p className="mb-10 text-slate-300 text-xl max-w-2xl text-center leading-relaxed">
                             Acierta: <span className="text-emerald-400 font-bold">+100pts</span> | Falla: <span className="text-rose-400 font-bold">-50pts</span><br/><br/>
-                            Empiezas con 3 vidas. Cada 1000 puntos ganas una vida extra. 3 fallos seguidos te quitan 1 vida. Si la basura colapsa el suelo (15 piezas), Game Over. ¡Pero cada 1500 puntos habrá un evento especial de reciclaje mágico!
+                            Empiezas con 3 vidas. Cada 1000 puntos ganas una vida extra. 3 fallos seguidos te quitan 1 vida. Si la basura colapsa el suelo (15 piezas), Game Over. ¡Pero hay eventos especiales de reciclaje mágico!
                          </p>
                          <div className="flex gap-6 z-10">
                              <button onClick={startGame} className="bg-emerald-600 border-2 border-emerald-400 text-white font-black px-10 py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.5)] hover:bg-emerald-500 hover:scale-105 active:scale-95 transition-transform text-2xl flex items-center gap-3">
@@ -1176,21 +1191,7 @@
                       <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(34,211,238,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.2)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#020617_100%)] pointer-events-none"></div>
                       
-                      {/* Máscara sombra debajo del HUD para aparición suave */}
-                      <div className="absolute top-0 left-[120px] md:left-[280px] right-[120px] md:right-[280px] h-32 bg-gradient-to-b from-slate-950 via-slate-950 to-transparent z-[35] pointer-events-none"></div>
-
-                      <style>{`
-                          @keyframes slideInLeftRefuge {
-                              0% { transform: translate(50px, -20px) scale(0.5); opacity: 0; }
-                              100% { transform: translate(0, 0) scale(1); opacity: 1; }
-                          }
-                          @keyframes slideInRightRefuge {
-                              0% { transform: translate(-50px, -20px) scale(0.5); opacity: 0; }
-                              100% { transform: translate(0, 0) scale(1); opacity: 1; }
-                          }
-                          .animate-slide-in-left-refuge { animation: slideInLeftRefuge 0.3s ease-out forwards; }
-                          .animate-slide-in-right-refuge { animation: slideInRightRefuge 0.3s ease-out forwards; }
-                      `}</style>
+                      <div className="absolute top-0 left-[120px] md:left-[280px] right-[120px] md:right-[280px] h-28 bg-gradient-to-b from-slate-950 via-slate-950 to-transparent z-[35] pointer-events-none"></div>
 
                       {/* EVENTO RECICLAJE MÁGICO */}
                       {isRecycling && (
@@ -1201,6 +1202,15 @@
                                    ¡RECICLAJE<br/>DE PALABRAS!
                                </span>
                             </div>
+                        </div>
+                      )}
+
+                      {/* EVENTO ESPIRAL "SIGUE ASÍ" */}
+                      {isSpiraling && (
+                        <div className="absolute inset-0 z-[150] flex items-center justify-center pointer-events-none">
+                            <span className="font-black text-5xl md:text-9xl text-amber-300 text-center drop-shadow-[0_0_30px_rgba(245,158,11,1)] z-10 animate-pulse transform -rotate-6">
+                                ¡SIGUE ASÍ!
+                            </span>
                         </div>
                       )}
 
@@ -1218,7 +1228,7 @@
                                           </div>
                                           <div className="absolute inset-0 flex flex-wrap content-start justify-center gap-1 p-2 pt-4 overflow-hidden z-10">
                                               {containedWords.map(w => (
-                                                  <span key={w.id} className={`text-[0.55rem] md:text-sm font-bold px-1.5 py-0.5 rounded border shadow-sm truncate max-w-full flex items-center gap-1 animate-slide-in-left-refuge
+                                                  <span key={w.id} className={`text-[0.55rem] md:text-sm font-bold px-1.5 py-0.5 rounded border shadow-sm truncate max-w-full flex items-center gap-1
                                                       ${w.status === 'archived' ? 'bg-emerald-900 text-emerald-200 border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-800 text-white border-slate-600'}`}>
                                                       {w.w} {w.status === 'archived' && <CheckCircle size={12}/>}
                                                   </span>
@@ -1235,14 +1245,14 @@
 
                       {/* ZONA CENTRAL */}
                       <div className="flex-1 relative pointer-events-none flex flex-col items-center justify-center">
-                          <div className="absolute top-24 md:top-20 pointer-events-auto z-40 bg-slate-900 border border-slate-700 rounded-lg p-1 shadow-lg flex gap-1 items-center">
+                          <div className="absolute top-20 md:top-16 pointer-events-auto z-40 bg-slate-900 border border-slate-700 rounded-lg p-1 shadow-lg flex gap-1 items-center">
                               <span className="text-slate-400 text-xs font-bold px-2 uppercase">Velocidad:</span>
-                              <button onClick={() => setGameSpeedMultiplier(0.6)} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${gameSpeedMultiplier === 0.6 ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>LENTA</button>
+                              <button onClick={() => setGameSpeedMultiplier(0.5)} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${gameSpeedMultiplier === 0.5 ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>LENTA</button>
                               <button onClick={() => setGameSpeedMultiplier(1)} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${gameSpeedMultiplier === 1 ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>NORMAL</button>
                               <button onClick={() => setGameSpeedMultiplier(2)} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${gameSpeedMultiplier === 2 ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>RÁPIDA</button>
                           </div>
 
-                          <div className="px-4 text-center max-w-3xl z-0 mt-40 absolute top-16">
+                          <div className="px-4 text-center max-w-3xl z-0 mt-32 absolute top-16">
                               <h3 className="text-cyan-500/50 font-bold uppercase tracking-widest text-xs md:text-sm mb-2 drop-shadow-[0_0_5px_rgba(6,182,212,0.8)]">MISIÓN ACTIVA:</h3>
                               <div className="text-slate-600 font-black text-xl md:text-4xl uppercase leading-relaxed drop-shadow-md">
                                   {currentSentenceText}
@@ -1264,7 +1274,7 @@
                                           </div>
                                           <div className="absolute inset-0 flex flex-wrap content-start justify-center gap-1 p-2 pt-4 overflow-hidden z-10">
                                               {containedWords.map(w => (
-                                                  <span key={w.id} className={`text-[0.55rem] md:text-sm font-bold px-1.5 py-0.5 rounded border shadow-sm truncate max-w-full flex items-center gap-1 animate-slide-in-right-refuge
+                                                  <span key={w.id} className={`text-[0.55rem] md:text-sm font-bold px-1.5 py-0.5 rounded border shadow-sm truncate max-w-full flex items-center gap-1
                                                       ${w.status === 'archived' ? 'bg-emerald-900 text-emerald-200 border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-800 text-white border-slate-600'}`}>
                                                       {w.w} {w.status === 'archived' && <CheckCircle size={12}/>}
                                                   </span>
@@ -1286,7 +1296,8 @@
                                   <XCircle size={24} className="md:w-7 md:h-7" />
                               </button>
                               
-                              {caughtWordsCount > 0 && gameState === 'playing' && !isRecycling && (
+                              {/* Botón Analizar Contenedores */}
+                              {caughtWordsCount > 0 && gameState === 'playing' && !isRecycling && !isSpiraling && (
                                   <button onClick={startContainerAnalysis} className="bg-purple-700 border-2 border-purple-400 text-white font-black px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.5)] hover:bg-purple-600 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 pointer-events-auto text-sm md:text-lg">
                                       <Database size={20} /> <span className="hidden md:inline">ANALIZAR REFUGIOS</span> ({caughtWordsCount})
                                   </button>
@@ -1316,20 +1327,26 @@
                       {gameWords.map(w => {
                           if (w.status === 'caught' || w.status === 'archived') return null;
 
-                          let transitionClass = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                          if (w.status === 'dragging' || w.status === 'failing' || w.status === 'fallen') transitionClass = 'none';
+                          let transitionClass = 'none';
                           if (w.status === 'recycling_gather') transitionClass = 'all 1.5s ease-in-out';
                           if (w.status === 'recycling_explode') transitionClass = 'all 1.5s ease-out';
+                          if (w.status === 'spiraling') transitionClass = 'all 4.8s cubic-bezier(0.5, 0, 0.5, 1)'; 
 
                           let style = { 
                               position: 'fixed', 
                               left: w.x, 
                               top: w.y,
-                              transform: `translate(-50%, -50%) rotate(${w.status === 'fallen' || w.status === 'failing' || w.status.startsWith('recycling') ? w.rotation : 0}deg)`,
+                              transform: `translate(-50%, -50%) rotate(${w.rotation}deg)`,
                               transition: transitionClass
                           };
 
-                          if (w.status === 'fallen' || w.status.startsWith('recycling')) {
+                          if (w.status === 'spiraling') {
+                              style.left = '50%';
+                              style.top = '50%';
+                              style.transform = `translate(-50%, -50%) rotate(${w.rotation}deg) scale(0)`;
+                              style.opacity = 0;
+                              style.zIndex = 200;
+                          } else if (w.status === 'fallen' || w.status.startsWith('recycling')) {
                               style.opacity = w.status === 'recycling_explode' ? 0 : 0.9;
                               style.zIndex = 10;
                           } else if (w.status === 'dragging') {
@@ -1342,7 +1359,7 @@
                               <div 
                                  key={w.id}
                                  onPointerDown={(e) => {
-                                     if (w.status === 'fallen' || w.status === 'failing' || w.status.startsWith('recycling')) return;
+                                     if (w.status === 'fallen' || w.status === 'failing' || w.status.startsWith('recycling') || w.status === 'spiraling') return;
                                      handlePointerDown(e, w.id);
                                  }}
                                  onPointerMove={handlePointerMove}
@@ -1353,6 +1370,7 @@
                                      ${w.status === 'dragging' ? 'bg-amber-900 border-amber-400 text-amber-300 scale-125 cursor-grabbing shadow-[0_0_25px_rgba(251,191,36,0.8)] drop-shadow-[0_0_5px_rgba(251,191,36,1)]' : 
                                        w.status === 'fallen' || w.status.startsWith('recycling') ? 'bg-red-950 border-red-500 text-red-400 cursor-not-allowed shadow-[0_0_15px_rgba(239,68,68,0.7)] drop-shadow-[0_0_5px_rgba(239,68,68,0.9)]' : 
                                        w.status === 'failing' ? 'bg-red-600 border-white text-white scale-110 cursor-not-allowed shadow-[0_0_30px_rgba(239,68,68,1)]' : 
+                                       w.status === 'spiraling' ? 'bg-cyan-900 border-cyan-400 text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,1)]' :
                                        'bg-slate-800 border-cyan-400 text-cyan-300 hover:scale-110 cursor-grab shadow-[0_0_15px_rgba(34,211,238,0.6)] drop-shadow-[0_0_2px_rgba(34,211,238,1)]'}
                                      ${w.w.length > 8 ? 'text-lg md:text-2xl' : 'text-xl md:text-4xl'}`}
                               >
