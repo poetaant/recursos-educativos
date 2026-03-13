@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Geometría 3D: Figuras Interactivas</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+    .ui-layer { position: relative; z-index: 10; pointer-events: none; }
+    .ui-layer > * { pointer-events: auto; }
+    select { appearance: none; -webkit-appearance: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Crear Textura solo para B (Base)
+    const createLabelTexture = (text) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'transparent';
+      ctx.fillRect(0, 0, 128, 128);
+      
+      ctx.font = 'bold 70px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 6;
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#000000';
+      ctx.strokeText(text, 64, 64);
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, 64, 64);
+      
+      return new THREE.CanvasTexture(canvas);
+    };
+
+    // Textura rayada para la Base
+    const createStripedCanvas = (colorHex) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = colorHex;
+      ctx.fillRect(0, 0, 512, 512);
+      
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; 
+      ctx.lineWidth = 30;
+      for (let i = -512; i < 1024; i += 70) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i + 512, 512);
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    };
+
+    // Fondo CSS dinámico
+    const getBgStyle = (bgColor) => {
+      const lineColor = bgColor === '#0f172a' ? 'rgba(255, 255, 255, 0.05)'
+                      : bgColor === '#ffffff' ? 'rgba(0, 0, 0, 0.05)'
+                      : 'rgba(14, 165, 233, 0.15)'; 
+      return {
+        backgroundColor: bgColor,
+        backgroundImage: `linear-gradient(to right, ${lineColor} 1px, transparent 1px), linear-gradient(to bottom, ${lineColor} 1px, transparent 1px)`,
+        backgroundSize: '50px 50px',
+        backgroundPosition: 'center center'
+      };
+    };
+
+    const PolyhedronBuilder = ({ type, baseSides, color, bgColor, globalAction, autoRotateH, autoRotateV, onActionConsumed }) => {
+      const mountRef = useRef(null);
+      const sceneRef = useRef(null);
+      const worldGroupRef = useRef(null);
+      const containerGroupRef = useRef(null);
+      const faceGroupsRef = useRef([]);
+      const rendererRef = useRef(null);
+      const cameraRef = useRef(null);
+      const controlsRef = useRef(null);
+
+      const raycaster = useRef(new THREE.Raycaster());
+      const mouse = useRef(new THREE.Vector2());
+      const pointerDownPos = useRef({ x: 0, y: 0 });
+      const hoveredFace = useRef(null);
+      
+      const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+      const draggedObject = useRef(null);
+      const dragOffset = useRef(new THREE.Vector3());
+      
+      const isDragging = useRef(false);
+      const isTumbling = useRef(false);
+      const lastMousePos = useRef({ x: 0, y: 0 });
+      const pointerCount = useRef(0);
+      const intersectionPoint = useRef(new THREE.Vector3());
+
+      // Acciones Globales
+      useEffect(() => {
+        if (globalAction && faceGroupsRef.current.length > 0) {
+          const { action } = globalAction;
+          
+          faceGroupsRef.current.forEach(g => {
+            if (!g.userData.isRoot && g.userData.hingeData) {
+              const hd = g.userData.hingeData;
+              if (action === 'assemble') {
+                hd.foldTarget = 1;
+                hd.scatterTarget = 0;
+              } else if (action === 'flatten') {
+                hd.foldTarget = 0;
+                hd.scatterTarget = 0;
+              } else if (action === 'separate') {
+                hd.foldTarget = 0;
+                hd.scatterTarget = 1;
+                hd.dragPos.copy(hd.scatterPos);
+              }
+            }
+          });
+          onActionConsumed();
+        }
+      }, [globalAction]);
+
+      // Cambiar de color aristas dependiendo del fondo
+      useEffect(() => {
+        if (!containerGroupRef.current) return;
+        const isLight = bgColor === '#ffffff' || bgColor === '#bae6fd';
+        const edgeColor = isLight ? 0x000000 : 0xffffff;
+
+        containerGroupRef.current.traverse((child) => {
+          if (child.isLineSegments) {
+            child.material.color.setHex(edgeColor);
+          }
+        });
+      }, [bgColor]);
+
+      // Control del auto-giro actualizado para no reiniciar la escena
+      const autoRotateHRef = useRef(autoRotateH);
+      const autoRotateVRef = useRef(autoRotateV);
+      useEffect(() => {
+        autoRotateHRef.current = autoRotateH;
+      }, [autoRotateH]);
+      useEffect(() => {
+        autoRotateVRef.current = autoRotateV;
+      }, [autoRotateV]);
+
+      // Inicialización de la escena
+      useEffect(() => {
+        const width = mountRef.current.clientWidth;
+        const height = mountRef.current.clientHeight;
+
+        const scene = new THREE.Scene();
+        sceneRef.current = scene;
+
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+        worldGroupRef.current = worldGroup;
+        
+        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        camera.position.set(0, 18, 12);
+        cameraRef.current = camera;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0);
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        rendererRef.current = renderer;
+        mountRef.current.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // DESHABILITAR GIRO DE CÁMARA (Para usar nuestro giro de objeto manual libre de 360º)
+        controls.enableRotate = false; 
+        controls.enablePan = false; 
+        controls.enableZoom = true;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controlsRef.current = controls;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(10, 20, 15);
+        scene.add(dirLight);
+        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        dirLight2.position.set(-10, -20, -15);
+        scene.add(dirLight2);
+
+        // Suelo atado al objeto que gira
+        const grid = new THREE.GridHelper(40, 40, 0x64748b, 0x64748b);
+        grid.position.y = -4;
+        grid.material.transparent = true;
+        grid.material.opacity = 0.2;
+        worldGroup.add(grid);
+
+        const dom = renderer.domElement;
+
+        const onPointerDown = (e) => {
+          pointerCount.current++;
+          pointerDownPos.current = { x: e.clientX, y: e.clientY };
+          lastMousePos.current = { x: e.clientX, y: e.clientY };
+          isDragging.current = false;
+          isTumbling.current = false;
+
+          const rect = dom.getBoundingClientRect();
+          mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+          raycaster.current.setFromCamera(mouse.current, camera);
+          
+          let hitDraggable = false;
+
+          if (containerGroupRef.current) {
+            const meshes = faceGroupsRef.current.map(g => g.children[0]);
+            const intersects = raycaster.current.intersectObjects(meshes, false);
+            
+            if (intersects.length > 0) {
+              const clickedFaceGroup = intersects[0].object.parent;
+              
+              if (clickedFaceGroup && !clickedFaceGroup.userData.isRoot && clickedFaceGroup.userData.hingeData) {
+                const hd = clickedFaceGroup.userData.hingeData;
+                
+                if (hd.foldTarget === 0) {
+                  hitDraggable = true;
+                  draggedObject.current = clickedFaceGroup;
+                  
+                  // Crear plano de arrastre adaptado al giro del mundo
+                  if (worldGroupRef.current) {
+                    const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(worldGroupRef.current.quaternion).normalize();
+                    const pt = new THREE.Vector3(0, 0, 0).applyMatrix4(worldGroupRef.current.matrixWorld);
+                    dragPlane.current.setFromNormalAndCoplanarPoint(normal, pt);
+                  }
+                  
+                  const hinge = clickedFaceGroup.parent;
+                  raycaster.current.ray.intersectPlane(dragPlane.current, intersectionPoint.current);
+                  const intersectLocal = hinge.worldToLocal(intersectionPoint.current.clone());
+                  dragOffset.current.copy(clickedFaceGroup.position).sub(intersectLocal);
+                }
+              }
+            }
+          }
+
+          if (!hitDraggable) {
+            isTumbling.current = true;
+          }
+        };
+
+        const onPointerMove = (e) => {
+          const rect = dom.getBoundingClientRect();
+          mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.current.setFromCamera(mouse.current, camera);
+
+          if (pointerCount.current > 1) return; // Bloquear arrastre manual si está haciendo zoom táctil
+
+          if (draggedObject.current) {
+            const dist = Math.hypot(e.clientX - pointerDownPos.current.x, e.clientY - pointerDownPos.current.y);
+            if (dist > 3) isDragging.current = true;
+
+            if (isDragging.current) {
+              raycaster.current.ray.intersectPlane(dragPlane.current, intersectionPoint.current);
+              
+              const hinge = draggedObject.current.parent;
+              const hd = draggedObject.current.userData.hingeData;
+              
+              const localTarget = hinge.worldToLocal(intersectionPoint.current.clone());
+              const newPos = localTarget.add(dragOffset.current);
+              
+              if (newPos.distanceTo(hd.originalPos) < 1.5) {
+                hd.scatterTarget = 0; 
+                hd.dragPos.copy(hd.originalPos);
+              } else {
+                hd.scatterTarget = 1; 
+                hd.dragPos.copy(newPos);
+                hd.currentScatter = 1; 
+                draggedObject.current.position.copy(newPos);
+              }
+            }
+          } 
+          else if (isTumbling.current && worldGroupRef.current) {
+              // Lógica de Giro 360 Libre
+              const deltaX = e.clientX - lastMousePos.current.x;
+              const deltaY = e.clientY - lastMousePos.current.y;
+              
+              const qx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), deltaY * 0.008);
+              const qy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), deltaX * 0.008);
+              const q = new THREE.Quaternion().multiplyQuaternions(qy, qx);
+              
+              worldGroupRef.current.quaternion.premultiply(q);
+              
+              lastMousePos.current = { x: e.clientX, y: e.clientY };
+          } 
+          else {
+            // Lógica de Iluminado (Hover)
+            let foundHover = null;
+            if (containerGroupRef.current) {
+              const meshes = faceGroupsRef.current.map(g => g.children[0]);
+              const intersects = raycaster.current.intersectObjects(meshes, false);
+              if (intersects.length > 0) {
+                foundHover = intersects[0].object;
+                if (foundHover.parent.userData.isRoot) foundHover = null; 
+              }
+            }
+            if (hoveredFace.current !== foundHover) {
+              if (hoveredFace.current) hoveredFace.current.material.emissive.setHex(0x000000);
+              if (foundHover) foundHover.material.emissive.setHex(0x333333);
+              hoveredFace.current = foundHover;
+              dom.style.cursor = foundHover ? 'pointer' : 'default';
+            }
+          }
+        };
+
+        const onPointerUp = (e) => {
+          pointerCount.current = Math.max(0, pointerCount.current - 1);
+          isTumbling.current = false;
+
+          if (draggedObject.current) {
+            // Si fue un clic rápido sin arrastrar
+            if (!isDragging.current) {
+              const hd = draggedObject.current.userData.hingeData;
+              hd.foldTarget = hd.foldTarget === 0 ? 1 : 0;
+              hd.scatterTarget = 0; 
+            }
+            draggedObject.current = null;
+          } else {
+            // Si clicó pero no le dio a una pieza desarmada (puede ser una armada)
+            const dist = Math.hypot(e.clientX - pointerDownPos.current.x, e.clientY - pointerDownPos.current.y);
+            if (dist <= 3 && containerGroupRef.current) {
+               raycaster.current.setFromCamera(mouse.current, camera);
+               const meshes = faceGroupsRef.current.map(g => g.children[0]);
+               const intersects = raycaster.current.intersectObjects(meshes, false);
+               if (intersects.length > 0) {
+                  const clickedFaceGroup = intersects[0].object.parent;
+                  if (clickedFaceGroup && !clickedFaceGroup.userData.isRoot && clickedFaceGroup.userData.hingeData) {
+                     const hd = clickedFaceGroup.userData.hingeData;
+                     hd.foldTarget = hd.foldTarget === 0 ? 1 : 0;
+                     hd.scatterTarget = 0;
+                  }
+               }
+            }
+          }
+        };
+
+        dom.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        dom.addEventListener('pointercancel', onPointerUp);
+
+        const animate = () => {
+          requestAnimationFrame(animate);
+          
+          let totalFold = 0;
+          let count = 0;
+
+          faceGroupsRef.current.forEach(g => {
+            if (!g.userData.isRoot && g.userData.hingeData) {
+              const hd = g.userData.hingeData;
+              
+              hd.currentFold += (hd.foldTarget - hd.currentFold) * 0.15;
+              const currentAngle = (1 - hd.currentFold) * hd.flatAngle;
+              hd.hingeObj.setRotationFromAxisAngle(hd.axis, currentAngle);
+
+              if (!draggedObject.current || draggedObject.current !== g) {
+                hd.currentScatter += (hd.scatterTarget - hd.currentScatter) * 0.15;
+                g.position.lerpVectors(hd.originalPos, hd.dragPos, hd.currentScatter);
+              }
+
+              totalFold += hd.currentFold;
+              count++;
+            }
+          });
+
+          // Animación de auto-rotación manual
+          if (worldGroupRef.current && !isTumbling.current && !draggedObject.current) {
+             if (autoRotateHRef.current) {
+               const qAutoH = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.01);
+               worldGroupRef.current.quaternion.premultiply(qAutoH);
+             }
+             if (autoRotateVRef.current) {
+               const qAutoV = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.01);
+               worldGroupRef.current.quaternion.premultiply(qAutoV);
+             }
+          }
+
+          // Animación Letra B base
+          const avgFold = count > 0 ? totalFold / count : 0;
+          const rootFace = faceGroupsRef.current.find(g => g.userData.isRoot);
+          if (rootFace) {
+             const rootLabel = rootFace.children.find(c => c.isMesh && c.material && c.material.map);
+             if (rootLabel) {
+               rootLabel.material.opacity = 1 - Math.pow(avgFold, 0.5);
+               rootLabel.visible = rootLabel.material.opacity > 0.05;
+             }
+          }
+
+          controls.update();
+          renderer.render(scene, camera);
+        };
+        animate();
+
+        const handleResize = () => {
+          if (!mountRef.current) return;
+          renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+          camera.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
+          camera.updateProjectionMatrix();
+        };
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          dom.removeEventListener('pointerdown', onPointerDown);
+          dom.removeEventListener('pointerup', onPointerUp);
+          dom.removeEventListener('pointermove', onPointerMove);
+          dom.removeEventListener('pointercancel', onPointerUp);
+          if (mountRef.current && renderer.domElement) mountRef.current.removeChild(renderer.domElement);
+          renderer.dispose();
+        };
+      }, []);
+
+      // Generación Matemática y Reconstrucción: Lógica de Desarrollo Rectangular y Abanico (Cono)
+      useEffect(() => {
+        if (!sceneRef.current) return;
+        if (containerGroupRef.current && worldGroupRef.current) {
+          worldGroupRef.current.remove(containerGroupRef.current);
+        }
+
+        if (worldGroupRef.current) {
+          worldGroupRef.current.quaternion.identity();
+        }
+
+        faceGroupsRef.current = [];
+
+        const scale = 2.2;
+        let baseGeometry;
+        const isRevolution = ['cylinder', 'cone', 'sphere'].includes(type);
+        
+        switch (type) {
+          case 'tetra': baseGeometry = new THREE.TetrahedronGeometry(scale); break;
+          case 'cube': baseGeometry = new THREE.BoxGeometry(scale, scale, scale); break;
+          case 'octa': baseGeometry = new THREE.OctahedronGeometry(scale); break;
+          case 'dode': baseGeometry = new THREE.DodecahedronGeometry(scale); break;
+          case 'ico': baseGeometry = new THREE.IcosahedronGeometry(scale); break;
+          case 'cylinder': baseGeometry = new THREE.CylinderGeometry(scale*0.7, scale*0.7, scale*1.5, 32); break;
+          case 'cone': baseGeometry = new THREE.ConeGeometry(scale*0.8, scale*1.5, 32); break;
+          case 'prism': baseGeometry = new THREE.CylinderGeometry(scale*0.7, scale*0.7, scale*1.5, baseSides); break;
+          case 'pyramid': baseGeometry = new THREE.ConeGeometry(scale*0.9, scale*1.5, baseSides); break;
+          case 'sphere': baseGeometry = new THREE.SphereGeometry(scale * 0.9, 16, 12); break;
+          default: baseGeometry = new THREE.BoxGeometry(scale, scale, scale);
+        }
+
+        const nonIndexed = baseGeometry.toNonIndexed();
+        const positions = nonIndexed.attributes.position.array;
+        const normals = nonIndexed.attributes.normal.array;
+
+        const logicalFaces = [];
+        const tolerance = isRevolution ? 0.999 : 0.95;
+
+        for (let i = 0; i < positions.length; i += 9) {
+          const v1 = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]);
+          const v2 = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]);
+          const v3 = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]);
+          
+          const cb = new THREE.Vector3().subVectors(v3, v2);
+          const ab = new THREE.Vector3().subVectors(v1, v2);
+          const flatNormal = new THREE.Vector3().crossVectors(cb, ab).normalize();
+          if(flatNormal.lengthSq() < 0.001) flatNormal.set(0,1,0); 
+
+          const n1 = new THREE.Vector3(normals[i], normals[i+1], normals[i+2]);
+          const n2 = new THREE.Vector3(normals[i+3], normals[i+4], normals[i+5]);
+          const n3 = new THREE.Vector3(normals[i+6], normals[i+7], normals[i+8]);
+
+          let matchedFace = null;
+          for (const face of logicalFaces) {
+            if (face.flatNormal.dot(flatNormal) > tolerance) { matchedFace = face; break; }
+          }
+          if (!matchedFace) {
+            matchedFace = { flatNormal: flatNormal.clone(), vertices: [], origNormals: [], uniqueVerts: [] };
+            logicalFaces.push(matchedFace);
+          }
+
+          matchedFace.vertices.push(v1, v2, v3);
+          matchedFace.origNormals.push(n1, n2, n3);
+          
+          [v1, v2, v3].forEach(v => {
+            if (!matchedFace.uniqueVerts.some(uv => uv.distanceTo(v) < 0.05)) matchedFace.uniqueVerts.push(v);
+          });
+        }
+
+        let rootFaceIdx = 0;
+        let topBaseIdx = -1;
+        logicalFaces.forEach((f, i) => {
+          f.centroid = new THREE.Vector3();
+          f.uniqueVerts.forEach(v => f.centroid.add(v));
+          f.centroid.divideScalar(f.uniqueVerts.length);
+
+          f.isBase = false;
+          if (['prism', 'cylinder'].includes(type)) {
+             if (f.flatNormal.y < -0.9) { f.isBase = true; rootFaceIdx = i; }
+             if (f.flatNormal.y > 0.9) { f.isBase = true; topBaseIdx = i; }
+          } else if (['pyramid', 'cone'].includes(type)) {
+             if (f.flatNormal.y < -0.9) { f.isBase = true; rootFaceIdx = i; }
+          } else if (['tetra', 'cube', 'octa', 'dode', 'ico', 'sphere'].includes(type) && i === 0) {
+             f.isBase = true; rootFaceIdx = i; 
+          }
+        });
+
+        // Crear Árbol de Adyacencia
+        const adj = Array(logicalFaces.length).fill(0).map(()=>[]);
+        for (let i=0; i<logicalFaces.length; i++) {
+          for (let j=i+1; j<logicalFaces.length; j++) {
+            const shared = [];
+            logicalFaces[i].uniqueVerts.forEach(vA => {
+              logicalFaces[j].uniqueVerts.forEach(vB => {
+                if (vA.distanceTo(vB) < 0.05) shared.push(vA);
+              });
+            });
+            if (shared.length >= 2) {
+              adj[i].push({ neighbor: j, edge: [shared[0], shared[1]] });
+              adj[j].push({ neighbor: i, edge: [shared[0], shared[1]] });
+            }
+          }
+        }
+
+        const tree = [];
+        
+        // ESTRATEGIA DE ENCADENAMIENTO (TIRA PARA CILINDRO/PRISMA, ABANICO PARA CONO/PIRAMIDE)
+        if (['cylinder', 'prism', 'cone', 'pyramid'].includes(type)) {
+          const isBase = (idx) => idx === rootFaceIdx || idx === topBaseIdx;
+          const laterals = [];
+          for (let i = 0; i < logicalFaces.length; i++) if (!isBase(i)) laterals.push(i);
+
+          if (laterals.length > 0) {
+            const chain = [laterals[0]];
+            const unvisited = new Set(laterals.slice(1));
+
+            // Unir caras laterales secuencialmente para formar la tira / abanico
+            while (unvisited.size > 0) {
+              const curr = chain[chain.length - 1];
+              let found = false;
+              for (const { neighbor } of adj[curr]) {
+                if (unvisited.has(neighbor)) {
+                  chain.push(neighbor);
+                  unvisited.delete(neighbor);
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) { // Respaldo por si se rompe la cadena
+                const next = Array.from(unvisited)[0];
+                chain.push(next);
+                unvisited.delete(next);
+              }
+            }
+
+            // Enlazamos la base a la cara que queda en el medio de la tira
+            const midIdx = Math.floor(chain.length / 2);
+            const cRoot = chain[midIdx];
+            
+            let rEdgeInfo = adj[rootFaceIdx].find(a => a.neighbor === cRoot);
+            if (!rEdgeInfo) rEdgeInfo = adj[rootFaceIdx].find(a => a.neighbor === chain[0]); 
+            const actualCRoot = rEdgeInfo ? rEdgeInfo.neighbor : chain[0];
+
+            if (rEdgeInfo) {
+              tree.push({ parent: rootFaceIdx, child: actualCRoot, edge: rEdgeInfo.edge });
+            }
+
+            const actualMidIdx = chain.indexOf(actualCRoot);
+
+            // Bifurcación derecha de la tira
+            for (let i = actualMidIdx; i < chain.length - 1; i++) {
+              const edgeInfo = adj[chain[i]].find(a => a.neighbor === chain[i + 1]);
+              if (edgeInfo) tree.push({ parent: chain[i], child: chain[i + 1], edge: edgeInfo.edge });
+            }
+
+            // Bifurcación izquierda de la tira
+            for (let i = actualMidIdx; i > 0; i--) {
+              const edgeInfo = adj[chain[i]].find(a => a.neighbor === chain[i - 1]);
+              if (edgeInfo) tree.push({ parent: chain[i], child: chain[i - 1], edge: edgeInfo.edge });
+            }
+
+            // Base superior (solo prismas y cilindros)
+            if (topBaseIdx !== -1) {
+              const topEdgeInfo = adj[actualCRoot].find(a => a.neighbor === topBaseIdx);
+              if (topEdgeInfo) {
+                tree.push({ parent: actualCRoot, child: topBaseIdx, edge: topEdgeInfo.edge });
+              } else {
+                 const fallbackEdge = adj[topBaseIdx].find(a => laterals.includes(a.neighbor));
+                 if (fallbackEdge) tree.push({ parent: fallbackEdge.neighbor, child: topBaseIdx, edge: fallbackEdge.edge });
+              }
+            }
+          }
+        } else {
+          // BFS Tradicional (estrellado) para Esferas y Poliedros Regulares
+          const visited = new Set([rootFaceIdx]);
+          const queue = [rootFaceIdx];
+          while (queue.length > 0) {
+            const curr = queue.shift();
+            for (const { neighbor, edge } of adj[curr]) {
+              if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                tree.push({ parent: curr, child: neighbor, edge });
+                queue.push(neighbor);
+              }
+            }
+          }
+        }
+
+        const texB = createLabelTexture('B');
+        const isLight = bgColor === '#ffffff' || bgColor === '#bae6fd';
+        const edgeColor = isLight ? 0x000000 : 0xffffff;
+        const edgeMaterial = new THREE.LineBasicMaterial({ color: edgeColor, linewidth: 2 });
+
+        const stripedMat = new THREE.MeshPhongMaterial({ map: createStripedCanvas(color), side: THREE.DoubleSide, shininess: 50 });
+        const solidMat = new THREE.MeshPhongMaterial({ 
+            color: color, 
+            side: THREE.DoubleSide, 
+            shininess: isRevolution ? 90 : 50 
+        });
+
+        const groups = logicalFaces.map((face, i) => {
+          const faceGeom = new THREE.BufferGeometry();
+          const verts = new Float32Array(face.vertices.length * 3);
+          const norms = new Float32Array(face.origNormals.length * 3);
+
+          face.vertices.forEach((v, idx) => {
+            verts[idx*3] = v.x - face.centroid.x;
+            verts[idx*3+1] = v.y - face.centroid.y;
+            verts[idx*3+2] = v.z - face.centroid.z;
+          });
+          
+          face.origNormals.forEach((n, idx) => {
+            norms[idx*3] = n.x;
+            norms[idx*3+1] = n.y;
+            norms[idx*3+2] = n.z;
+          });
+
+          faceGeom.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+          faceGeom.setAttribute('normal', new THREE.BufferAttribute(norms, 3)); 
+
+          const isB = face.isBase;
+          const mesh = new THREE.Mesh(faceGeom, isB ? stripedMat : solidMat.clone());
+          mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(faceGeom), edgeMaterial.clone()));
+          
+          const group = new THREE.Group();
+          group.add(mesh);
+
+          if (isB) {
+            const labelMat = new THREE.MeshBasicMaterial({ map: texB, transparent: true, depthTest: false, side: THREE.DoubleSide });
+            const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), labelMat);
+            labelMesh.position.copy(face.flatNormal.clone().multiplyScalar(0.02));
+            labelMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), face.flatNormal);
+            group.add(labelMesh);
+          }
+          
+          group.userData = { isFaceNode: true, isRoot: false };
+          return group;
+        });
+
+        const rootGroup = groups[rootFaceIdx];
+        rootGroup.userData.isRoot = true;
+        rootGroup.position.copy(logicalFaces[rootFaceIdx].centroid);
+
+        for (const {parent, child, edge} of tree) {
+          const pGroup = groups[parent];
+          const cGroup = groups[child];
+          const vA = edge[0], vB = edge[1];
+          const centroidP = logicalFaces[parent].centroid;
+          const centroidC = logicalFaces[child].centroid;
+
+          const hinge = new THREE.Group();
+          hinge.position.copy(vA).sub(centroidP);
+          const axis = new THREE.Vector3().subVectors(vB, vA).normalize();
+          
+          const nP = logicalFaces[parent].flatNormal;
+          const nC = logicalFaces[child].flatNormal;
+          const angle = nP.angleTo(nC);
+          const cross = new THREE.Vector3().crossVectors(nP, nC).normalize();
+          const sign = cross.dot(axis) > 0 ? 1 : -1;
+          
+          const origPos = new THREE.Vector3().copy(centroidC).sub(vA);
+          const scatterPush = origPos.clone().normalize().multiplyScalar(isRevolution ? 0.3 : 2.0); 
+          const scPos = origPos.clone().add(scatterPush);
+
+          cGroup.userData.hingeData = {
+            hingeObj: hinge,
+            axis: axis.clone(),
+            flatAngle: -sign * angle,
+            foldTarget: 0,
+            currentFold: 0,
+            scatterTarget: 1, 
+            currentScatter: 1,
+            originalPos: origPos,
+            scatterPos: scPos,
+            dragPos: scPos.clone()
+          };
+          
+          cGroup.position.copy(cGroup.userData.hingeData.dragPos);
+          hinge.add(cGroup);
+          pGroup.add(hinge);
+        }
+
+        const container = new THREE.Group();
+        container.add(rootGroup);
+        
+        const rootNormal = logicalFaces[rootFaceIdx].flatNormal;
+        const flattenQuat = new THREE.Quaternion().setFromUnitVectors(rootNormal, new THREE.Vector3(0, 1, 0));
+        container.quaternion.copy(flattenQuat);
+        
+        const bbox = new THREE.Box3().setFromObject(container);
+        const center = bbox.getCenter(new THREE.Vector3());
+        container.position.set(-center.x, -center.y, -center.z);
+
+        groups.forEach(g => {
+          if (g.userData.hingeData) {
+            const hd = g.userData.hingeData;
+            hd.hingeObj.setRotationFromAxisAngle(hd.axis, hd.flatAngle);
+          }
+        });
+
+        worldGroupRef.current.add(container);
+        containerGroupRef.current = container;
+        faceGroupsRef.current = groups;
+
+        // Ajustar zoom inicial
+        const facesCount = groups.length;
+        const dist = Math.max(16, Math.sqrt(facesCount) * (isRevolution ? 3 : 5));
+        cameraRef.current.position.set(0, dist, dist * 0.2);
+        if (controlsRef.current) controlsRef.current.target.set(0,0,0);
+
+      }, [type, baseSides, color]); 
+
+      return <div id="canvas-container" style={getBgStyle(bgColor)} ref={mountRef} />;
+    };
+
+    const App = () => {
+      const [selected, setSelected] = useState('cone');
+      const [baseSides, setBaseSides] = useState(5);
+      const [color, setColor] = useState('#10b981');
+      const [bgColor, setBgColor] = useState('#0f172a');
+      const [globalAction, setGlobalAction] = useState(null);
+      
+      const [autoRotateH, setAutoRotateH] = useState(false);
+      const [autoRotateV, setAutoRotateV] = useState(false);
+
+      const triggerAction = (actionStr) => {
+        setGlobalAction({ action: actionStr, t: Date.now() });
+        if(autoRotateH) setAutoRotateH(false);
+        if(autoRotateV) setAutoRotateV(false);
+      };
+
+      const handleShapeChange = (e) => {
+        setSelected(e.target.value);
+        triggerAction('separate');
+      };
+
+      const handleBaseChange = (e) => {
+        setBaseSides(parseInt(e.target.value));
+        triggerAction('separate'); 
+      };
+
+      const showBaseSelector = ['prism', 'pyramid'].includes(selected);
+
+      // Función para calcular propiedades geométricas
+      const getShapeInfo = () => {
+        switch (selected) {
+          case 'tetra': return { faces: 4, bases: 1, lateral: 3, verts: 4, edges: 6 };
+          case 'cube': return { faces: 6, bases: 2, lateral: 4, verts: 8, edges: 12 };
+          case 'octa': return { faces: 8, bases: 0, lateral: 8, verts: 6, edges: 12 };
+          case 'dode': return { faces: 12, bases: 2, lateral: 10, verts: 20, edges: 30 };
+          case 'ico': return { faces: 20, bases: 0, lateral: 20, verts: 12, edges: 30 };
+          case 'prism': return { faces: baseSides + 2, bases: 2, lateral: baseSides, verts: baseSides * 2, edges: baseSides * 3 };
+          case 'pyramid': return { faces: baseSides + 1, bases: 1, lateral: baseSides, verts: baseSides + 1, edges: baseSides * 2 };
+          case 'cylinder': return { faces: 3, bases: 2, lateral: 1, verts: 0, edges: 2 };
+          case 'cone': return { faces: 2, bases: 1, lateral: 1, verts: 1, edges: 1 };
+          case 'sphere': return { faces: 1, bases: 0, lateral: 1, verts: 0, edges: 0 };
+          default: return { faces: 0, bases: 0, lateral: 0, verts: 0, edges: 0 };
+        }
+      };
+
+      const info = getShapeInfo();
+
+      return (
+        <div className="w-screen h-screen font-sans text-slate-800 flex overflow-hidden">
+          
+          <PolyhedronBuilder 
+            type={selected} 
+            baseSides={baseSides} 
+            color={color} 
+            bgColor={bgColor}
+            globalAction={globalAction}
+            autoRotateH={autoRotateH}
+            autoRotateV={autoRotateV}
+            onActionConsumed={() => setGlobalAction(null)}
+          />
+
+          <div className="ui-layer absolute inset-0 flex p-4 md:p-6 pointer-events-none">
+
+            {/* --- PANEL IZQUIERDO Y ABAJO --- */}
+            <div className="absolute left-4 bottom-4 flex flex-col gap-3 w-[340px] pointer-events-none z-10 max-h-[96vh] overflow-y-auto">
+              
+              <div className="bg-white/95 backdrop-blur-md px-6 py-3 rounded-3xl shadow-xl border-l-4 border-sky-400 pointer-events-auto shrink-0">
+                <h1 className="text-lg font-black text-slate-800 tracking-tight leading-tight">Taller de Figuras 3D</h1>
+                <p className="text-[9px] font-bold text-sky-600 uppercase tracking-widest mt-0.5">Geometría Interactiva</p>
+              </div>
+
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-sky-400 pointer-events-auto shrink-0">
+                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Figura a montar</label>
+                <select 
+                  className="w-full p-2.5 mb-3 rounded-xl bg-slate-100 border-2 border-slate-200 text-sm font-bold text-slate-700 cursor-pointer focus:outline-none focus:border-sky-400"
+                  value={selected}
+                  onChange={handleShapeChange}
+                >
+                  <optgroup label="Cuerpos de Revolución">
+                    <option value="cone">Cono (Real)</option>
+                    <option value="cylinder">Cilindro (Real)</option>
+                    <option value="sphere">Esfera (Curva)</option>
+                  </optgroup>
+                  <optgroup label="Sólidos Platónicos">
+                    <option value="tetra">Tetraedro</option>
+                    <option value="cube">Cubo</option>
+                    <option value="octa">Octaedro</option>
+                    <option value="dode">Dodecaedro</option>
+                    <option value="ico">Icosaedro</option>
+                  </optgroup>
+                  <optgroup label="Prismas y Pirámides">
+                    <option value="prism">Prisma</option>
+                    <option value="pyramid">Pirámide</option>
+                  </optgroup>
+                </select>
+
+                {showBaseSelector && (
+                  <div className="mb-3 p-2.5 bg-sky-50 rounded-xl border border-sky-100">
+                    <label className="block text-[10px] font-black text-sky-600 mb-1.5 uppercase tracking-widest">Lados Base: {baseSides}</label>
+                    <input type="range" min="3" max="12" value={baseSides} onChange={handleBaseChange} className="w-full accent-sky-500"/>
+                  </div>
+                )}
+
+                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Color Figura</label>
+                <div className="flex gap-2 justify-between">
+                  {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'].map(c => (
+                    <button key={c} onClick={() => setColor(c)} className={`w-7 h-7 rounded-full shadow-md transition-transform border-2 border-white ${color === c ? 'ring-2 ring-offset-1 ring-slate-800 scale-110' : 'hover:scale-110'}`} style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* PANEL DE PROPIEDADES GEOMÉTRICAS */}
+              <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-indigo-400 pointer-events-auto shrink-0 text-white">
+                <h3 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l10 6.5v7L12 22 2 15.5v-7L12 2z"/></svg>
+                  Propiedades de la figura
+                </h3>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-slate-700/50 p-1.5 rounded-xl">
+                    <div className="text-lg font-black text-white">{info.faces}</div>
+                    <div className="text-[9px] uppercase font-bold text-slate-400">Caras</div>
+                  </div>
+                  <div className="bg-slate-700/50 p-1.5 rounded-xl">
+                    <div className="text-lg font-black text-white">{info.verts}</div>
+                    <div className="text-[9px] uppercase font-bold text-slate-400">Vértices</div>
+                  </div>
+                  <div className="bg-slate-700/50 p-1.5 rounded-xl">
+                    <div className="text-lg font-black text-white">{info.edges}</div>
+                    <div className="text-[9px] uppercase font-bold text-slate-400">Aristas</div>
+                  </div>
+                </div>
+                <div className="mt-2 text-[10px] text-slate-300 flex justify-between bg-slate-700/30 px-3 py-1.5 rounded-lg border border-slate-600/50">
+                  <span><strong className="text-sky-400 text-[11px]">{info.bases}</strong> {info.bases === 1 ? 'Base' : 'Bases'}</span>
+                  <span><strong className="text-amber-400 text-[11px]">{info.lateral}</strong> {info.lateral === 1 ? 'Cara lateral' : 'Laterales'}</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-2xl border-l-4 border-slate-600 pointer-events-auto flex flex-col gap-2 shrink-0">
+                <p className="text-slate-300 text-[10px] font-medium leading-relaxed">
+                  <strong className="text-sky-400">Arrástra el fondo</strong> para voltear el modelo. <strong className="text-red-300">Arrastra piezas</strong> para juntarlas o pulsa para doblarlas.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-2 w-full mt-1">
+                  <button 
+                    onClick={() => triggerAction('separate')}
+                    className="col-span-1 bg-red-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-red-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-red-700 hover:border-red-500"
+                  >
+                    Separar 2D
+                  </button>
+                  <button 
+                    onClick={() => triggerAction('flatten')}
+                    className="col-span-1 bg-amber-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-amber-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-amber-700 hover:border-amber-500"
+                  >
+                    Juntar 2D
+                  </button>
+                  <button 
+                    onClick={() => { triggerAction('assemble'); }}
+                    className="col-span-1 bg-green-500 text-white py-2.5 rounded-xl font-black text-[11px] shadow-md hover:bg-green-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-green-700 hover:border-green-500"
+                  >
+                    Montar 3D
+                  </button>
+                  <button 
+                    onClick={() => triggerAction('flatten')}
+                    className="col-span-1 bg-purple-500 text-white py-2.5 rounded-xl font-black text-[11px] shadow-md hover:bg-purple-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-purple-700 hover:border-purple-500"
+                  >
+                    Desmontar 3D
+                  </button>
+                  <button 
+                    onClick={() => { triggerAction('assemble'); setAutoRotateH(!autoRotateH); }}
+                    className={`col-span-1 py-2.5 rounded-xl font-black text-[10px] shadow-md active:scale-95 transition-all uppercase tracking-wide border-b-4 flex items-center justify-center gap-1 ${autoRotateH ? 'bg-indigo-500 text-white border-indigo-700 hover:bg-indigo-400' : 'bg-slate-600 text-white border-slate-800 hover:bg-slate-500'}`}
+                  >
+                    {autoRotateH ? '⏸️ Parar Eje V.' : '🔄 Eje Vertical'}
+                  </button>
+                  <button 
+                    onClick={() => { triggerAction('assemble'); setAutoRotateV(!autoRotateV); }}
+                    className={`col-span-1 py-2.5 rounded-xl font-black text-[10px] shadow-md active:scale-95 transition-all uppercase tracking-wide border-b-4 flex items-center justify-center gap-1 ${autoRotateV ? 'bg-indigo-500 text-white border-indigo-700 hover:bg-indigo-400' : 'bg-slate-600 text-white border-slate-800 hover:bg-slate-500'}`}
+                  >
+                    {autoRotateV ? '⏸️ Parar Eje H.' : '🔄 Eje Horiz.'}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* --- PANEL DERECHO (Fondos Rayados) --- */}
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl pointer-events-auto flex flex-col gap-3 border border-slate-200">
+              <div className="text-[9px] font-black text-slate-400 text-center uppercase tracking-widest">Fondo</div>
+              <button onClick={() => setBgColor('#0f172a')} className={`w-10 h-10 rounded-full bg-slate-900 shadow-inner transition-transform ${bgColor === '#0f172a' ? 'ring-2 ring-offset-2 ring-slate-900 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Negro 3D"></button>
+              <button onClick={() => setBgColor('#ffffff')} className={`w-10 h-10 rounded-full bg-white shadow-inner transition-transform ${bgColor === '#ffffff' ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Blanco 3D"></button>
+              <button onClick={() => setBgColor('#bae6fd')} className={`w-10 h-10 rounded-full bg-sky-200 shadow-inner transition-transform ${bgColor === '#bae6fd' ? 'ring-2 ring-offset-2 ring-sky-400 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Azul 3D"></button>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
