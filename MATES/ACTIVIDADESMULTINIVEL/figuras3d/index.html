@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Geometría 3D: Figuras Interactivas</title>
+  <title>Geometría 3D: Figuras Interactivas y Desafíos</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -16,13 +16,18 @@
 
   <style>
     body { margin: 0; padding: 0; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; outline: none; }
     .ui-layer { position: relative; z-index: 10; pointer-events: none; }
     .ui-layer > * { pointer-events: auto; }
     select { appearance: none; -webkit-appearance: none; }
-    /* Ocultar barra de scroll para panel flotante */
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -31,66 +36,51 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // Crear Textura solo para B (Base)
+    const CHALLENGES = [
+      { id: 'dado', name: 'Dado de mesa', desc: 'Un clásico en los juegos de mesa.', icon: '🎲', shape: 'cube', baseSides: 4, color: '#ef4444', hints: ['Fíjate en las piezas: son 6 figuras planas idénticas.', 'Cada figura plana es un cuadrado perfecto.', 'Al cerrarse, forma un sólido platónico llamado Hexaedro regular.', 'En un dado real, las caras opuestas siempre suman 7.'] },
+      { id: 'lata', name: 'Lata de refresco', desc: 'Un envase muy común para bebidas.', icon: '🥤', shape: 'cylinder', baseSides: 4, color: '#3b82f6', hints: ['Tiene 2 piezas circulares que actúan como tapas o bases.', 'Su cara lateral principal, aunque sea curva en 3D, es un gran rectángulo cuando se despliega.', 'Es un "cuerpo de revolución", lo que significa que no tiene vértices.', 'En geometría, a esta forma se le llama Cilindro.'] },
+      { id: 'caja_te', name: 'Caja de Toblerone', desc: 'El famoso envase de chocolate.', icon: '🍫', shape: 'prism', baseSides: 3, color: '#f59e0b', hints: ['Observa que tiene 2 bases más pequeñas con forma de triángulo.', 'Sus caras laterales son 3 rectángulos alargados.', 'Si la pones de pie sobre uno de los triángulos, verás que es un Prisma Triangular.'] },
+      { id: 'piramide_egipto', name: 'Pirámide de Keops', desc: 'Una de las maravillas del mundo antiguo.', icon: '🏜️', shape: 'pyramid', baseSides: 4, color: '#fcd34d', hints: ['Su base inferior es un único polígono cuadrado (4 lados).', 'Para cerrarse y ganar altura, necesita 4 caras laterales triangulares.', 'Todas las caras laterales convergen y se unen en un único punto superior llamado cúspide.'] },
+      { id: 'lata_conserva', name: 'Caja de zapatos', desc: 'Para guardar el calzado.', icon: '👟', shape: 'prism', baseSides: 4, color: '#10b981', hints: ['Está formado por 6 caras, igual que el dado.', 'Sin embargo, sus caras no son cuadrados perfectos, sino rectángulos.', 'Las caras opuestas son paralelas y exactamente iguales.', 'Su nombre geométrico es Ortoedro o Prisma Rectangular.'] },
+      { id: 'cono_helado', name: 'Cucurucho', desc: 'La galleta de tu helado favorito.', icon: '🍦', shape: 'cone', baseSides: 32, color: '#fde047', hints: ['Tiene una sola base circular en un extremo.', 'Su cara lateral se enrolla terminando en una punta aguda (vértice).', 'Es un cuerpo de revolución que surge al girar un triángulo.', 'En geometría matemática se conoce como Cono.'] },
+      { id: 'lapiz', name: 'Lápiz', desc: 'Herramienta clásica para escribir.', icon: '✏️', shape: 'prism', baseSides: 6, color: '#f59e0b', hints: ['Sus dos bases opuestas son polígonos de 6 lados.', 'Tiene 6 caras laterales alargadas en forma de rectángulo.', 'Al no ser completamente redondo, no rueda por la mesa y se cae.', 'Se trata de un Prisma Hexagonal.'] },
+      { id: 'dado_rol', name: 'Dado de Rol (D20)', desc: 'Para aventuras épicas.', icon: '🐉', shape: 'ico', baseSides: 3, color: '#8b5cf6', hints: ['Tiene muchísimas caras planas, ¡cuenta cuántas hay!', 'Son exactamente 20 caras idénticas.', 'Cada cara es un triángulo equilátero.', 'Su nombre matemático oficial es Icosaedro regular.'] },
+      { id: 'bolsa_te', name: 'Bolsita de té', desc: 'Bolsitas modernas de infusión.', icon: '🍵', shape: 'tetra', baseSides: 3, color: '#84cc16', hints: ['Parece una pirámide, pero es muy especial porque todas sus caras son iguales.', 'Tiene exactamente 4 caras, y todas son triángulos equiláteros.', 'Es el sólido platónico más simple de todos.', 'A esta figura de 4 caras se le llama Tetraedro.'] },
+      { id: 'pelota', name: 'Bola del mundo', desc: 'Representación de la Tierra.', icon: '🌍', shape: 'sphere', baseSides: 32, color: '#0ea5e9', hints: ['Es perfectamente redonda desde cualquier ángulo.', 'No tiene caras planas, ni aristas rectas, ni vértices.', 'Está formada por una única superficie curva continua.', 'Es el cuerpo de revolución más perfecto: una Esfera.'] }
+    ];
+
     const createLabelTexture = (text) => {
       const canvas = document.createElement('canvas');
       canvas.width = 128; canvas.height = 128;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'transparent';
-      ctx.fillRect(0, 0, 128, 128);
-      
-      ctx.font = 'bold 70px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      ctx.shadowColor = "rgba(0,0,0,0.8)";
-      ctx.shadowBlur = 6;
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = '#000000';
+      ctx.fillStyle = 'transparent'; ctx.fillRect(0, 0, 128, 128);
+      ctx.font = 'bold 70px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 6; ctx.lineWidth = 5; ctx.strokeStyle = '#000000';
       ctx.strokeText(text, 64, 64);
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(text, 64, 64);
-      
+      ctx.fillStyle = '#ffffff'; ctx.fillText(text, 64, 64);
       return new THREE.CanvasTexture(canvas);
     };
 
-    // Textura rayada para la Base
     const createStripedCanvas = (colorHex) => {
       const canvas = document.createElement('canvas');
       canvas.width = 512; canvas.height = 512;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = colorHex;
-      ctx.fillRect(0, 0, 512, 512);
-      
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; 
-      ctx.lineWidth = 30;
+      ctx.fillStyle = colorHex; ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; ctx.lineWidth = 30;
       for (let i = -512; i < 1024; i += 70) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i + 512, 512);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + 512, 512); ctx.stroke();
       }
       const tex = new THREE.CanvasTexture(canvas);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
       return tex;
     };
 
-    // Fondo CSS dinámico
     const getBgStyle = (bgColor) => {
-      const lineColor = bgColor === '#0f172a' ? 'rgba(255, 255, 255, 0.05)'
-                      : bgColor === '#ffffff' ? 'rgba(0, 0, 0, 0.05)'
-                      : 'rgba(14, 165, 233, 0.15)'; 
-      return {
-        backgroundColor: bgColor,
-        backgroundImage: `linear-gradient(to right, ${lineColor} 1px, transparent 1px), linear-gradient(to bottom, ${lineColor} 1px, transparent 1px)`,
-        backgroundSize: '50px 50px',
-        backgroundPosition: 'center center'
-      };
+      const lineColor = bgColor === '#0f172a' ? 'rgba(255, 255, 255, 0.05)' : bgColor === '#ffffff' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(14, 165, 233, 0.15)'; 
+      return { backgroundColor: bgColor, backgroundImage: `linear-gradient(to right, ${lineColor} 1px, transparent 1px), linear-gradient(to bottom, ${lineColor} 1px, transparent 1px)`, backgroundSize: '50px 50px', backgroundPosition: 'center center' };
     };
 
-    const PolyhedronBuilder = ({ type, baseSides, color, bgColor, globalAction, onActionConsumed }) => {
+    const PolyhedronBuilder = ({ type, baseSides, color, bgColor, globalAction, onActionConsumed, activeTool, activeDrawColor, edgesHighlighted }) => {
       const mountRef = useRef(null);
       const sceneRef = useRef(null);
       const worldGroupRef = useRef(null);
@@ -108,56 +98,121 @@
       const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
       const draggedObject = useRef(null);
       const dragOffset = useRef(new THREE.Vector3());
-      
       const isDragging = useRef(false);
       const pointerCount = useRef(0);
       const intersectionPoint = useRef(new THREE.Vector3());
 
-      // Acciones Globales
+      const activeToolRef = useRef(activeTool);
+      const activeDrawColorRef = useRef(activeDrawColor);
+      const currentStrokeRef = useRef(null);
+      const selectedObjectRef = useRef(null);
+      const selectionBoxRef = useRef(null);
+
+      const vertexHighlightSphereRef = useRef(null);
+      const hoveredVertexGlobalIdx = useRef(null);
+      const isDraggingVertex = useRef(false);
+      const draggedVertexGlobalIdx = useRef(null);
+
       useEffect(() => {
-        if (globalAction && faceGroupsRef.current.length > 0) {
+        activeToolRef.current = activeTool;
+        activeDrawColorRef.current = activeDrawColor;
+        
+        if (activeTool !== 'vertex' && vertexHighlightSphereRef.current) {
+            vertexHighlightSphereRef.current.visible = false;
+        }
+
+        if (rendererRef.current) {
+          rendererRef.current.domElement.style.cursor = activeTool === 'pen' || activeTool === 'highlighter' ? 'crosshair' : 'grab';
+        }
+      }, [activeTool, activeDrawColor]);
+
+      useEffect(() => {
+        if (globalAction && containerGroupRef.current) {
           const { action } = globalAction;
           
-          faceGroupsRef.current.forEach(g => {
-            if (!g.userData.isRoot && g.userData.hingeData) {
-              const hd = g.userData.hingeData;
-              if (action === 'assemble') {
-                hd.foldTarget = 1;
-                hd.scatterTarget = 0;
-              } else if (action === 'flatten') {
-                hd.foldTarget = 0;
-                hd.scatterTarget = 0;
-              } else if (action === 'separate') {
-                hd.foldTarget = 0;
-                hd.scatterTarget = 1;
-                hd.dragPos.copy(hd.scatterPos);
-              }
+          if (action === 'clear_drawings') {
+            const toRemove = [];
+            containerGroupRef.current.traverse(child => {
+              if (child.userData.isStroke) toRemove.push(child);
+            });
+            toRemove.forEach(obj => {
+              if (obj.parent) obj.parent.remove(obj);
+              obj.traverse(c => { if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); }});
+            });
+            if (selectedObjectRef.current && selectedObjectRef.current.userData.isStroke) {
+              selectedObjectRef.current = null;
+              if (selectionBoxRef.current) selectionBoxRef.current.visible = false;
             }
-          });
+          } else {
+            faceGroupsRef.current.forEach(g => {
+              if (!g.userData.isRoot && g.userData.hingeData) {
+                const hd = g.userData.hingeData;
+                if (action === 'assemble') { hd.foldTarget = 1; hd.scatterTarget = 0; } 
+                else if (action === 'flatten') { hd.foldTarget = 0; hd.scatterTarget = 0; } 
+                else if (action === 'separate') { hd.foldTarget = 0; hd.scatterTarget = 1; hd.dragPos.copy(hd.scatterPos); }
+              }
+            });
+          }
           onActionConsumed();
         }
       }, [globalAction]);
 
-      // Cambiar de color aristas dependiendo del fondo
       useEffect(() => {
         if (!containerGroupRef.current) return;
         const isLight = bgColor === '#ffffff' || bgColor === '#bae6fd';
-        const edgeColor = isLight ? 0x000000 : 0xffffff;
+        const defaultEdgeColor = isLight ? 0x000000 : 0xffffff;
+        const highlightEdgeColor = 0xfacc15; 
 
         containerGroupRef.current.traverse((child) => {
-          if (child.isLineSegments) {
-            child.material.color.setHex(edgeColor);
+          if (child.isLineSegments || child.isLine) {
+            if (edgesHighlighted) {
+                child.material.color.setHex(highlightEdgeColor);
+            } else {
+                child.material.color.setHex(defaultEdgeColor);
+            }
           }
         });
-      }, [bgColor]);
+      }, [bgColor, edgesHighlighted]);
 
-      // Inicialización de la escena
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObjectRef.current) {
+            if (selectedObjectRef.current.parent) {
+              selectedObjectRef.current.parent.remove(selectedObjectRef.current);
+            }
+            selectedObjectRef.current.traverse(child => {
+              if (child.isMesh) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+              }
+            });
+            selectedObjectRef.current = null;
+            if (selectionBoxRef.current) selectionBoxRef.current.visible = false;
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, []);
+
       useEffect(() => {
         const width = mountRef.current.clientWidth;
         const height = mountRef.current.clientHeight;
 
         const scene = new THREE.Scene();
         sceneRef.current = scene;
+
+        const selectionBox = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry()), 0xff0000);
+        selectionBox.visible = false;
+        scene.add(selectionBox);
+        selectionBoxRef.current = selectionBox;
+
+        const vSphereGeo = new THREE.SphereGeometry(0.12, 16, 16);
+        const vSphereMat = new THREE.MeshBasicMaterial({ color: 0xef4444, depthTest: false });
+        const vSphere = new THREE.Mesh(vSphereGeo, vSphereMat);
+        vSphere.renderOrder = 999;
+        vSphere.visible = false;
+        scene.add(vSphere);
+        vertexHighlightSphereRef.current = vSphere;
 
         const worldGroup = new THREE.Group();
         scene.add(worldGroup);
@@ -173,32 +228,22 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         rendererRef.current = renderer;
         mountRef.current.appendChild(renderer.domElement);
+        
+        renderer.domElement.tabIndex = "0";
+        renderer.domElement.focus();
 
-        // Control de órbita nativo completo que respeta el eje vertical
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableRotate = true; 
-        controls.enablePan = true; 
-        controls.enableZoom = true;
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.maxPolarAngle = Math.PI; 
-        controls.minPolarAngle = 0;
+        controls.enableRotate = true; controls.enablePan = true; controls.enableZoom = true;
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI; controls.minPolarAngle = 0;
         controlsRef.current = controls;
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-        dirLight.position.set(10, 20, 15);
-        scene.add(dirLight);
-        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-        dirLight2.position.set(-10, -20, -15);
-        scene.add(dirLight2);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7); dirLight.position.set(10, 20, 15); scene.add(dirLight);
+        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4); dirLight2.position.set(-10, -20, -15); scene.add(dirLight2);
 
-        // Suelo atado al objeto que gira
         const grid = new THREE.GridHelper(40, 40, 0x64748b, 0x64748b);
-        grid.position.y = -4;
-        grid.material.transparent = true;
-        grid.material.opacity = 0.2;
+        grid.position.y = -4; grid.material.transparent = true; grid.material.opacity = 0.2;
         worldGroup.add(grid);
 
         const dom = renderer.domElement;
@@ -212,30 +257,97 @@
           const rect = dom.getBoundingClientRect();
           mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
           mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
           raycaster.current.setFromCamera(mouse.current, camera);
 
-          if (containerGroupRef.current) {
+          if (activeToolRef.current === 'vertex') {
+              if (hoveredVertexGlobalIdx.current !== null) {
+                  isDraggingVertex.current = true;
+                  draggedVertexGlobalIdx.current = hoveredVertexGlobalIdx.current;
+                  controls.enabled = false;
+                  const camDir = new THREE.Vector3();
+                  camera.getWorldDirection(camDir);
+                  dragPlane.current.setFromNormalAndCoplanarPoint(camDir.negate(), vertexHighlightSphereRef.current.position);
+              }
+              return;
+          }
+
+          if (activeToolRef.current === 'pen' || activeToolRef.current === 'highlighter') {
             const meshes = faceGroupsRef.current.map(g => g.children[0]);
             const intersects = raycaster.current.intersectObjects(meshes, false);
             
             if (intersects.length > 0) {
-              const clickedFaceGroup = intersects[0].object.parent;
+              controls.enabled = false;
+              const hit = intersects[0];
+              const faceGroup = hit.object.parent;
               
+              const strokeGroup = new THREE.Group();
+              strokeGroup.userData = { isStroke: true, isSelectable: true };
+              faceGroup.add(strokeGroup);
+
+              const localPt = faceGroup.worldToLocal(hit.point.clone());
+              const normal = hit.face ? hit.face.normal.clone() : new THREE.Vector3(0,1,0); 
+              const offsetAmount = activeToolRef.current === 'highlighter' ? 0.03 : 0.05; 
+              const offsetPt = localPt.clone().add(normal.clone().multiplyScalar(offsetAmount));
+
+              currentStrokeRef.current = { group: strokeGroup, faceGroup, lastLocalPoint: offsetPt, normal, offsetAmount };
+
+              const isHigh = activeToolRef.current === 'highlighter';
+              const radius = isHigh ? 0.2 : 0.035;
+              const mat = new THREE.MeshBasicMaterial({ 
+                color: activeDrawColorRef.current, 
+                transparent: isHigh, 
+                opacity: isHigh ? 0.5 : 1.0,
+                depthWrite: !isHigh
+              });
+              strokeGroup.userData.material = mat;
+              strokeGroup.userData.radius = radius;
+
+              const dot = new THREE.Mesh(new THREE.SphereGeometry(radius, 6, 6), mat);
+              dot.position.copy(offsetPt);
+              strokeGroup.add(dot);
+            }
+            return;
+          }
+
+          if (containerGroupRef.current) {
+            const selectables = [];
+            containerGroupRef.current.traverse(child => {
+              if (child.userData.isSelectable) selectables.push(child);
+            });
+            const intersectsSelectables = raycaster.current.intersectObjects(selectables, true);
+            
+            if (intersectsSelectables.length > 0) {
+              let obj = intersectsSelectables[0].object;
+              while (obj && !obj.userData.isSelectable && obj !== containerGroupRef.current) {
+                obj = obj.parent;
+              }
+              if (obj && obj.userData.isSelectable) {
+                selectedObjectRef.current = obj;
+                selectionBox.setFromObject(obj);
+                selectionBox.visible = true;
+                return; 
+              }
+            }
+
+            if (selectedObjectRef.current) {
+              selectedObjectRef.current = null;
+              selectionBox.visible = false;
+            }
+
+            const meshes = faceGroupsRef.current.map(g => g.children[0]);
+            const intersectsFaces = raycaster.current.intersectObjects(meshes, false);
+            if (intersectsFaces.length > 0) {
+              const clickedFaceGroup = intersectsFaces[0].object.parent;
               if (clickedFaceGroup && !clickedFaceGroup.userData.isRoot && clickedFaceGroup.userData.hingeData) {
                 const hd = clickedFaceGroup.userData.hingeData;
-                
-                // Si hacemos clic en una pieza desdoblada, desactivamos el giro de cámara temporalmente
                 if (hd.foldTarget === 0) {
                   draggedObject.current = clickedFaceGroup;
                   controls.enabled = false; 
-                  
                   if (worldGroupRef.current) {
-                    const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(worldGroupRef.current.quaternion).normalize();
+                    const planeNormal = new THREE.Vector3(0, 1, 0).applyQuaternion(worldGroupRef.current.quaternion).normalize();
                     const pt = new THREE.Vector3(0, 0, 0).applyMatrix4(worldGroupRef.current.matrixWorld);
-                    dragPlane.current.setFromNormalAndCoplanarPoint(normal, pt);
+                    dragPlane.current.setFromNormalAndCoplanarPoint(planeNormal, pt);
                   }
-                  
                   const hinge = clickedFaceGroup.parent;
                   raycaster.current.ray.intersectPlane(dragPlane.current, intersectionPoint.current);
                   const intersectLocal = hinge.worldToLocal(intersectionPoint.current.clone());
@@ -254,32 +366,136 @@
 
           if (pointerCount.current > 1) return; 
 
+          if (activeToolRef.current === 'vertex') {
+              if (['cylinder', 'cone'].includes(type)) return;
+
+              if (isDraggingVertex.current && draggedVertexGlobalIdx.current !== null) {
+                  raycaster.current.ray.intersectPlane(dragPlane.current, intersectionPoint.current);
+                  const newWorldPos = intersectionPoint.current.clone();
+                  
+                  faceGroupsRef.current.forEach(group => {
+                      const mesh = group.children[0];
+                      if (!mesh.userData.vertexMap) return;
+                      
+                      const localPos = mesh.worldToLocal(newWorldPos.clone());
+                      const posAttr = mesh.geometry.attributes.position;
+                      let changed = false;
+                      
+                      for (let i = 0; i < posAttr.count; i++) {
+                          if (mesh.userData.vertexMap[i] === draggedVertexGlobalIdx.current) {
+                              posAttr.setXYZ(i, localPos.x, localPos.y, localPos.z);
+                              changed = true;
+                          }
+                      }
+                      
+                      if (changed) {
+                          posAttr.needsUpdate = true;
+                          mesh.geometry.computeVertexNormals();
+                          const edgesMesh = group.children.find(c => c.isLineSegments);
+                          if (edgesMesh) {
+                              edgesMesh.geometry.dispose();
+                              edgesMesh.geometry = new THREE.EdgesGeometry(mesh.geometry);
+                          }
+                      }
+                  });
+                  vertexHighlightSphereRef.current.position.copy(newWorldPos);
+              } else {
+                  let closestDist = Infinity;
+                  let closestWorldPos = null;
+                  let closestGlobalIdx = null;
+
+                  const meshes = faceGroupsRef.current.map(g => g.children[0]);
+                  const intersects = raycaster.current.intersectObjects(meshes, false);
+
+                  if (intersects.length > 0) {
+                      const hitPoint = intersects[0].point;
+                      const hitMesh = intersects[0].object;
+                      
+                      if (hitMesh.userData.vertexMap) {
+                          const posAttr = hitMesh.geometry.attributes.position;
+                          for (let i = 0; i < posAttr.count; i++) {
+                              const v = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+                              v.applyMatrix4(hitMesh.matrixWorld);
+                              const dist = v.distanceTo(hitPoint);
+                              if (dist < closestDist && dist < 1.0) {
+                                  closestDist = dist;
+                                  closestWorldPos = v;
+                                  closestGlobalIdx = hitMesh.userData.vertexMap[i];
+                              }
+                          }
+                      }
+                  }
+
+                  if (closestGlobalIdx !== null) {
+                      vertexHighlightSphereRef.current.visible = true;
+                      vertexHighlightSphereRef.current.position.copy(closestWorldPos);
+                      hoveredVertexGlobalIdx.current = closestGlobalIdx;
+                      dom.style.cursor = 'move';
+                  } else {
+                      vertexHighlightSphereRef.current.visible = false;
+                      hoveredVertexGlobalIdx.current = null;
+                      dom.style.cursor = 'crosshair';
+                  }
+              }
+              return;
+          }
+
+          if ((activeToolRef.current === 'pen' || activeToolRef.current === 'highlighter') && currentStrokeRef.current) {
+             const { group, faceGroup, lastLocalPoint, normal, offsetAmount } = currentStrokeRef.current;
+             const faceMesh = faceGroup.children[0];
+             const hit = raycaster.current.intersectObject(faceMesh, false)[0];
+             
+             if (hit) {
+               const localPt = faceGroup.worldToLocal(hit.point.clone());
+               const hitNormal = hit.face ? hit.face.normal.clone() : normal;
+               const offsetPt = localPt.clone().add(hitNormal.multiplyScalar(offsetAmount));
+               
+               if (lastLocalPoint.distanceTo(offsetPt) > 0.05) {
+                  const mat = group.userData.material;
+                  const radius = group.userData.radius;
+                  
+                  const dist = lastLocalPoint.distanceTo(offsetPt);
+                  const cylGeo = new THREE.CylinderGeometry(radius, radius, dist, 6);
+                  const cyl = new THREE.Mesh(cylGeo, mat);
+                  cyl.position.copy(lastLocalPoint).lerp(offsetPt, 0.5);
+                  
+                  const direction = offsetPt.clone().sub(lastLocalPoint).normalize();
+                  if(direction.lengthSq() > 0) {
+                      cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), direction);
+                  }
+                  
+                  group.add(cyl);
+                  
+                  const dot = new THREE.Mesh(new THREE.SphereGeometry(radius, 6, 6), mat);
+                  dot.position.copy(offsetPt);
+                  group.add(dot);
+                  
+                  currentStrokeRef.current.lastLocalPoint = offsetPt;
+               }
+             }
+             return;
+          }
+
           if (draggedObject.current) {
             const dist = Math.hypot(e.clientX - pointerDownPos.current.x, e.clientY - pointerDownPos.current.y);
             if (dist > 3) isDragging.current = true;
 
             if (isDragging.current) {
               raycaster.current.ray.intersectPlane(dragPlane.current, intersectionPoint.current);
-              
               const hinge = draggedObject.current.parent;
               const hd = draggedObject.current.userData.hingeData;
-              
               const localTarget = hinge.worldToLocal(intersectionPoint.current.clone());
               const newPos = localTarget.add(dragOffset.current);
               
               if (newPos.distanceTo(hd.originalPos) < 1.5) {
-                hd.scatterTarget = 0; 
-                hd.dragPos.copy(hd.originalPos);
+                hd.scatterTarget = 0; hd.dragPos.copy(hd.originalPos);
               } else {
-                hd.scatterTarget = 1; 
-                hd.dragPos.copy(newPos);
-                hd.currentScatter = 1; 
+                hd.scatterTarget = 1; hd.dragPos.copy(newPos); hd.currentScatter = 1; 
                 draggedObject.current.position.copy(newPos);
               }
             }
           } 
-          else {
-            // Cursor Hover logic
+          else if (!activeToolRef.current) {
             let foundHover = null;
             if (containerGroupRef.current) {
               const meshes = faceGroupsRef.current.map(g => g.children[0]);
@@ -293,26 +509,37 @@
               if (hoveredFace.current) hoveredFace.current.material.emissive.setHex(0x000000);
               if (foundHover) foundHover.material.emissive.setHex(0x333333);
               hoveredFace.current = foundHover;
-              dom.style.cursor = foundHover ? 'pointer' : 'grab';
+              if(!activeToolRef.current) dom.style.cursor = foundHover ? 'pointer' : 'grab';
             }
           }
         };
 
         const onPointerUp = (e) => {
           pointerCount.current = Math.max(0, pointerCount.current - 1);
-          if (!hoveredFace.current) dom.style.cursor = 'grab';
+          
+          if (isDraggingVertex.current) {
+              isDraggingVertex.current = false;
+              draggedVertexGlobalIdx.current = null;
+              controls.enabled = true;
+          }
+
+          if (!activeToolRef.current && !hoveredFace.current) dom.style.cursor = 'grab';
+
+          if (currentStrokeRef.current) {
+            currentStrokeRef.current = null;
+            controls.enabled = true;
+            return;
+          }
 
           if (draggedObject.current) {
             if (!isDragging.current) {
-              // Clic (sin mover apenas) en una pieza desdoblada para doblarla
               const hd = draggedObject.current.userData.hingeData;
               hd.foldTarget = hd.foldTarget === 0 ? 1 : 0;
               hd.scatterTarget = 0; 
             }
             draggedObject.current = null;
-            controls.enabled = true; // Reactivamos el control de giro de cámara
-          } else {
-            // Clic sobre una pieza ya doblada
+            controls.enabled = true; 
+          } else if (!activeToolRef.current) {
             const dist = Math.hypot(e.clientX - pointerDownPos.current.x, e.clientY - pointerDownPos.current.y);
             if (dist <= 3 && containerGroupRef.current) {
                raycaster.current.setFromCamera(mouse.current, camera);
@@ -338,35 +565,59 @@
         const animate = () => {
           requestAnimationFrame(animate);
           
-          let totalFold = 0;
-          let count = 0;
-
+          let totalFold = 0; let count = 0;
           faceGroupsRef.current.forEach(g => {
             if (!g.userData.isRoot && g.userData.hingeData) {
               const hd = g.userData.hingeData;
-              
               hd.currentFold += (hd.foldTarget - hd.currentFold) * 0.15;
+              
+              if (hd.isDeformable && hd.update) {
+                  hd.update(hd.currentFold);
+              }
+              
               const currentAngle = (1 - hd.currentFold) * hd.flatAngle;
               hd.hingeObj.setRotationFromAxisAngle(hd.axis, currentAngle);
-
+              
               if (!draggedObject.current || draggedObject.current !== g) {
                 hd.currentScatter += (hd.scatterTarget - hd.currentScatter) * 0.15;
                 g.position.lerpVectors(hd.originalPos, hd.dragPos, hd.currentScatter);
               }
-
-              totalFold += hd.currentFold;
-              count++;
+              totalFold += hd.currentFold; count++;
             }
           });
 
           const avgFold = count > 0 ? totalFold / count : 0;
           const rootFace = faceGroupsRef.current.find(g => g.userData.isRoot);
           if (rootFace) {
-             const rootLabel = rootFace.children.find(c => c.isMesh && c.material && c.material.map);
+             const rootLabel = rootFace.children.find(c => c.userData && c.userData.isLabel);
              if (rootLabel) {
                rootLabel.material.opacity = 1 - Math.pow(avgFold, 0.5);
                rootLabel.visible = rootLabel.material.opacity > 0.05;
              }
+          }
+
+          if (selectedObjectRef.current && selectionBoxRef.current && selectionBoxRef.current.visible) {
+             selectionBoxRef.current.update();
+          }
+
+          if (activeToolRef.current === 'vertex' && hoveredVertexGlobalIdx.current !== null && !isDraggingVertex.current) {
+               let found = false;
+               for(let g of faceGroupsRef.current) {
+                   const mesh = g.children[0];
+                   if (mesh.userData.vertexMap) {
+                       const posAttr = mesh.geometry.attributes.position;
+                       for (let i = 0; i < posAttr.count; i++) {
+                           if (mesh.userData.vertexMap[i] === hoveredVertexGlobalIdx.current) {
+                               const v = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+                               v.applyMatrix4(mesh.matrixWorld);
+                               vertexHighlightSphereRef.current.position.copy(v);
+                               found = true;
+                               break;
+                           }
+                       }
+                   }
+                   if(found) break;
+               }
           }
 
           controls.update();
@@ -393,31 +644,250 @@
         };
       }, []);
 
-      // Generación Matemática y Reconstrucción
+      // Generación Geométrica Principal
       useEffect(() => {
         if (!sceneRef.current) return;
+        
+        if (selectedObjectRef.current) {
+           selectedObjectRef.current = null;
+           if(selectionBoxRef.current) selectionBoxRef.current.visible = false;
+        }
+
         if (containerGroupRef.current && worldGroupRef.current) {
           worldGroupRef.current.remove(containerGroupRef.current);
         }
 
-        if (worldGroupRef.current) {
-          worldGroupRef.current.quaternion.identity();
+        if (worldGroupRef.current) worldGroupRef.current.quaternion.identity();
+        
+        let groups = [];
+        const scale = 2.2;
+        
+        const texB = createLabelTexture('B');
+        const isLight = bgColor === '#ffffff' || bgColor === '#bae6fd';
+        const edgeColor = isLight ? 0x000000 : 0xffffff;
+        const highlightEdgeColor = edgesHighlighted ? 0xfacc15 : edgeColor; 
+        const edgeMaterial = new THREE.LineBasicMaterial({ color: highlightEdgeColor, linewidth: edgesHighlighted ? 3 : 2 });
+        const stripedMat = new THREE.MeshPhongMaterial({ map: createStripedCanvas(color), side: THREE.DoubleSide, shininess: 50 });
+        const solidMat = new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide, shininess: 90 });
+
+
+        // ==============================================================
+        // SUPERFICIES CONTINUAS (Cilindro y Cono) 
+        // ==============================================================
+        if (type === 'cylinder' || type === 'cone') {
+            const isCyl = type === 'cylinder';
+            const R = scale * (isCyl ? 0.7 : 0.8);
+            const H = scale * 1.5;
+            const L = isCyl ? 0 : Math.sqrt(R*R + H*H);
+            const beta = isCyl ? 0 : Math.atan(R/H);
+
+            const rootGroup = new THREE.Group();
+            rootGroup.userData = { isFaceNode: true, isRoot: true };
+            
+            const bottomGeo = new THREE.CircleGeometry(R, 64);
+            const bottomMesh = new THREE.Mesh(bottomGeo, stripedMat);
+            bottomMesh.rotation.x = -Math.PI / 2;
+            bottomMesh.position.y = -0.01;
+            bottomMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(bottomGeo), edgeMaterial.clone()));
+            
+            const labelMat = new THREE.MeshBasicMaterial({ map: texB, transparent: true, depthTest: false, side: THREE.DoubleSide });
+            const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), labelMat);
+            labelMesh.rotation.x = -Math.PI / 2;
+            labelMesh.position.y = 0.02;
+            labelMesh.userData = { isLabel: true, isSelectable: true };
+            rootGroup.add(bottomMesh, labelMesh);
+            groups.push(rootGroup);
+
+            const latHinge = new THREE.Group();
+            latHinge.position.set(0, 0, R); 
+            rootGroup.add(latHinge);
+
+            const latGroup = new THREE.Group();
+            latHinge.add(latGroup);
+            latGroup.userData = { isFaceNode: true, isRoot: false };
+            
+            const segments = 64;
+            const latGeom = new THREE.BufferGeometry();
+            const positions = new Float32Array((segments + 1) * 2 * 3);
+            const uvs = new Float32Array((segments + 1) * 2 * 2);
+            const indices = [];
+            for (let i = 0; i <= segments; i++) {
+                let u = i / segments;
+                uvs[i * 4 + 0] = u; uvs[i * 4 + 1] = 0;
+                uvs[i * 4 + 2] = u; uvs[i * 4 + 3] = 1;
+                if (i < segments) {
+                    let a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, d = (i + 1) * 2 + 1;
+                    indices.push(a, b, d); indices.push(a, d, c);
+                }
+            }
+            latGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            latGeom.setAttribute('uvOriginal', new THREE.BufferAttribute(uvs, 2));
+            latGeom.setIndex(indices);
+
+            const latMesh = new THREE.Mesh(latGeom, solidMat);
+            latGroup.add(latMesh);
+
+            const lineGeom = new THREE.BufferGeometry();
+            const linePos = new Float32Array((segments * 2 + 2) * 3);
+            lineGeom.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+            const lineMesh = new THREE.Line(lineGeom, edgeMaterial);
+            latGroup.add(lineMesh);
+
+            const origPosLat = new THREE.Vector3(0,0,0);
+            const scPosLat = new THREE.Vector3(0, 0, 2.0);
+
+            // CORRECCIÓN: Cilindro Tapa Dinámica
+            if (isCyl) {
+                const topHinge = new THREE.Group();
+                topHinge.position.set(0, H, 0); 
+                latGroup.add(topHinge);
+                latGroup.userData.topHinge = topHinge; // Referencia clave añadida para su actualización
+                
+                const topGroup = new THREE.Group();
+                topHinge.add(topGroup);
+                topGroup.userData = { isFaceNode: true, isRoot: false };
+                
+                const topGeo = new THREE.CircleGeometry(R, 64);
+                const topMesh = new THREE.Mesh(topGeo, solidMat.clone());
+                topMesh.rotation.x = -Math.PI / 2;
+                topMesh.position.set(0, 0, -R); 
+                topMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(topGeo), edgeMaterial.clone()));
+                topGroup.add(topMesh);
+                
+                const origPosTop = new THREE.Vector3(0,0,0);
+                const scPosTop = new THREE.Vector3(0, 0, 2.0);
+                
+                topGroup.userData.hingeData = {
+                    hingeObj: topHinge, axis: new THREE.Vector3(1, 0, 0), flatAngle: Math.PI / 2, 
+                    foldTarget: 0, currentFold: 0, scatterTarget: 1, currentScatter: 1,
+                    originalPos: origPosTop, dragPos: scPosTop.clone(), scatterPos: scPosTop.clone(), isDeformable: false
+                };
+                groups.push(topGroup);
+            }
+            
+            latGroup.userData.hingeData = {
+                hingeObj: latHinge,
+                // CORRECCIÓN: El cono usa el eje Y para hacer la pirueta matemática
+                axis: isCyl ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0),
+                flatAngle: isCyl ? -Math.PI / 2 : Math.PI, 
+                foldTarget: 0, currentFold: 0,
+                scatterTarget: 1, currentScatter: 1,
+                originalPos: origPosLat, dragPos: scPosLat.clone(), scatterPos: scPosLat.clone(),
+                isDeformable: true,
+                
+                update: (fold) => {
+                    const pos = latGeom.attributes.position.array;
+                    const lpos = lineGeom.attributes.position.array;
+                    const uvArr = latGeom.attributes.uvOriginal.array;
+                    
+                    if (isCyl) {
+                        let psi = fold;
+                        // CORRECCIÓN: Desplazamiento del rectángulo para los círculos opuestos
+                        const u_bottom = 0.25;
+                        const u_top = 0.75;
+
+                        for (let i = 0; i <= segments; i++) {
+                            let u01 = uvArr[i * 4];
+                            let u = (u01 - u_bottom) * 2 * Math.PI;
+                            
+                            let xB, yB, zB;
+                            if (psi < 0.0001) { 
+                                xB = R * u; zB = 0; yB = 0; 
+                            } else { 
+                                xB = (R/psi) * Math.sin(u*psi); 
+                                zB = -(R/psi) * (1 - Math.cos(u*psi)); 
+                                yB = 0; 
+                            }
+                            
+                            pos[i*6+0] = xB; pos[i*6+1] = yB; pos[i*6+2] = zB;
+                            pos[i*6+3] = xB; pos[i*6+4] = H;  pos[i*6+5] = zB;
+                        }
+
+                        // CORRECCIÓN: Actualizar la tapa superior a la nueva posición matemáticamente
+                        const topHingeRef = latGroup.userData.topHinge;
+                        if (topHingeRef) {
+                            let u_top_angle = (u_top - u_bottom) * 2 * Math.PI;
+                            if (psi < 0.0001) {
+                                topHingeRef.position.set(R * u_top_angle, H, 0);
+                                topHingeRef.rotation.set(0, 0, 0);
+                            } else {
+                                topHingeRef.position.set(
+                                    (R/psi) * Math.sin(u_top_angle * psi),
+                                    H,
+                                    -(R/psi) * (1 - Math.cos(u_top_angle * psi))
+                                );
+                                topHingeRef.rotation.set(0, -u_top_angle * psi, 0);
+                            }
+                        }
+
+                    } else {
+                        // CORRECCIÓN CONO: Cambio a -Math.PI / 2 para evitar rotura interior
+                        let alpha = fold;
+                        let psi = (1 - alpha) * (-Math.PI / 2) + alpha * beta;
+                        let R_alpha = L * Math.sin(psi);
+                        let H_alpha = L * Math.cos(psi);
+                        
+                        for (let i = 0; i <= segments; i++) {
+                            let u01 = uvArr[i * 4];
+                            let gamma = (u01 - 0.5) * (2 * Math.PI * R / L);
+                            let u_alpha = gamma * L / R_alpha;
+                            
+                            pos[i*6+0] = L * Math.sin(psi) * Math.sin(u_alpha);
+                            pos[i*6+1] = H_alpha - L * Math.cos(psi);
+                            pos[i*6+2] = L * Math.sin(psi) * Math.cos(u_alpha) - R_alpha;
+                            
+                            pos[i*6+3] = 0;
+                            pos[i*6+4] = H_alpha;
+                            pos[i*6+5] = -R_alpha;
+                        }
+                    }
+                    latGeom.attributes.position.needsUpdate = true;
+                    latGeom.computeVertexNormals(); 
+                    
+                    let idx = 0;
+                    for (let i = 0; i <= segments; i++) { lpos[idx++] = pos[i*6+0]; lpos[idx++] = pos[i*6+1]; lpos[idx++] = pos[i*6+2]; }
+                    lpos[idx++] = pos[segments*6+3]; lpos[idx++] = pos[segments*6+4]; lpos[idx++] = pos[segments*6+5];
+                    for (let i = segments; i >= 0; i--) { lpos[idx++] = pos[i*6+3]; lpos[idx++] = pos[i*6+4]; lpos[idx++] = pos[i*6+5]; }
+                    lpos[idx++] = pos[0]; lpos[idx++] = pos[1]; lpos[idx++] = pos[2];
+                    lineGeom.attributes.position.needsUpdate = true;
+                }
+            };
+            groups.push(latGroup);
+
+            const container = new THREE.Group();
+            container.add(rootGroup);
+            container.position.set(0, -H/2, 0);
+            
+            groups.forEach(g => {
+                if (g.userData.hingeData) {
+                    if (g.userData.hingeData.update) g.userData.hingeData.update(0);
+                    g.userData.hingeData.hingeObj.setRotationFromAxisAngle(g.userData.hingeData.axis, g.userData.hingeData.flatAngle);
+                }
+            });
+
+            worldGroupRef.current.add(container);
+            containerGroupRef.current = container;
+            faceGroupsRef.current = groups;
+
+            const facesCount = isCyl ? 3 : 2;
+            const dist = 12;
+            cameraRef.current.position.set(0, dist, dist * 0.2);
+            if (controlsRef.current) controlsRef.current.target.set(0,0,0);
+            
+            return; 
         }
 
-        faceGroupsRef.current = [];
 
-        const scale = 2.2;
+        // ==============================================================
+        // LÓGICA CLÁSICA: CARAS RÍGIDAS CON MAPEO GLOBAL DE VÉRTICES
+        // ==============================================================
         let baseGeometry;
-        const isRevolution = ['cylinder', 'cone', 'sphere'].includes(type);
-        
         switch (type) {
           case 'tetra': baseGeometry = new THREE.TetrahedronGeometry(scale); break;
           case 'cube': baseGeometry = new THREE.BoxGeometry(scale, scale, scale); break;
           case 'octa': baseGeometry = new THREE.OctahedronGeometry(scale); break;
           case 'dode': baseGeometry = new THREE.DodecahedronGeometry(scale); break;
           case 'ico': baseGeometry = new THREE.IcosahedronGeometry(scale); break;
-          case 'cylinder': baseGeometry = new THREE.CylinderGeometry(scale*0.7, scale*0.7, scale*1.5, 32); break;
-          case 'cone': baseGeometry = new THREE.ConeGeometry(scale*0.8, scale*1.5, 32); break;
           case 'prism': baseGeometry = new THREE.CylinderGeometry(scale*0.7, scale*0.7, scale*1.5, baseSides); break;
           case 'pyramid': baseGeometry = new THREE.ConeGeometry(scale*0.9, scale*1.5, baseSides); break;
           case 'sphere': baseGeometry = new THREE.SphereGeometry(scale * 0.9, 16, 12); break;
@@ -429,7 +899,8 @@
         const normals = nonIndexed.attributes.normal.array;
 
         const logicalFaces = [];
-        const tolerance = isRevolution ? 0.999 : 0.95;
+        const globalUniqueVerts = []; 
+        const tolerance = 0.95;
 
         for (let i = 0; i < positions.length; i += 9) {
           const v1 = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]);
@@ -453,7 +924,6 @@
             matchedFace = { flatNormal: flatNormal.clone(), vertices: [], origNormals: [], uniqueVerts: [] };
             logicalFaces.push(matchedFace);
           }
-
           matchedFace.vertices.push(v1, v2, v3);
           matchedFace.origNormals.push(n1, n2, n3);
           
@@ -464,16 +934,27 @@
 
         let rootFaceIdx = 0;
         let topBaseIdx = -1;
+
         logicalFaces.forEach((f, i) => {
           f.centroid = new THREE.Vector3();
           f.uniqueVerts.forEach(v => f.centroid.add(v));
           f.centroid.divideScalar(f.uniqueVerts.length);
+          
+          f.globalVertexIndices = [];
+          f.vertices.forEach(v => {
+              let gIdx = globalUniqueVerts.findIndex(gv => gv.distanceTo(v) < 0.05);
+              if (gIdx === -1) {
+                  gIdx = globalUniqueVerts.length;
+                  globalUniqueVerts.push(v.clone());
+              }
+              f.globalVertexIndices.push(gIdx);
+          });
 
           f.isBase = false;
-          if (['prism', 'cylinder'].includes(type)) {
+          if (['prism'].includes(type)) {
              if (f.flatNormal.y < -0.9) { f.isBase = true; rootFaceIdx = i; }
              if (f.flatNormal.y > 0.9) { f.isBase = true; topBaseIdx = i; }
-          } else if (['pyramid', 'cone'].includes(type)) {
+          } else if (['pyramid'].includes(type)) {
              if (f.flatNormal.y < -0.9) { f.isBase = true; rootFaceIdx = i; }
           } else if (['tetra', 'cube', 'octa', 'dode', 'ico', 'sphere'].includes(type) && i === 0) {
              f.isBase = true; rootFaceIdx = i; 
@@ -497,8 +978,7 @@
         }
 
         const tree = [];
-        
-        if (['cylinder', 'prism', 'cone', 'pyramid'].includes(type)) {
+        if (['prism', 'pyramid'].includes(type)) {
           const isBase = (idx) => idx === rootFaceIdx || idx === topBaseIdx;
           const laterals = [];
           for (let i = 0; i < logicalFaces.length; i++) if (!isBase(i)) laterals.push(i);
@@ -512,16 +992,12 @@
               let found = false;
               for (const { neighbor } of adj[curr]) {
                 if (unvisited.has(neighbor)) {
-                  chain.push(neighbor);
-                  unvisited.delete(neighbor);
-                  found = true;
-                  break;
+                  chain.push(neighbor); unvisited.delete(neighbor); found = true; break;
                 }
               }
               if (!found) {
                 const next = Array.from(unvisited)[0];
-                chain.push(next);
-                unvisited.delete(next);
+                chain.push(next); unvisited.delete(next);
               }
             }
 
@@ -532,22 +1008,17 @@
             if (!rEdgeInfo) rEdgeInfo = adj[rootFaceIdx].find(a => a.neighbor === chain[0]); 
             const actualCRoot = rEdgeInfo ? rEdgeInfo.neighbor : chain[0];
 
-            if (rEdgeInfo) {
-              tree.push({ parent: rootFaceIdx, child: actualCRoot, edge: rEdgeInfo.edge });
-            }
-
+            if (rEdgeInfo) tree.push({ parent: rootFaceIdx, child: actualCRoot, edge: rEdgeInfo.edge });
             const actualMidIdx = chain.indexOf(actualCRoot);
 
             for (let i = actualMidIdx; i < chain.length - 1; i++) {
               const edgeInfo = adj[chain[i]].find(a => a.neighbor === chain[i + 1]);
               if (edgeInfo) tree.push({ parent: chain[i], child: chain[i + 1], edge: edgeInfo.edge });
             }
-
             for (let i = actualMidIdx; i > 0; i--) {
               const edgeInfo = adj[chain[i]].find(a => a.neighbor === chain[i - 1]);
               if (edgeInfo) tree.push({ parent: chain[i], child: chain[i - 1], edge: edgeInfo.edge });
             }
-
             if (topBaseIdx !== -1) {
               const topEdgeInfo = adj[actualCRoot].find(a => a.neighbor === topBaseIdx);
               if (topEdgeInfo) {
@@ -573,50 +1044,40 @@
           }
         }
 
-        const texB = createLabelTexture('B');
-        const isLight = bgColor === '#ffffff' || bgColor === '#bae6fd';
-        const edgeColor = isLight ? 0x000000 : 0xffffff;
-        const edgeMaterial = new THREE.LineBasicMaterial({ color: edgeColor, linewidth: 2 });
-
-        const stripedMat = new THREE.MeshPhongMaterial({ map: createStripedCanvas(color), side: THREE.DoubleSide, shininess: 50 });
-        const solidMat = new THREE.MeshPhongMaterial({ 
-            color: color, 
-            side: THREE.DoubleSide, 
-            shininess: isRevolution ? 90 : 50 
-        });
-
-        const groups = logicalFaces.map((face, i) => {
+        groups = logicalFaces.map((face, i) => {
           const faceGeom = new THREE.BufferGeometry();
           const verts = new Float32Array(face.vertices.length * 3);
           const norms = new Float32Array(face.origNormals.length * 3);
+          
+          const vertexMap = new Int32Array(face.vertices.length);
 
           face.vertices.forEach((v, idx) => {
-            verts[idx*3] = v.x - face.centroid.x;
-            verts[idx*3+1] = v.y - face.centroid.y;
-            verts[idx*3+2] = v.z - face.centroid.z;
+            verts[idx*3] = v.x - face.centroid.x; verts[idx*3+1] = v.y - face.centroid.y; verts[idx*3+2] = v.z - face.centroid.z;
+            vertexMap[idx] = face.globalVertexIndices[idx]; // Mapeo de BufferID -> GlobalID
+          });
+          face.origNormals.forEach((n, idx) => {
+            norms[idx*3] = n.x; norms[idx*3+1] = n.y; norms[idx*3+2] = n.z;
           });
           
-          face.origNormals.forEach((n, idx) => {
-            norms[idx*3] = n.x;
-            norms[idx*3+1] = n.y;
-            norms[idx*3+2] = n.z;
-          });
-
           faceGeom.setAttribute('position', new THREE.BufferAttribute(verts, 3));
           faceGeom.setAttribute('normal', new THREE.BufferAttribute(norms, 3)); 
 
           const isB = face.isBase;
           const mesh = new THREE.Mesh(faceGeom, isB ? stripedMat : solidMat.clone());
-          mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(faceGeom), edgeMaterial.clone()));
+          mesh.userData.vertexMap = vertexMap; // Almacenado en la malla
+          
+          const edgeMesh = new THREE.LineSegments(new THREE.EdgesGeometry(faceGeom), edgeMaterial.clone());
+          mesh.add(edgeMesh);
           
           const group = new THREE.Group();
           group.add(mesh);
 
           if (isB) {
             const labelMat = new THREE.MeshBasicMaterial({ map: texB, transparent: true, depthTest: false, side: THREE.DoubleSide });
-            const labelMesh = new THREE.Mesh(new PlaneGeometry(1.5, 1.5), labelMat);
+            const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), labelMat);
             labelMesh.position.copy(face.flatNormal.clone().multiplyScalar(0.02));
             labelMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), face.flatNormal);
+            labelMesh.userData = { isLabel: true, isSelectable: true }; 
             group.add(labelMesh);
           }
           
@@ -646,52 +1107,36 @@
           const sign = cross.dot(axis) > 0 ? 1 : -1;
           
           const origPos = new THREE.Vector3().copy(centroidC).sub(vA);
-          const scatterPush = origPos.clone().normalize().multiplyScalar(isRevolution ? 0.3 : 2.0); 
-          const scPos = origPos.clone().add(scatterPush);
+          const scPos = origPos.clone().add(origPos.clone().normalize().multiplyScalar(2.0));
 
           cGroup.userData.hingeData = {
-            hingeObj: hinge,
-            axis: axis.clone(),
-            flatAngle: -sign * angle,
-            foldTarget: 0,
-            currentFold: 0,
-            scatterTarget: 1, 
-            currentScatter: 1,
-            originalPos: origPos,
-            scatterPos: scPos,
-            dragPos: scPos.clone()
+            hingeObj: hinge, axis: axis.clone(), flatAngle: -sign * angle, foldTarget: 0, currentFold: 0,
+            scatterTarget: 1, currentScatter: 1, originalPos: origPos, scatterPos: scPos, dragPos: scPos.clone(),
+            isDeformable: false
           };
-          
           cGroup.position.copy(cGroup.userData.hingeData.dragPos);
-          hinge.add(cGroup);
-          pGroup.add(hinge);
+          hinge.add(cGroup); pGroup.add(hinge);
         }
 
         const container = new THREE.Group();
         container.add(rootGroup);
-        
         const rootNormal = logicalFaces[rootFaceIdx].flatNormal;
         const flattenQuat = new THREE.Quaternion().setFromUnitVectors(rootNormal, new THREE.Vector3(0, 1, 0));
         container.quaternion.copy(flattenQuat);
-        
         const bbox = new THREE.Box3().setFromObject(container);
         const center = bbox.getCenter(new THREE.Vector3());
         container.position.set(-center.x, -center.y, -center.z);
 
         groups.forEach(g => {
-          if (g.userData.hingeData) {
-            const hd = g.userData.hingeData;
-            hd.hingeObj.setRotationFromAxisAngle(hd.axis, hd.flatAngle);
-          }
+          if (g.userData.hingeData) g.userData.hingeData.hingeObj.setRotationFromAxisAngle(g.userData.hingeData.axis, g.userData.hingeData.flatAngle);
         });
 
         worldGroupRef.current.add(container);
         containerGroupRef.current = container;
         faceGroupsRef.current = groups;
 
-        // Ajustar zoom inicial
         const facesCount = groups.length;
-        const dist = Math.max(16, Math.sqrt(facesCount) * (isRevolution ? 3 : 5));
+        const dist = Math.max(16, Math.sqrt(facesCount) * 5);
         cameraRef.current.position.set(0, dist, dist * 0.2);
         if (controlsRef.current) controlsRef.current.target.set(0,0,0);
 
@@ -701,28 +1146,53 @@
     };
 
     const App = () => {
+      const [appMode, setAppMode] = useState('libre');
       const [selected, setSelected] = useState('prism');
       const [baseSides, setBaseSides] = useState(5);
       const [color, setColor] = useState('#10b981');
+      
+      const [activeChallengeIdx, setActiveChallengeIdx] = useState(0);
+      const [hintsRevealed, setHintsRevealed] = useState(0);
+      const [isChallengeAssembled, setIsChallengeAssembled] = useState(false);
+
       const [bgColor, setBgColor] = useState('#0f172a');
       const [globalAction, setGlobalAction] = useState(null);
       
       const [showPoetaTopRight, setShowPoetaTopRight] = useState(false);
       const [isPanelOpen, setIsPanelOpen] = useState(true); 
+      const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+
+      const [activeTool, setActiveTool] = useState(null); 
+      const [activeDrawColor, setActiveDrawColor] = useState('#000000');
+      const [edgesHighlighted, setEdgesHighlighted] = useState(false);
 
       const triggerAction = (actionStr) => {
         setGlobalAction({ action: actionStr, t: Date.now() });
+        if (actionStr === 'assemble') setIsChallengeAssembled(true);
+        if (actionStr === 'separate' || actionStr === 'flatten') setIsChallengeAssembled(false);
       };
 
-      const handleShapeChange = (e) => {
-        setSelected(e.target.value);
-        triggerAction('separate');
+      const clearDrawing = () => { triggerAction('clear_drawings'); };
+
+      const handleShapeChange = (e) => { setSelected(e.target.value); triggerAction('separate'); };
+      const handleBaseChange = (e) => { setBaseSides(parseInt(e.target.value)); triggerAction('separate'); };
+
+      const loadChallenge = (idx) => {
+        setActiveChallengeIdx(idx); setHintsRevealed(0); setIsChallengeAssembled(false);
+        const c = CHALLENGES[idx];
+        setSelected(c.shape); setBaseSides(c.baseSides); setColor(c.color);
+        setTimeout(() => triggerAction('separate'), 100);
       };
 
-      const handleBaseChange = (e) => {
-        setBaseSides(parseInt(e.target.value));
-        triggerAction('separate'); 
+      const requestHint = () => {
+        const c = CHALLENGES[activeChallengeIdx];
+        if (hintsRevealed < c.hints.length) setHintsRevealed(hintsRevealed + 1);
       };
+
+      useEffect(() => {
+        if (appMode === 'desafios') loadChallenge(activeChallengeIdx);
+        else triggerAction('assemble');
+      }, [appMode]);
 
       const showBaseSelector = ['prism', 'pyramid'].includes(selected);
 
@@ -743,17 +1213,15 @@
       };
 
       const info = getShapeInfo();
+      const currentChallenge = CHALLENGES[activeChallengeIdx];
 
       return (
-        <div className="w-screen h-screen font-sans text-slate-800 flex overflow-hidden">
+        <div className="w-screen h-screen font-sans text-slate-800 flex overflow-hidden relative">
           
           <PolyhedronBuilder 
-            type={selected} 
-            baseSides={baseSides} 
-            color={color} 
-            bgColor={bgColor}
-            globalAction={globalAction}
-            onActionConsumed={() => setGlobalAction(null)}
+            type={selected} baseSides={baseSides} color={color} bgColor={bgColor}
+            globalAction={globalAction} onActionConsumed={() => setGlobalAction(null)}
+            activeTool={activeTool} activeDrawColor={activeDrawColor} edgesHighlighted={edgesHighlighted}
           />
 
           <div className="ui-layer absolute inset-0 flex p-4 md:p-6 pointer-events-none">
@@ -765,146 +1233,218 @@
                 
                 <div className="bg-white/95 backdrop-blur-md px-5 py-3 rounded-3xl shadow-xl border-l-4 border-sky-400 pointer-events-auto shrink-0 flex items-center justify-between gap-2">
                   <div className="flex flex-col">
-                    <h1 className="text-lg font-black text-slate-800 tracking-tight leading-tight">Taller de Figuras 3D</h1>
+                    <h1 className="text-lg font-black text-slate-800 tracking-tight leading-tight">Taller de Figuras</h1>
                     <p className="text-[9px] font-bold text-sky-600 uppercase tracking-widest mt-0.5">Geometría Interactiva</p>
                   </div>
-                  <img 
-                    src="poeta.jpg" 
-                    alt="Poeta 3D" 
-                    className="w-24 h-24 object-cover rounded-xl border border-sky-200 shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform" 
-                    onClick={() => setShowPoetaTopRight(true)}
-                    title="Haz clic para ampliar"
-                  />
+                  <img src="poeta.jpg" alt="Poeta 3D" className="w-14 h-14 object-cover rounded-xl border border-sky-200 shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform" onClick={() => setShowPoetaTopRight(true)} title="Haz clic para ampliar" onError={(e) => e.target.style.display='none'} />
                 </div>
 
-                <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-sky-400 pointer-events-auto shrink-0">
-                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Figura a montar</label>
-                  <select 
-                    className="w-full p-2.5 mb-3 rounded-xl bg-slate-100 border-2 border-slate-200 text-sm font-bold text-slate-700 cursor-pointer focus:outline-none focus:border-sky-400"
-                    value={selected}
-                    onChange={handleShapeChange}
-                  >
-                    <optgroup label="Prismas y Pirámides">
-                      <option value="prism">Prisma</option>
-                      <option value="pyramid">Pirámide</option>
-                    </optgroup>
-                    <optgroup label="Sólidos Platónicos">
-                      <option value="tetra">Tetraedro</option>
-                      <option value="cube">Cubo</option>
-                      <option value="octa">Octaedro</option>
-                      <option value="dode">Dodecaedro</option>
-                      <option value="ico">Icosaedro</option>
-                    </optgroup>
-                    <optgroup label="Cuerpos de Revolución">
-                      <option value="cylinder">Cilindro (Real)</option>
-                      <option value="cone">Cono (Real)</option>
-                      <option value="sphere">Esfera (Curva)</option>
-                    </optgroup>
-                  </select>
+                <div className="bg-slate-200/80 backdrop-blur-md rounded-2xl p-1 shadow-md pointer-events-auto shrink-0 flex gap-1 border border-slate-300">
+                  <button onClick={() => setAppMode('libre')} className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${appMode === 'libre' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Modo Libre</button>
+                  <button onClick={() => setAppMode('desafios')} className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${appMode === 'desafios' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Objetos Diarios</button>
+                </div>
 
-                  {showBaseSelector && (
-                    <div className="mb-3 p-2.5 bg-sky-50 rounded-xl border border-sky-100">
-                      <label className="block text-[10px] font-black text-sky-600 mb-1.5 uppercase tracking-widest">Lados Base: {baseSides}</label>
-                      <input type="range" min="3" max="12" value={baseSides} onChange={handleBaseChange} className="w-full accent-sky-500"/>
+                {appMode === 'libre' && (
+                  <>
+                    <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-sky-400 pointer-events-auto shrink-0 fade-in">
+                      <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Figura a montar</label>
+                      <select className="w-full p-2.5 mb-3 rounded-xl bg-slate-100 border-2 border-slate-200 text-sm font-bold text-slate-700 cursor-pointer focus:outline-none focus:border-sky-400" value={selected} onChange={handleShapeChange}>
+                        <optgroup label="Prismas y Pirámides"><option value="prism">Prisma</option><option value="pyramid">Pirámide</option></optgroup>
+                        <optgroup label="Sólidos Platónicos"><option value="tetra">Tetraedro</option><option value="cube">Cubo</option><option value="octa">Octaedro</option><option value="dode">Dodecaedro</option><option value="ico">Icosaedro</option></optgroup>
+                        <optgroup label="Cuerpos de Revolución"><option value="cylinder">Cilindro (Real)</option><option value="cone">Cono (Real)</option><option value="sphere">Esfera (Curva)</option></optgroup>
+                      </select>
+
+                      {showBaseSelector && (
+                        <div className="mb-3 p-2.5 bg-sky-50 rounded-xl border border-sky-100">
+                          <label className="block text-[10px] font-black text-sky-600 mb-1.5 uppercase tracking-widest">Lados Base: {baseSides}</label>
+                          <input type="range" min="3" max="12" value={baseSides} onChange={handleBaseChange} className="w-full accent-sky-500"/>
+                        </div>
+                      )}
+
+                      <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Color Figura</label>
+                      <div className="flex gap-2 justify-between">
+                        {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'].map(c => (
+                          <button key={c} onClick={() => setColor(c)} className={`w-7 h-7 rounded-full shadow-md transition-transform border-2 border-white ${color === c ? 'ring-2 ring-offset-1 ring-slate-800 scale-110' : 'hover:scale-110'}`} style={{ backgroundColor: c }} />
+                        ))}
+                      </div>
                     </div>
-                  )}
 
-                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Color Figura</label>
-                  <div className="flex gap-2 justify-between">
-                    {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'].map(c => (
-                      <button key={c} onClick={() => setColor(c)} className={`w-7 h-7 rounded-full shadow-md transition-transform border-2 border-white ${color === c ? 'ring-2 ring-offset-1 ring-slate-800 scale-110' : 'hover:scale-110'}`} style={{ backgroundColor: c }} />
-                    ))}
-                  </div>
-                </div>
+                    <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-slate-600 pointer-events-auto flex flex-col gap-2 shrink-0 mb-4 fade-in">
+                      <p className="text-slate-300 text-[10px] font-medium leading-relaxed">
+                        <strong className="text-sky-400">Pincha el fondo y arrastra</strong> para voltearla. <strong className="text-red-300">Arrastra piezas</strong> para juntarlas o pulsa para doblarlas.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 w-full mt-1">
+                        <button onClick={() => triggerAction('separate')} className="col-span-1 bg-red-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-red-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-red-700 hover:border-red-500">Separar 2D</button>
+                        <button onClick={() => triggerAction('flatten')} className="col-span-1 bg-amber-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-amber-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-amber-700 hover:border-amber-500">Juntar 2D</button>
+                        <button onClick={() => triggerAction('assemble')} className="col-span-1 bg-green-500 text-white py-2.5 rounded-xl font-black text-[11px] shadow-md hover:bg-green-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-green-700 hover:border-green-500">Montar 3D</button>
+                        <button onClick={() => triggerAction('flatten')} className="col-span-1 bg-purple-500 text-white py-2.5 rounded-xl font-black text-[11px] shadow-md hover:bg-purple-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-purple-700 hover:border-purple-500">Desmontar 3D</button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
-                <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-indigo-400 pointer-events-auto shrink-0 text-white">
-                  <h3 className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2 flex items-center gap-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l10 6.5v7L12 22 2 15.5v-7L12 2z"/></svg>
-                    Propiedades de la figura
-                  </h3>
+                {appMode === 'desafios' && (
+                  <>
+                    <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-xl border-l-4 border-indigo-400 pointer-events-auto shrink-0 fade-in">
+                      <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Elige un objeto</label>
+                      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+                        {CHALLENGES.map((chal, idx) => (
+                          <button key={chal.id} onClick={() => loadChallenge(idx)} className={`flex flex-col items-center justify-center p-2 rounded-xl min-w-[64px] transition-all border-2 ${activeChallengeIdx === idx ? 'bg-indigo-50 border-indigo-400 shadow-md scale-105' : 'bg-slate-50 border-slate-200 hover:border-indigo-200 hover:bg-slate-100'}`}>
+                            <span className="text-2xl mb-1">{chal.icon}</span>
+                            <span className="text-[9px] font-bold text-slate-700 text-center leading-tight">{chal.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-indigo-900/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-indigo-400 pointer-events-auto shrink-0 text-white fade-in flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-indigo-800 flex items-center justify-center text-2xl shadow-inner border border-indigo-700">{currentChallenge.icon}</div>
+                        <div><h2 className="text-lg font-black tracking-tight">{currentChallenge.name}</h2><p className="text-xs text-indigo-300 font-medium">{currentChallenge.desc}</p></div>
+                      </div>
+                      <div className="bg-indigo-950/50 p-3 rounded-xl border border-indigo-800/50 mt-1">
+                        <p className="text-[11px] text-indigo-200 leading-relaxed font-medium">Observa las piezas esparcidas por la pantalla. Tienes <strong className="text-white">{info.faces} caras planas</strong>. ¿Sabes de qué forma geométrica se trata para montar el objeto?</p>
+                      </div>
+
+                      <div className="flex flex-col gap-2 mt-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] uppercase font-black tracking-widest text-indigo-400">Pistas disponibles</span>
+                          <span className="text-[10px] font-bold bg-indigo-800 px-2 py-0.5 rounded text-indigo-200">{hintsRevealed} / {currentChallenge.hints.length}</span>
+                        </div>
+                        {currentChallenge.hints.slice(0, hintsRevealed).map((hint, i) => (
+                          <div key={i} className="bg-white/10 p-2.5 rounded-lg border-l-2 border-amber-400 text-[11px] text-indigo-50 leading-tight fade-in"><strong className="text-amber-400">Pista {i+1}:</strong> {hint}</div>
+                        ))}
+                        {hintsRevealed < currentChallenge.hints.length && (
+                          <button onClick={requestHint} className="w-full mt-1 bg-indigo-800/50 hover:bg-indigo-700 text-indigo-200 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-indigo-600 transition-colors flex items-center justify-center gap-1"><span>💡 Pedir una pista</span></button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button onClick={() => triggerAction('flatten')} className="col-span-1 bg-slate-700 text-white py-2.5 rounded-xl font-black text-[10px] shadow-md hover:bg-slate-600 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-slate-900">Plegar (2D)</button>
+                        <button onClick={() => triggerAction('assemble')} className={`col-span-1 text-white py-2.5 rounded-xl font-black text-[11px] shadow-md active:scale-95 transition-all uppercase tracking-wide border-b-4 ${isChallengeAssembled ? 'bg-green-600 border-green-800' : 'bg-indigo-500 hover:bg-indigo-400 border-indigo-700'}`}>{isChallengeAssembled ? '¡Solucionado!' : 'Montar (3D)'}</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-slate-600 pointer-events-auto shrink-0 text-white mb-4">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">Propiedades Geométricas</h3>
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-slate-700/50 p-1.5 rounded-xl">
-                      <div className="text-lg font-black text-white">{info.faces}</div>
-                      <div className="text-[9px] uppercase font-bold text-slate-400">Caras</div>
-                    </div>
-                    <div className="bg-slate-700/50 p-1.5 rounded-xl">
-                      <div className="text-lg font-black text-white">{info.verts}</div>
-                      <div className="text-[9px] uppercase font-bold text-slate-400">Vértices</div>
-                    </div>
-                    <div className="bg-slate-700/50 p-1.5 rounded-xl">
-                      <div className="text-lg font-black text-white">{info.edges}</div>
-                      <div className="text-[9px] uppercase font-bold text-slate-400">Aristas</div>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-[10px] text-slate-300 flex justify-between bg-slate-700/30 px-3 py-1.5 rounded-lg border border-slate-600/50">
-                    <span><strong className="text-sky-400 text-[11px]">{info.bases}</strong> {info.bases === 1 ? 'Base' : 'Bases'}</span>
-                    <span><strong className="text-amber-400 text-[11px]">{info.lateral}</strong> {info.lateral === 1 ? 'Cara lateral' : 'Laterales'}</span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-2xl border-l-4 border-slate-600 pointer-events-auto flex flex-col gap-2 shrink-0 mb-4">
-                  <p className="text-slate-300 text-[10px] font-medium leading-relaxed">
-                    <strong className="text-sky-400">Pincha el fondo y arrastra</strong> para voltearla libremente en 3D. <strong className="text-red-300">Arrastra piezas</strong> para juntarlas o pulsa para doblarlas.
-                  </p>
-                  
-                  <div className="grid grid-cols-2 gap-2 w-full mt-1">
-                    <button 
-                      onClick={() => triggerAction('separate')}
-                      className="col-span-1 bg-red-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-red-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-red-700 hover:border-red-500"
-                    >
-                      Separar 2D
-                    </button>
-                    <button 
-                      onClick={() => triggerAction('flatten')}
-                      className="col-span-1 bg-amber-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-amber-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-amber-700 hover:border-amber-500"
-                    >
-                      Juntar 2D
-                    </button>
-                    <button 
-                      onClick={() => { triggerAction('assemble'); }}
-                      className="col-span-1 bg-green-500 text-white py-2.5 rounded-xl font-black text-[11px] shadow-md hover:bg-green-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-green-700 hover:border-green-500"
-                    >
-                      Montar 3D
-                    </button>
-                    <button 
-                      onClick={() => triggerAction('flatten')}
-                      className="col-span-1 bg-purple-500 text-white py-2.5 rounded-xl font-black text-[11px] shadow-md hover:bg-purple-400 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-purple-700 hover:border-purple-500"
-                    >
-                      Desmontar 3D
-                    </button>
+                    <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.faces}</div><div className="text-[9px] uppercase font-bold text-slate-400">Caras</div></div>
+                    <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.verts}</div><div className="text-[9px] uppercase font-bold text-slate-400">Vértices</div></div>
+                    <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.edges}</div><div className="text-[9px] uppercase font-bold text-slate-400">Aristas</div></div>
                   </div>
                 </div>
 
               </div>
 
-              <button 
-                onClick={() => setIsPanelOpen(!isPanelOpen)}
-                className="absolute right-[-40px] top-1/2 -translate-y-1/2 w-10 h-24 bg-white/95 backdrop-blur-md border-y-4 border-r-4 border-sky-400 rounded-r-2xl shadow-[5px_0_15px_rgba(0,0,0,0.2)] flex items-center justify-center pointer-events-auto hover:bg-sky-50 text-sky-600 transition-all z-30"
-                title={isPanelOpen ? "Ocultar panel" : "Mostrar panel"}
-              >
+              <button onClick={() => setIsPanelOpen(!isPanelOpen)} className="absolute right-[-40px] top-1/2 -translate-y-1/2 w-10 h-24 bg-white/95 backdrop-blur-md border-y-4 border-r-4 border-sky-400 rounded-r-2xl shadow-[5px_0_15px_rgba(0,0,0,0.2)] flex items-center justify-center pointer-events-auto hover:bg-sky-50 text-sky-600 transition-all z-30" title={isPanelOpen ? "Ocultar panel" : "Mostrar panel"}>
                 <span className="text-2xl font-black drop-shadow-md">{isPanelOpen ? '◀' : '▶'}</span>
               </button>
-
             </div>
 
-            {/* --- PANEL DERECHO (Fondos Rayados) --- */}
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl pointer-events-auto flex flex-col gap-3 border border-slate-200">
-              <div className="text-[9px] font-black text-slate-400 text-center uppercase tracking-widest">Fondo</div>
-              <button onClick={() => setBgColor('#0f172a')} className={`w-10 h-10 rounded-full bg-slate-900 shadow-inner transition-transform ${bgColor === '#0f172a' ? 'ring-2 ring-offset-2 ring-slate-900 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Negro 3D"></button>
-              <button onClick={() => setBgColor('#ffffff')} className={`w-10 h-10 rounded-full bg-white shadow-inner transition-transform ${bgColor === '#ffffff' ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Blanco 3D"></button>
-              <button onClick={() => setBgColor('#bae6fd')} className={`w-10 h-10 rounded-full bg-sky-200 shadow-inner transition-transform ${bgColor === '#bae6fd' ? 'ring-2 ring-offset-2 ring-sky-400 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Azul 3D"></button>
+            {/* --- PANEL DERECHO (Herramientas de Dibujo y Fondos) --- */}
+            <div className={`absolute top-1/2 -translate-y-1/2 flex items-center z-20 transition-transform duration-500 ease-in-out pointer-events-none ${isRightPanelOpen ? 'right-6 translate-x-0' : 'right-0 translate-x-full'}`}>
+              
+              <button 
+                onClick={() => setIsRightPanelOpen(!isRightPanelOpen)} 
+                className="absolute left-[-40px] top-1/2 -translate-y-1/2 w-10 h-24 bg-white/95 backdrop-blur-md border-y-4 border-l-4 border-slate-400 rounded-l-2xl shadow-[-5px_0_15px_rgba(0,0,0,0.2)] flex items-center justify-center pointer-events-auto hover:bg-slate-50 text-slate-600 transition-all z-30" 
+                title={isRightPanelOpen ? "Ocultar herramientas" : "Mostrar herramientas"}
+              >
+                <span className="text-2xl font-black drop-shadow-md">{isRightPanelOpen ? '▶' : '◀'}</span>
+              </button>
+
+              <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl pointer-events-auto flex flex-col gap-3 border border-slate-200 items-center max-h-[90vh] overflow-y-auto hide-scrollbar shrink-0">
+              
+                <button onClick={() => setActiveTool(null)} className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${!activeTool ? 'bg-sky-100 ring-2 ring-sky-400 shadow-md scale-110' : 'hover:bg-slate-100 bg-white'}`} title="Modo Mover/Seleccionar (👆)&#10;Haz clic en dibujos y pulsa Suprimir para borrar">
+                  👆
+                </button>
+
+                <div className="w-full h-px bg-slate-200 rounded-full my-1"></div>
+
+                {/* Herramienta Bolígrafo */}
+                <div className="flex flex-col items-center w-full">
+                  <button 
+                    onClick={() => { 
+                      if (activeTool !== 'pen') { setActiveTool('pen'); setActiveDrawColor('#000000'); } 
+                      else { setActiveTool(null); }
+                    }} 
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${activeTool === 'pen' ? 'bg-sky-100 ring-2 ring-sky-400 shadow-md scale-110' : 'hover:bg-slate-100 bg-white'}`} 
+                    title="Bolígrafo"
+                  >
+                    🖊️
+                  </button>
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mt-1">Boli</span>
+                  
+                  {activeTool === 'pen' && (
+                    <div className="grid grid-cols-2 gap-1.5 mt-2 fade-in">
+                      {[{ c: '#000000', n: 'Negro' }, { c: '#ffffff', n: 'Blanco' }, { c: '#ef4444', n: 'Rojo' }, { c: '#22c55e', n: 'Verde' }, { c: '#eab308', n: 'Amarillo' }, { c: '#3b82f6', n: 'Azul' }].map(item => (
+                        <button key={item.c} onClick={() => { setActiveDrawColor(item.c); }} className={`w-5 h-5 rounded-full shadow-inner transition-transform border border-slate-300 ${activeDrawColor === item.c ? 'scale-125 ring-2 ring-offset-1 ring-slate-400 z-10' : 'hover:scale-110'}`} style={{ backgroundColor: item.c }} title={item.n} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Herramienta Subrayador */}
+                <div className="flex flex-col items-center w-full mt-1">
+                  <button 
+                    onClick={() => { 
+                      if (activeTool !== 'highlighter') { setActiveTool('highlighter'); setActiveDrawColor('#fef08a'); } 
+                      else { setActiveTool(null); }
+                    }} 
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${activeTool === 'highlighter' ? 'bg-sky-100 ring-2 ring-sky-400 shadow-md scale-110' : 'hover:bg-slate-100 bg-white'}`} 
+                    title="Subrayador"
+                  >
+                    🖍️
+                  </button>
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mt-1">Subra.</span>
+                  
+                  {activeTool === 'highlighter' && (
+                    <div className="grid grid-cols-2 gap-1.5 mt-2 fade-in">
+                      {[{ c: '#fef08a', n: 'Amarillo' }, { c: '#bbf7d0', n: 'Verde claro' }, { c: '#bae6fd', n: 'Azul claro' }, { c: '#fbcfe8', n: 'Rosa' }].map(item => (
+                        <button key={item.c} onClick={() => { setActiveDrawColor(item.c); }} className={`w-5 h-5 rounded-full shadow-inner transition-transform border border-slate-300 ${activeDrawColor === item.c ? 'scale-125 ring-2 ring-offset-1 ring-slate-400 z-10' : 'hover:scale-110'}`} style={{ backgroundColor: item.c }} title={item.n} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button onClick={clearDrawing} className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-colors mt-2" title="Borrar todos los dibujos">
+                  🗑️
+                </button>
+
+                {/* BOTONES A (Aristas) y V (Vértices) */}
+                <div className="w-full h-px bg-slate-200 rounded-full my-1"></div>
+                <div className="flex gap-1.5 w-full justify-center">
+                  <button 
+                    onClick={() => setEdgesHighlighted(!edgesHighlighted)} 
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-black transition-all ${edgesHighlighted ? 'bg-amber-400 text-amber-900 shadow-inner' : 'bg-slate-100 text-slate-500 hover:bg-amber-100 hover:text-amber-600'}`} 
+                    title="Resaltar Aristas (Wireframe)"
+                  >
+                    A
+                  </button>
+                  <button 
+                    onClick={() => setActiveTool(activeTool === 'vertex' ? null : 'vertex')} 
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-black transition-all ${activeTool === 'vertex' ? 'bg-sky-400 text-sky-900 shadow-inner' : 'bg-slate-100 text-slate-500 hover:bg-sky-100 hover:text-sky-600'}`} 
+                    title="Editar Vértices y Deformar (No aplicable en Curvas)"
+                  >
+                    V
+                  </button>
+                </div>
+
+                <div className="w-full h-px bg-slate-200 rounded-full my-1"></div>
+
+                <div className="flex flex-col items-center gap-2 w-full">
+                  <div className="text-[9px] font-black text-slate-400 text-center uppercase tracking-widest">Fondo</div>
+                  <button onClick={() => setBgColor('#0f172a')} className={`w-8 h-8 rounded-full bg-slate-900 shadow-inner transition-transform ${bgColor === '#0f172a' ? 'ring-2 ring-offset-2 ring-slate-900 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Negro 3D"></button>
+                  <button onClick={() => setBgColor('#ffffff')} className={`w-8 h-8 rounded-full bg-white shadow-inner transition-transform ${bgColor === '#ffffff' ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Blanco 3D"></button>
+                  <button onClick={() => setBgColor('#bae6fd')} className={`w-8 h-8 rounded-full bg-sky-200 shadow-inner transition-transform ${bgColor === '#bae6fd' ? 'ring-2 ring-offset-2 ring-sky-400 scale-110' : 'border border-slate-300 hover:scale-110'}`} title="Azul 3D"></button>
+                </div>
+              </div>
             </div>
 
-            {/* --- IMAGEN DEL POETA ARRIBA A LA DERECHA --- */}
             {showPoetaTopRight && (
-              <div className="absolute top-6 right-6 pointer-events-auto z-50 animate-fade-in">
-                <img 
-                  src="poeta.jpg" 
-                  alt="Poeta Copiado" 
-                  className="w-48 h-48 object-cover rounded-3xl shadow-2xl border-4 border-white cursor-pointer hover:scale-105 transition-transform" 
-                  onClick={() => setShowPoetaTopRight(false)}
-                  title="Haz clic para cerrar"
-                />
+              <div className="absolute top-6 right-6 pointer-events-auto z-50 fade-in">
+                <img src="poeta.jpg" alt="Poeta Copiado" className="w-48 h-48 object-cover rounded-3xl shadow-2xl border-4 border-white cursor-pointer hover:scale-105 transition-transform" onClick={() => setShowPoetaTopRight(false)} title="Haz clic para cerrar" onError={(e) => e.target.style.display='none'} />
               </div>
             )}
 
@@ -912,8 +1452,6 @@
         </div>
       );
     }
-
-    const PlaneGeometry = THREE.PlaneGeometry;
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
