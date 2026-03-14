@@ -64,12 +64,12 @@
 </head>
 <body class="flex items-center justify-center p-4">
 
-    <!-- Botón Volver (puedes ajustar el href según dónde coloques este archivo) -->
+    <!-- Botón Volver -->
     <a href="index.html" class="btn-volver">
         <span>↩</span> Volver
     </a>
 
-    <div class="max-w-6xl w-full pt-16"> 
+    <div class="max-w-7xl w-full pt-16 pb-12"> 
         <!-- Encabezado Principal -->
         <header class="text-center mb-16">
             <h1 class="text-5xl md:text-7xl font-black text-indigo-800 mb-4 drop-shadow-sm">
@@ -80,20 +80,20 @@
             </p>
         </header>
 
-        <!-- Contenedor de Juegos (Grid de 3 columnas para que queden centrados y amplios) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 align-stretch justify-center">
+        <!-- Contenedor de Juegos (Grid actualizado para 4 elementos) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 align-stretch justify-center">
             
             <!-- Actividad 1: El Reloj -->
             <a href="reloj/index.html" class="group h-full">
-                <div class="game-card bg-white rounded-3xl p-8 border-4 border-blue-400 shadow-xl h-full flex flex-col items-center text-center">
-                    <div class="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-200 transition-colors">
-                        <span class="text-7xl floating">⏰</span>
+                <div class="game-card bg-white rounded-3xl p-6 border-4 border-blue-400 shadow-xl h-full flex flex-col items-center text-center">
+                    <div class="w-28 h-28 bg-blue-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-200 transition-colors">
+                        <span class="text-6xl floating">⏰</span>
                     </div>
-                    <h2 class="text-3xl font-black text-blue-600 mb-4">El Reloj</h2>
-                    <p class="text-gray-600 text-xl flex-grow">
+                    <h2 class="text-2xl font-black text-blue-600 mb-4">El Reloj</h2>
+                    <p class="text-gray-600 text-lg flex-grow">
                         Aprende las horas, los minutos y domina el tiempo jugando con nuestro reloj interactivo.
                     </p>
-                    <div class="mt-8 bg-blue-500 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-md group-hover:bg-blue-600 transition-colors w-full">
+                    <div class="mt-8 bg-blue-500 text-white px-6 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-blue-600 transition-colors w-full">
                         ¡Entrar!
                     </div>
                 </div>
@@ -101,15 +101,15 @@
 
             <!-- Actividad 2: Poeta Calculando -->
             <a href="poetacalculando/index.html" class="group h-full">
-                <div class="game-card bg-white rounded-3xl p-8 border-4 border-rose-400 shadow-xl h-full flex flex-col items-center text-center">
-                    <div class="w-32 h-32 bg-rose-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-rose-200 transition-colors">
-                        <span class="text-7xl floating" style="animation-delay: 0.5s;">🔢</span>
+                <div class="game-card bg-white rounded-3xl p-6 border-4 border-rose-400 shadow-xl h-full flex flex-col items-center text-center">
+                    <div class="w-28 h-28 bg-rose-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-rose-200 transition-colors">
+                        <span class="text-6xl floating" style="animation-delay: 0.5s;">🔢</span>
                     </div>
-                    <h2 class="text-3xl font-black text-rose-600 mb-4">Poeta Calculando</h2>
-                    <p class="text-gray-600 text-xl flex-grow">
+                    <h2 class="text-2xl font-black text-rose-600 mb-4">Poeta Calculando</h2>
+                    <p class="text-gray-600 text-lg flex-grow">
                         Resuelve operaciones, juega con los números y demuestra tu agilidad mental.
                     </p>
-                    <div class="mt-8 bg-rose-500 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-md group-hover:bg-rose-600 transition-colors w-full">
+                    <div class="mt-8 bg-rose-500 text-white px-6 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-rose-600 transition-colors w-full">
                         ¡Entrar!
                     </div>
                 </div>
@@ -117,15 +117,31 @@
 
             <!-- Actividad 3: Mesa de Dibujo -->
             <a href="mesadedibujo/index.html" class="group h-full">
-                <div class="game-card bg-white rounded-3xl p-8 border-4 border-purple-400 shadow-xl h-full flex flex-col items-center text-center">
-                    <div class="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-purple-200 transition-colors">
-                        <span class="text-7xl floating" style="animation-delay: 1s;">📐</span>
+                <div class="game-card bg-white rounded-3xl p-6 border-4 border-purple-400 shadow-xl h-full flex flex-col items-center text-center">
+                    <div class="w-28 h-28 bg-purple-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-purple-200 transition-colors">
+                        <span class="text-6xl floating" style="animation-delay: 1s;">📐</span>
                     </div>
-                    <h2 class="text-3xl font-black text-purple-600 mb-4">Mesa de Dibujo</h2>
-                    <p class="text-gray-600 text-xl flex-grow">
+                    <h2 class="text-2xl font-black text-purple-600 mb-4">Mesa de Dibujo</h2>
+                    <p class="text-gray-600 text-lg flex-grow">
                         Explora la geometría, traza líneas y descubre figuras en esta mesa de diseño especial.
                     </p>
-                    <div class="mt-8 bg-purple-500 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-md group-hover:bg-purple-600 transition-colors w-full">
+                    <div class="mt-8 bg-purple-500 text-white px-6 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-purple-600 transition-colors w-full">
+                        ¡Entrar!
+                    </div>
+                </div>
+            </a>
+
+            <!-- Actividad 4: FIGURAS 3D -->
+            <a href="figuras3d/index.html" class="group h-full">
+                <div class="game-card bg-white rounded-3xl p-6 border-4 border-emerald-400 shadow-xl h-full flex flex-col items-center text-center">
+                    <div class="w-28 h-28 bg-emerald-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-emerald-200 transition-colors">
+                        <span class="text-6xl floating" style="animation-delay: 1.5s;">🧊</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-emerald-600 mb-4">Figuras 3D</h2>
+                    <p class="text-gray-600 text-lg flex-grow">
+                        Explora el mundo en tres dimensiones. ¡Descubre cubos, esferas y pirámides asombrosas!
+                    </p>
+                    <div class="mt-8 bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-emerald-600 transition-colors w-full">
                         ¡Entrar!
                     </div>
                 </div>
