@@ -10,7 +10,6 @@
 
         body {
             font-family: 'Comic Neue', cursive;
-            /* Fondo con tonos azules y morados suaves para matemáticas */
             background: linear-gradient(135deg, #eef2ff 0%, #f3e8ff 100%);
             min-height: 100vh;
             position: relative;
@@ -36,7 +35,6 @@
             100% { transform: translate(0, 0px); }
         }
 
-        /* Botón Volver */
         .btn-volver {
             position: absolute;
             top: 20px;
@@ -80,8 +78,8 @@
             </p>
         </header>
 
-        <!-- Contenedor de Juegos (Grid actualizado para 4 elementos) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 align-stretch justify-center">
+        <!-- Contenedor de Juegos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 align-stretch justify-center">
             
             <!-- Actividad 1: El Reloj -->
             <a href="reloj/index.html" class="group h-full">
@@ -142,6 +140,38 @@
                         Explora el mundo en tres dimensiones. ¡Descubre cubos, esferas y pirámides asombrosas!
                     </p>
                     <div class="mt-8 bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-emerald-600 transition-colors w-full">
+                        ¡Entrar!
+                    </div>
+                </div>
+            </a>
+
+            <!-- Actividad 5: Taller de Problemas -->
+            <a href="tallerdeproblema/index.html" class="group h-full">
+                <div class="game-card bg-white rounded-3xl p-6 border-4 border-amber-400 shadow-xl h-full flex flex-col items-center text-center">
+                    <div class="w-28 h-28 bg-amber-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-amber-200 transition-colors">
+                        <span class="text-6xl floating" style="animation-delay: 2s;">💡</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-amber-600 mb-4">Taller de Problemas</h2>
+                    <p class="text-gray-600 text-lg flex-grow">
+                        Resuelve desafíos matemáticos y entrena tu lógica para encontrar soluciones geniales.
+                    </p>
+                    <div class="mt-8 bg-amber-500 text-white px-6 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-amber-600 transition-colors w-full">
+                        ¡Entrar!
+                    </div>
+                </div>
+            </a>
+
+            <!-- NUEVA Actividad 6: Calculadora -->
+            <a href="calculadora/index.html" class="group h-full">
+                <div class="game-card bg-white rounded-3xl p-6 border-4 border-cyan-400 shadow-xl h-full flex flex-col items-center text-center">
+                    <div class="w-28 h-28 bg-cyan-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-cyan-200 transition-colors">
+                        <span class="text-6xl floating" style="animation-delay: 2.5s;">📟</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-cyan-600 mb-4">Calculadora Mágica</h2>
+                    <p class="text-gray-600 text-lg flex-grow">
+                        Una herramienta potente para ayudarte en tus cálculos y comprobaciones matemáticas.
+                    </p>
+                    <div class="mt-8 bg-cyan-500 text-white px-6 py-3 rounded-2xl font-black text-xl shadow-md group-hover:bg-cyan-600 transition-colors w-full">
                         ¡Entrar!
                     </div>
                 </div>
