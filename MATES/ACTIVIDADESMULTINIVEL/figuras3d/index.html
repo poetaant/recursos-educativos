@@ -25,9 +25,19 @@
     
     .fade-in { animation: fadeIn 0.4s ease-out forwards; }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(5px); }
+      from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Animación de vibración de error */
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-15px); }
+      40% { transform: translateX(15px); }
+      60% { transform: translateX(-15px); }
+      80% { transform: translateX(15px); }
+    }
+    .shake-error { animation: shakeError 0.4s ease-in-out; }
   </style>
 </head>
 <body>
@@ -39,7 +49,7 @@
     const CHALLENGES = [
       { id: 'dado', name: 'Dado de mesa', desc: 'Un clásico en los juegos de mesa.', icon: '🎲', shape: 'cube', baseSides: 4, color: '#ef4444', hints: ['Fíjate en las piezas: son 6 figuras planas idénticas.', 'Cada figura plana es un cuadrado perfecto.', 'Al cerrarse, forma un sólido platónico llamado Hexaedro regular.', 'En un dado real, las caras opuestas siempre suman 7.'] },
       { id: 'lata', name: 'Lata de refresco', desc: 'Un envase muy común para bebidas.', icon: '🥤', shape: 'cylinder', baseSides: 4, color: '#3b82f6', hints: ['Tiene 2 piezas circulares que actúan como tapas o bases.', 'Su cara lateral principal, aunque sea curva en 3D, es un gran rectángulo cuando se despliega.', 'Es un "cuerpo de revolución", lo que significa que no tiene vértices.', 'En geometría, a esta forma se le llama Cilindro.'] },
-      { id: 'caja_te', name: 'Caja de Toblerone', desc: 'El famoso envase de chocolate.', icon: '🍫', shape: 'prism', baseSides: 3, color: '#f59e0b', hints: ['Observa que tiene 2 bases más pequeñas con forma de triángulo.', 'Sus caras laterales son 3 rectángulos alargados.', 'Si la pones de pie sobre uno de los triángulos, verás que es un Prisma Triangular.'] },
+      { id: 'caja_te', name: 'Caja de Toblerone', desc: 'El famoso envase de chocolate.', icon: '🍫', shape: 'prism', baseSides: 3, color: '#f59e0b', hints: ['Observa que tiene 2 bases más smaller con forma de triángulo.', 'Sus caras laterales son 3 rectángulos alargados.', 'Si la pones de pie sobre uno de los triángulos, verás que es un Prisma Triangular.'] },
       { id: 'piramide_egipto', name: 'Pirámide de Keops', desc: 'Una de las maravillas del mundo antiguo.', icon: '🏜️', shape: 'pyramid', baseSides: 4, color: '#fcd34d', hints: ['Su base inferior es un único polígono cuadrado (4 lados).', 'Para cerrarse y ganar altura, necesita 4 caras laterales triangulares.', 'Todas las caras laterales convergen y se unen en un único punto superior llamado cúspide.'] },
       { id: 'lata_conserva', name: 'Caja de zapatos', desc: 'Para guardar el calzado.', icon: '👟', shape: 'prism', baseSides: 4, color: '#10b981', hints: ['Está formado por 6 caras, igual que el dado.', 'Sin embargo, sus caras no son cuadrados perfectos, sino rectángulos.', 'Las caras opuestas son paralelas y exactamente iguales.', 'Su nombre geométrico es Ortoedro o Prisma Rectangular.'] },
       { id: 'cono_helado', name: 'Cucurucho', desc: 'La galleta de tu helado favorito.', icon: '🍦', shape: 'cone', baseSides: 32, color: '#fde047', hints: ['Tiene una sola base circular en un extremo.', 'Su cara lateral se enrolla terminando en una punta aguda (vértice).', 'Es un cuerpo de revolución que surge al girar un triángulo.', 'En geometría matemática se conoce como Cono.'] },
@@ -48,6 +58,35 @@
       { id: 'bolsa_te', name: 'Bolsita de té', desc: 'Bolsitas modernas de infusión.', icon: '🍵', shape: 'tetra', baseSides: 3, color: '#84cc16', hints: ['Parece una pirámide, pero es muy especial porque todas sus caras son iguales.', 'Tiene exactamente 4 caras, y todas son triángulos equiláteros.', 'Es el sólido platónico más simple de todos.', 'A esta figura de 4 caras se le llama Tetraedro.'] },
       { id: 'pelota', name: 'Bola del mundo', desc: 'Representación de la Tierra.', icon: '🌍', shape: 'sphere', baseSides: 32, color: '#0ea5e9', hints: ['Es perfectamente redonda desde cualquier ángulo.', 'No tiene caras planas, ni aristas rectas, ni vértices.', 'Está formada por una única superficie curva continua.', 'Es el cuerpo de revolución más perfecto: una Esfera.'] }
     ];
+
+    const GAME_TARGETS = [
+      { name: 'Prisma Triangular', baseType: 'triangulo', baseCount: 2, latType: 'rectangulo', latCount: 3, shape: 'prism', baseSides: 3, color: '#f59e0b' },
+      { name: 'Prisma Cuadrangular', baseType: 'cuadrado', baseCount: 2, latType: 'rectangulo', latCount: 4, shape: 'prism', baseSides: 4, color: '#10b981' },
+      { name: 'Prisma Pentagonal', baseType: 'pentagono', baseCount: 2, latType: 'rectangulo', latCount: 5, shape: 'prism', baseSides: 5, color: '#3b82f6' },
+      { name: 'Prisma Hexagonal', baseType: 'hexagono', baseCount: 2, latType: 'rectangulo', latCount: 6, shape: 'prism', baseSides: 6, color: '#8b5cf6' },
+      { name: 'Pirámide Cuadrangular', baseType: 'cuadrado', baseCount: 1, latType: 'triangulo', latCount: 4, shape: 'pyramid', baseSides: 4, color: '#ef4444' },
+      { name: 'Pirámide Triangular', baseType: 'triangulo', baseCount: 1, latType: 'triangulo', latCount: 3, shape: 'pyramid', baseSides: 3, color: '#facc15' },
+      { name: 'Cilindro', baseType: 'circulo', baseCount: 2, latType: 'rectangulo', latCount: 1, shape: 'cylinder', baseSides: 32, color: '#3b82f6' },
+      { name: 'Cono', baseType: 'circulo', baseCount: 1, latType: 'sector circular', latCount: 1, shape: 'cone', baseSides: 32, color: '#fde047' },
+      { name: 'Cubo', baseType: 'cuadrado', baseCount: 2, latType: 'cuadrado', latCount: 4, shape: 'cube', baseSides: 4, color: '#ec4899' },
+      { name: 'Tetraedro', baseType: 'triangulo', baseCount: 1, latType: 'triangulo', latCount: 3, shape: 'tetra', baseSides: 3, color: '#84cc16' },
+      { name: 'Octaedro', baseType: 'ninguna', baseCount: 0, latType: 'triangulo', latCount: 8, shape: 'octa', baseSides: 3, color: '#0ea5e9' },
+      { name: 'Dodecaedro', baseType: 'pentagono', baseCount: 2, latType: 'pentagono', latCount: 10, shape: 'dode', baseSides: 5, color: '#f43f5e' },
+      { name: 'Icosaedro', baseType: 'ninguna', baseCount: 0, latType: 'triangulo', latCount: 20, shape: 'ico', baseSides: 3, color: '#8b5cf6' }
+    ];
+
+    const PolygonIcon = ({ type }) => {
+        switch(type) {
+            case 'triangulo': return <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-md"><polygon points="50,15 85,85 15,85" fill="#facc15" stroke="#ca8a04" strokeWidth="4" strokeLinejoin="round"/></svg>;
+            case 'cuadrado': return <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-md"><rect x="20" y="20" width="60" height="60" fill="#60a5fa" stroke="#2563eb" strokeWidth="4" strokeLinejoin="round"/></svg>;
+            case 'rectangulo': return <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-md"><rect x="10" y="30" width="80" height="40" fill="#34d399" stroke="#059669" strokeWidth="4" strokeLinejoin="round"/></svg>;
+            case 'pentagono': return <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-md"><polygon points="50,10 90,40 75,90 25,90 10,40" fill="#a78bfa" stroke="#7c3aed" strokeWidth="4" strokeLinejoin="round"/></svg>;
+            case 'hexagono': return <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-md"><polygon points="50,5 90,25 90,75 50,95 10,75 10,25" fill="#f472b6" stroke="#db2777" strokeWidth="4" strokeLinejoin="round"/></svg>;
+            case 'circulo': return <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-md"><circle cx="50" cy="50" r="35" fill="#fb923c" stroke="#ea580c" strokeWidth="4"/></svg>;
+            case 'sector circular': return <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-md"><path d="M50,50 L15,15 A50,50 0 0,1 85,15 Z" fill="#38bdf8" stroke="#0284c7" strokeWidth="4" strokeLinejoin="round"/></svg>;
+            default: return null;
+        }
+    };
 
     const createLabelTexture = (text) => {
       const canvas = document.createElement('canvas');
@@ -80,7 +119,7 @@
       return { backgroundColor: bgColor, backgroundImage: `linear-gradient(to right, ${lineColor} 1px, transparent 1px), linear-gradient(to bottom, ${lineColor} 1px, transparent 1px)`, backgroundSize: '50px 50px', backgroundPosition: 'center center' };
     };
 
-    const PolyhedronBuilder = ({ type, baseSides, color, bgColor, globalAction, onActionConsumed, activeTool, activeDrawColor, edgesHighlighted }) => {
+    const PolyhedronBuilder = ({ type, baseSides, color, bgColor, globalAction, onActionConsumed, activeTool, activeDrawColor, edgesHighlighted, onAssembledStateChange }) => {
       const mountRef = useRef(null);
       const sceneRef = useRef(null);
       const worldGroupRef = useRef(null);
@@ -121,6 +160,12 @@
       const dragFaceStartVerts = useRef(new Map());
       const dragFaceNormalWorld = useRef(new THREE.Vector3());
       const dragFaceStartCenter = useRef(new THREE.Vector3());
+
+      const onAssembledStateChangeRef = useRef(onAssembledStateChange);
+
+      useEffect(() => {
+        onAssembledStateChangeRef.current = onAssembledStateChange;
+      }, [onAssembledStateChange]);
 
       useEffect(() => {
         activeToolRef.current = activeTool;
@@ -710,7 +755,6 @@
                   hd.update(hd.currentFold);
               }
               
-              // CÁLCULO DE ÁNGULO CON COMPATIBILIDAD PLANA/DOBLADA
               let fA = hd.flatAngle !== undefined ? hd.flatAngle : 0;
               let foldA = hd.foldedAngle !== undefined ? hd.foldedAngle : 0;
               const currentAngle = (1 - hd.currentFold) * fA + hd.currentFold * foldA;
@@ -725,6 +769,15 @@
           });
 
           const avgFold = count > 0 ? totalFold / count : 0;
+          const isCurrentlyAssembled = count === 0 || avgFold > 0.95; 
+
+          if (containerGroupRef.current && containerGroupRef.current.userData.lastAssembled !== isCurrentlyAssembled) {
+             containerGroupRef.current.userData.lastAssembled = isCurrentlyAssembled;
+             if (onAssembledStateChangeRef.current) {
+                 onAssembledStateChangeRef.current(isCurrentlyAssembled);
+             }
+          }
+
           const rootFace = faceGroupsRef.current.find(g => g.userData.isRoot);
           if (rootFace) {
              const rootLabel = rootFace.children.find(c => c.userData && c.userData.isLabel);
@@ -801,7 +854,6 @@
         };
       }, []);
 
-      // Generación Geométrica Principal
       useEffect(() => {
         if (!sceneRef.current) return;
         
@@ -816,6 +868,15 @@
 
         if (worldGroupRef.current) worldGroupRef.current.quaternion.identity();
         
+        faceGroupsRef.current = [];
+
+        if (type === 'none') {
+            const container = new THREE.Group();
+            worldGroupRef.current.add(container);
+            containerGroupRef.current = container;
+            return;
+        }
+        
         let groups = [];
         const scale = 2.2;
         
@@ -828,9 +889,6 @@
         const solidMat = new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide, shininess: 90 });
 
 
-        // ==============================================================
-        // SUPERFICIES CONTINUAS (CILINDRO Y CONO EN PLANO PERFECTO)
-        // ==============================================================
         if (type === 'cylinder' || type === 'cone') {
             const isCyl = type === 'cylinder';
             const R = scale * (isCyl ? 0.7 : 0.8);
@@ -841,11 +899,10 @@
             const rootGroup = new THREE.Group();
             rootGroup.userData = { isFaceNode: true, isRoot: true };
             
-            // Base Inferior Anclada
             const bottomGeo = new THREE.CircleGeometry(R, 64);
             const bottomMesh = new THREE.Mesh(bottomGeo, stripedMat);
             bottomMesh.rotation.x = -Math.PI / 2;
-            bottomMesh.position.set(0, -0.01, 0); // Para evitar Z-Fighting al aplanar
+            bottomMesh.position.set(0, -0.01, 0); 
             bottomMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(bottomGeo), edgeMaterial.clone()));
             
             const labelMat = new THREE.MeshBasicMaterial({ map: texB, transparent: true, depthTest: false, side: THREE.DoubleSide });
@@ -856,9 +913,8 @@
             rootGroup.add(bottomMesh, labelMesh);
             groups.push(rootGroup);
 
-            // Bisagra Lateral
             const latHinge = new THREE.Group();
-            latHinge.position.set(0, 0, -R); // Tangente inferior alineada
+            latHinge.position.set(0, 0, -R); 
             rootGroup.add(latHinge);
 
             const latGroup = new THREE.Group();
@@ -895,10 +951,9 @@
             const origPosLat = new THREE.Vector3(0,0,0);
             const scPosLat = new THREE.Vector3(0, 0, 2.0);
 
-            // Tapa Superior Simétrica (Cilindro)
             if (isCyl) {
                 const topHinge = new THREE.Group();
-                topHinge.position.set(0, H, 0); // Siempre anclado al centro superior
+                topHinge.position.set(0, H, 0); 
                 latGroup.add(topHinge);
                 
                 const topGroup = new THREE.Group();
@@ -907,7 +962,7 @@
                 
                 const topGeo = new THREE.CircleGeometry(R, 64);
                 const topMesh = new THREE.Mesh(topGeo, solidMat.clone());
-                topMesh.position.set(0, R, 0); // Descansa plano en su eje inicial
+                topMesh.position.set(0, R, 0); 
                 topMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(topGeo), edgeMaterial.clone()));
                 topGroup.add(topMesh);
                 
@@ -916,7 +971,7 @@
                 
                 topGroup.userData.hingeData = {
                     hingeObj: topHinge, axis: new THREE.Vector3(1, 0, 0), 
-                    flatAngle: 0, foldedAngle: Math.PI / 2, // Rotación simétrica opuesta al latHinge
+                    flatAngle: 0, foldedAngle: Math.PI / 2, 
                     foldTarget: 0, currentFold: 0, scatterTarget: 1, currentScatter: 1,
                     originalPos: origPosTop, dragPos: scPosTop.clone(), scatterPos: scPosTop.clone(), isDeformable: false
                 };
@@ -926,7 +981,7 @@
             latGroup.userData.hingeData = {
                 hingeObj: latHinge,
                 axis: new THREE.Vector3(1, 0, 0),
-                flatAngle: -Math.PI / 2, foldedAngle: isCyl ? 0 : -Math.PI / 2, // Cono nunca rota, se tumba directo.
+                flatAngle: -Math.PI / 2, foldedAngle: isCyl ? 0 : -Math.PI / 2, 
                 foldTarget: 0, currentFold: 0,
                 scatterTarget: 1, currentScatter: 1,
                 originalPos: origPosLat, dragPos: scPosLat.clone(), scatterPos: scPosLat.clone(),
@@ -957,7 +1012,7 @@
                             pos[i*6+3] = x_loc; pos[i*6+4] = H; pos[i*6+5] = z_loc;
                         }
 
-                    } else { // Cono Simétrico en el Suelo
+                    } else { 
                         let alpha = fold;
                         let psi = (1 - alpha) * (Math.PI / 2) + alpha * beta;
                         let R_alpha = L * Math.sin(psi);
@@ -968,13 +1023,11 @@
                             let u01 = uvArr[i * 4];
                             let gamma = (u01 - 0.5) * Theta_alpha;
                             
-                            // Base del Cono Expandido
                             let r_base = L * Math.sin(psi);
                             pos[i*6+0] = r_base * Math.sin(gamma);
                             pos[i*6+1] = r_base * Math.cos(gamma) - L * Math.sin(psi);
                             pos[i*6+2] = 0;
                             
-                            // Vértice del Cono (Punta)
                             pos[i*6+3] = 0;
                             pos[i*6+4] = - L * Math.sin(psi);
                             pos[i*6+5] = L * Math.cos(psi);
@@ -995,7 +1048,7 @@
 
             const container = new THREE.Group();
             container.add(rootGroup);
-            container.position.set(0, -H/2, 0); // Centramos globalmente la pieza final
+            container.position.set(0, -H/2, 0); 
             
             groups.forEach(g => {
                 if (g.userData.hingeData) {
@@ -1017,10 +1070,6 @@
             return; 
         }
 
-
-        // ==============================================================
-        // LÓGICA CLÁSICA: CARAS RÍGIDAS CON MAPEO GLOBAL DE VÉRTICES
-        // ==============================================================
         let baseGeometry;
         switch (type) {
           case 'tetra': baseGeometry = new THREE.TetrahedronGeometry(scale); break;
@@ -1289,7 +1338,7 @@
     };
 
     const App = () => {
-      const [appMode, setAppMode] = useState('libre');
+      const [appMode, setAppMode] = useState('libre'); 
       const [selected, setSelected] = useState('prism');
       const [baseSides, setBaseSides] = useState(5);
       const [color, setColor] = useState('#10b981');
@@ -1298,21 +1347,27 @@
       const [hintsRevealed, setHintsRevealed] = useState(0);
       const [isChallengeAssembled, setIsChallengeAssembled] = useState(false);
 
+      const [gameTarget, setGameTarget] = useState(null);
+      const [builtTarget, setBuiltTarget] = useState(null);
+      const [gameSelections, setGameSelections] = useState({ baseType: '', baseCount: 0, latType: '', latCount: 0 });
+      const [gamePhase, setGamePhase] = useState('selecting'); 
+
       const [bgColor, setBgColor] = useState('#0f172a');
       const [globalAction, setGlobalAction] = useState(null);
       
-      const [showPoetaTopRight, setShowPoetaTopRight] = useState(false);
       const [isPanelOpen, setIsPanelOpen] = useState(true); 
       const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+      const [showPoetaTopRight, setShowPoetaTopRight] = useState(false);
 
       const [activeTool, setActiveTool] = useState(null); 
       const [activeDrawColor, setActiveDrawColor] = useState('#000000');
       const [edgesHighlighted, setEdgesHighlighted] = useState(false);
 
+      const [hasError, setHasError] = useState(false);
+      const [errorMessage, setErrorMessage] = useState("");
+
       const triggerAction = (actionStr) => {
         setGlobalAction({ action: actionStr, t: Date.now() });
-        if (actionStr === 'assemble') setIsChallengeAssembled(true);
-        if (actionStr === 'separate' || actionStr === 'flatten') setIsChallengeAssembled(false);
       };
 
       const clearDrawing = () => { triggerAction('clear_drawings'); };
@@ -1337,6 +1392,108 @@
         else triggerAction('assemble');
       }, [appMode]);
 
+      const playWinSound = () => {
+          try {
+              const AudioContext = window.AudioContext || window.webkitAudioContext;
+              if (!AudioContext) return;
+              const ctx = new AudioContext();
+              const playNote = (freq, time, duration) => {
+                  const osc = ctx.createOscillator();
+                  const gain = ctx.createGain();
+                  osc.connect(gain); gain.connect(ctx.destination);
+                  osc.type = 'sine'; osc.frequency.value = freq;
+                  gain.gain.setValueAtTime(0, time);
+                  gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
+                  gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+                  osc.start(time); osc.stop(time + duration);
+              };
+              const t = ctx.currentTime;
+              playNote(440, t, 0.2);     
+              playNote(554.37, t + 0.15, 0.2); 
+              playNote(659.25, t + 0.3, 0.4); 
+              playNote(880, t + 0.6, 0.6); 
+          } catch(e) {}
+      };
+
+      const playErrorSound = () => {
+          try {
+              const AudioContext = window.AudioContext || window.webkitAudioContext;
+              if (!AudioContext) return;
+              const ctx = new AudioContext();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.type = 'square';
+              osc.frequency.setValueAtTime(150, ctx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.4);
+              gain.gain.setValueAtTime(0.3, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+              osc.start(); osc.stop(ctx.currentTime + 0.4);
+          } catch(e) {}
+      };
+
+      const showError = (msg) => {
+          setErrorMessage(msg);
+          setHasError(true);
+          playErrorSound();
+          setTimeout(() => setHasError(false), 500); 
+          setTimeout(() => setErrorMessage(""), 3500); 
+      };
+
+      const pickNewTarget = () => {
+          const randomTarget = GAME_TARGETS[Math.floor(Math.random() * GAME_TARGETS.length)];
+          setGameTarget(randomTarget);
+          setBuiltTarget(null);
+          setGameSelections({ baseType: '', baseCount: 0, latType: '', latCount: 0 });
+          setGamePhase('selecting');
+          setIsChallengeAssembled(false);
+          triggerAction('clear_drawings'); 
+      };
+
+      const startGame = () => {
+          setAppMode('juego');
+          pickNewTarget();
+      };
+
+      const handleGenerate3D = () => {
+          const matchedTarget = GAME_TARGETS.find(t =>
+              t.baseType === gameSelections.baseType &&
+              t.baseCount === gameSelections.baseCount &&
+              t.latType === gameSelections.latType &&
+              t.latCount === gameSelections.latCount
+          );
+
+          if (matchedTarget) {
+              setBuiltTarget(matchedTarget);
+              setGamePhase('building');
+              setSelected(matchedTarget.shape);
+              setBaseSides(matchedTarget.baseSides);
+              setColor(matchedTarget.color);
+              setIsChallengeAssembled(false);
+              setTimeout(() => triggerAction('separate'), 200);
+          } else {
+              showError("¡Esas piezas no encajan para formar una figura cerrada!");
+          }
+      };
+
+      const handleCheck = () => {
+          if (!isChallengeAssembled) {
+              showError("¡Debes montar la figura completamente antes de comprobar!");
+              return;
+          }
+          if (builtTarget && builtTarget.name === gameTarget.name) {
+              setGamePhase('won');
+              playWinSound();
+              setTimeout(() => pickNewTarget(), 4000);
+          } else {
+              showError("¡Ups! Has construido otra figura diferente. Revisa bien las piezas.");
+          }
+      };
+
+      const handleAssembledStateChange = (isAssembled) => {
+          setIsChallengeAssembled(isAssembled);
+      };
+
       const showBaseSelector = ['prism', 'pyramid'].includes(selected);
 
       const getShapeInfo = () => {
@@ -1358,16 +1515,66 @@
       const info = getShapeInfo();
       const currentChallenge = CHALLENGES[activeChallengeIdx];
 
+      const actualBuilderType = appMode === 'juego' ? (gamePhase === 'selecting' ? 'none' : selected) : selected;
+
       return (
-        <div className="w-screen h-screen font-sans text-slate-800 flex overflow-hidden relative">
+        <div className={`w-screen h-screen font-sans text-slate-800 flex overflow-hidden relative ${hasError ? 'shake-error' : ''}`}>
           
           <PolyhedronBuilder 
-            type={selected} baseSides={baseSides} color={color} bgColor={bgColor}
+            type={actualBuilderType} baseSides={baseSides} color={color} bgColor={bgColor}
             globalAction={globalAction} onActionConsumed={() => setGlobalAction(null)}
             activeTool={activeTool} activeDrawColor={activeDrawColor} edgesHighlighted={edgesHighlighted}
+            onAssembledStateChange={handleAssembledStateChange}
           />
 
+          {/* MENSAJE ROJO DE ERROR */}
+          {errorMessage && (
+              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[100] bg-red-600/95 text-white px-8 py-4 rounded-3xl font-black text-xl md:text-2xl shadow-2xl border-4 border-red-400 backdrop-blur-md animate-fade-in text-center flex items-center gap-3">
+                  <span className="text-3xl">⚠️</span> {errorMessage}
+              </div>
+          )}
+
           <div className="ui-layer absolute inset-0 flex p-4 md:p-6 pointer-events-none">
+
+            {/* --- INTERFAZ DEL JUEGO CENTRAL --- */}
+            {appMode === 'juego' && gamePhase === 'selecting' && (
+                <div className="absolute inset-0 flex flex-col items-start justify-start pointer-events-none z-10 p-10 bg-slate-900/20 backdrop-blur-[2px]">
+                    <h2 className="text-3xl md:text-5xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] text-left bg-black/40 px-6 py-4 rounded-3xl border border-white/20">
+                        Construye... <br/><span className="text-yellow-400 leading-tight">{gameTarget?.name}</span>
+                    </h2>
+                    <div className="flex flex-wrap items-center justify-start gap-4 mt-6 max-w-2xl min-h-[100px]">
+                        {Array.from({length: gameSelections.baseCount}).map((_, i) => <PolygonIcon key={`b-${i}`} type={gameSelections.baseType} />)}
+                        {Array.from({length: gameSelections.latCount}).map((_, i) => <PolygonIcon key={`l-${i}`} type={gameSelections.latType} />)}
+                    </div>
+                </div>
+            )}
+            
+            {appMode === 'juego' && gamePhase === 'building' && (
+                <div className="absolute top-10 w-full flex justify-center pointer-events-none z-10 animate-fade-in">
+                    <h2 className="text-2xl md:text-4xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] bg-black/40 px-8 py-4 rounded-3xl backdrop-blur-md border border-white/10">
+                        Objetivo: <span className="text-yellow-400">{gameTarget?.name}</span>
+                    </h2>
+                </div>
+            )}
+
+            {appMode === 'juego' && gamePhase === 'won' && (
+                <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none overflow-hidden bg-black/40 backdrop-blur-sm">
+                   <div className="text-6xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-bounce z-10 text-center">
+                      ¡Enhorabuena!
+                   </div>
+                   {[...Array(60)].map((_, i) => (
+                       <div key={i} className="absolute text-2xl md:text-5xl animate-spin" style={{
+                           left: `${Math.random() * 100}%`,
+                           top: `${Math.random() * 100}%`,
+                           color: ['#facc15', '#f472b6', '#60a5fa', '#a78bfa', '#34d399'][Math.floor(Math.random()*5)],
+                           animationDuration: `${1 + Math.random()}s`,
+                           animationDelay: `${Math.random() * 0.5}s`,
+                           textShadow: '0 0 10px rgba(255,255,255,0.8)'
+                       }}>⭐</div>
+                   ))}
+                </div>
+            )}
+
 
             {/* --- PANEL IZQUIERDO Y ABAJO (RETRÁCTIL) --- */}
             <div className={`absolute bottom-4 flex items-center z-20 transition-transform duration-500 ease-in-out pointer-events-none ${isPanelOpen ? 'left-4 translate-x-0' : 'left-0 -translate-x-[340px]'}`}>
@@ -1379,12 +1586,15 @@
                     <h1 className="text-lg font-black text-slate-800 tracking-tight leading-tight">Taller de Figuras</h1>
                     <p className="text-[9px] font-bold text-sky-600 uppercase tracking-widest mt-0.5">Geometría Interactiva</p>
                   </div>
-                  <img src="poeta.jpg" alt="Poeta 3D" className="w-14 h-14 object-cover rounded-xl border border-sky-200 shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform" onClick={() => setShowPoetaTopRight(true)} title="Haz clic para ampliar" onError={(e) => e.target.style.display='none'} />
+                  <img src="poeta.jpg" alt="Poeta 3D" className="w-14 h-14 object-cover rounded-xl border border-sky-200 shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform" onClick={startGame} title="Haz clic para jugar al Modo Juego" onError={(e) => e.target.style.display='none'} />
                 </div>
 
                 <div className="bg-slate-200/80 backdrop-blur-md rounded-2xl p-1 shadow-md pointer-events-auto shrink-0 flex gap-1 border border-slate-300">
                   <button onClick={() => setAppMode('libre')} className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${appMode === 'libre' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Modo Libre</button>
                   <button onClick={() => setAppMode('desafios')} className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${appMode === 'desafios' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Objetos Diarios</button>
+                  {appMode === 'juego' && (
+                      <button className="flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all bg-white text-pink-600 shadow-sm">Juego</button>
+                  )}
                 </div>
 
                 {appMode === 'libre' && (
@@ -1470,14 +1680,116 @@
                   </>
                 )}
 
-                <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-slate-600 pointer-events-auto shrink-0 text-white mb-4">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">Propiedades Geométricas</h3>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.faces}</div><div className="text-[9px] uppercase font-bold text-slate-400">Caras</div></div>
-                    <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.verts}</div><div className="text-[9px] uppercase font-bold text-slate-400">Vértices</div></div>
-                    <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.edges}</div><div className="text-[9px] uppercase font-bold text-slate-400">Aristas</div></div>
-                  </div>
-                </div>
+                {appMode === 'juego' && (
+                  <>
+                    {gamePhase === 'selecting' && (
+                        <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-pink-400 pointer-events-auto shrink-0 fade-in">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Piezas para el {gameTarget?.name}</h3>
+                            
+                            <div className="flex flex-col gap-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase">Base</label>
+                                        <select className="p-2 rounded-xl bg-slate-50 border-2 border-slate-200 text-xs font-bold focus:outline-none focus:border-pink-400" value={gameSelections.baseType} onChange={(e) => setGameSelections({...gameSelections, baseType: e.target.value})}>
+                                            <option value="">Forma</option>
+                                            <option value="triangulo">Triángulo</option>
+                                            <option value="cuadrado">Cuadrado</option>
+                                            <option value="pentagono">Pentágono</option>
+                                            <option value="hexagono">Hexágono</option>
+                                            <option value="circulo">Círculo</option>
+                                            <option value="ninguna">Ninguna</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase">Cant.</label>
+                                        <select className="p-2 rounded-xl bg-slate-50 border-2 border-slate-200 text-xs font-bold focus:outline-none focus:border-pink-400" value={gameSelections.baseCount} onChange={(e) => setGameSelections({...gameSelections, baseCount: parseInt(e.target.value)})}>
+                                            <option value={0}>0</option>
+                                            <option value={1}>1</option>
+                                            <option value={2}>2</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="w-full h-px bg-slate-200 my-0.5"></div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase">Cara Lat.</label>
+                                        <select className="p-2 rounded-xl bg-slate-50 border-2 border-slate-200 text-xs font-bold focus:outline-none focus:border-pink-400" value={gameSelections.latType} onChange={(e) => setGameSelections({...gameSelections, latType: e.target.value})}>
+                                            <option value="">Forma</option>
+                                            <option value="triangulo">Triángulo</option>
+                                            <option value="cuadrado">Cuadrado</option>
+                                            <option value="rectangulo">Rectángulo</option>
+                                            <option value="pentagono">Pentágono</option>
+                                            <option value="sector circular">Sector C.</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase">Cant.</label>
+                                        <select className="p-2 rounded-xl bg-slate-50 border-2 border-slate-200 text-xs font-bold focus:outline-none focus:border-pink-400" value={gameSelections.latCount} onChange={(e) => setGameSelections({...gameSelections, latCount: parseInt(e.target.value)})}>
+                                            <option value={0}>0</option>
+                                            <option value={1}>1</option>
+                                            <option value={3}>3</option>
+                                            <option value={4}>4</option>
+                                            <option value={5}>5</option>
+                                            <option value={6}>6</option>
+                                            <option value={8}>8</option>
+                                            <option value={10}>10</option>
+                                            <option value={12}>12</option>
+                                            <option value={20}>20</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <button onClick={handleGenerate3D} className="mt-2 bg-pink-500 text-white font-black py-2.5 rounded-xl uppercase tracking-widest hover:bg-pink-400 active:scale-95 transition-all shadow-md w-full text-[11px] border-b-4 border-pink-700 hover:border-pink-500">Generar 3D</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {(gamePhase === 'building' || gamePhase === 'won') && (
+                        <div className="bg-pink-900/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-pink-400 pointer-events-auto shrink-0 text-white fade-in flex flex-col gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-pink-800 flex items-center justify-center text-xl shadow-inner border border-pink-700">🎯</div>
+                                <div>
+                                    <h2 className="text-sm font-black tracking-tight leading-tight">Constructor Activo</h2>
+                                    <p className="text-[10px] text-pink-300 font-medium">Modo Juego</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-pink-950/50 p-3 rounded-xl border border-pink-800/50 mt-1">
+                                <p className="text-[11px] text-pink-200 leading-relaxed font-medium">
+                                    {gamePhase === 'building' ? 'Interactúa con las piezas, gíralas y móntalas para comprobar.' : '¡Reto superado brillantemente!'}
+                                </p>
+                            </div>
+
+                            {gamePhase === 'building' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-2 mt-1">
+                                        <button onClick={() => triggerAction('separate')} className="col-span-1 bg-slate-700 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-slate-600 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-slate-900">Separar</button>
+                                        <button onClick={() => triggerAction('assemble')} className="col-span-1 bg-slate-700 text-white py-2 rounded-xl font-black text-[10px] shadow-md hover:bg-slate-600 active:scale-95 transition-all uppercase tracking-wide border-b-4 border-slate-900">Montar</button>
+                                    </div>
+                                    <button onClick={handleCheck} className="mt-1 w-full bg-pink-500 text-white font-black py-2.5 rounded-xl uppercase tracking-widest hover:bg-pink-400 active:scale-95 transition-all shadow-md text-[11px] border-b-4 border-pink-700 hover:border-pink-500">Comprobar</button>
+                                </>
+                            )}
+
+                            {gamePhase === 'won' && (
+                                <button onClick={pickNewTarget} className="mt-1 w-full bg-green-500 text-white font-black py-2.5 rounded-xl uppercase tracking-widest hover:bg-green-400 active:scale-95 transition-all shadow-md text-[11px] border-b-4 border-green-700 hover:border-green-500">Siguiente Reto</button>
+                            )}
+                        </div>
+                    )}
+                  </>
+                )}
+
+                {appMode !== 'juego' && (
+                    <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border-l-4 border-slate-600 pointer-events-auto shrink-0 text-white mb-4">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">Propiedades Geométricas</h3>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.faces}</div><div className="text-[9px] uppercase font-bold text-slate-400">Caras</div></div>
+                        <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.verts}</div><div className="text-[9px] uppercase font-bold text-slate-400">Vértices</div></div>
+                        <div className="bg-slate-700/50 p-1.5 rounded-xl"><div className="text-lg font-black text-white">{info.edges}</div><div className="text-[9px] uppercase font-bold text-slate-400">Aristas</div></div>
+                      </div>
+                    </div>
+                )}
 
               </div>
 
@@ -1486,7 +1798,8 @@
               </button>
             </div>
 
-            {/* --- PANEL DERECHO (Herramientas de Dibujo y Fondos) --- */}
+
+            {/* --- PANEL DERECHO HERRAMIENTAS (Siempre visible) --- */}
             <div className={`absolute top-1/2 -translate-y-1/2 flex items-center z-20 transition-transform duration-500 ease-in-out pointer-events-none ${isRightPanelOpen ? 'right-6 translate-x-0' : 'right-0 translate-x-full'}`}>
               
               <button 
@@ -1593,7 +1906,7 @@
             </div>
 
             {showPoetaTopRight && (
-              <div className="absolute top-6 right-6 pointer-events-auto z-50 fade-in">
+              <div className="absolute top-6 right-6 pointer-events-auto z-50 animate-fade-in">
                 <img src="poeta.jpg" alt="Poeta Copiado" className="w-48 h-48 object-cover rounded-3xl shadow-2xl border-4 border-white cursor-pointer hover:scale-105 transition-transform" onClick={() => setShowPoetaTopRight(false)} title="Haz clic para cerrar" onError={(e) => e.target.style.display='none'} />
               </div>
             )}
