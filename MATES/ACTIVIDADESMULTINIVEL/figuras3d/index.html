@@ -101,6 +101,7 @@
       const isDragging = useRef(false);
       const pointerCount = useRef(0);
       const intersectionPoint = useRef(new THREE.Vector3());
+      const dragStartIntersect = useRef(new THREE.Vector3());
 
       const activeToolRef = useRef(activeTool);
       const activeDrawColorRef = useRef(activeDrawColor);
@@ -113,12 +114,23 @@
       const isDraggingVertex = useRef(false);
       const draggedVertexGlobalIdx = useRef(null);
 
+      const faceHighlightSphereRef = useRef(null);
+      const hoveredFaceMeshRef = useRef(null);
+      const isDraggingFace = useRef(false);
+      const draggedFaceVertsGlobal = useRef([]);
+      const dragFaceStartVerts = useRef(new Map());
+      const dragFaceNormalWorld = useRef(new THREE.Vector3());
+      const dragFaceStartCenter = useRef(new THREE.Vector3());
+
       useEffect(() => {
         activeToolRef.current = activeTool;
         activeDrawColorRef.current = activeDrawColor;
         
         if (activeTool !== 'vertex' && vertexHighlightSphereRef.current) {
             vertexHighlightSphereRef.current.visible = false;
+        }
+        if (activeTool !== 'face' && faceHighlightSphereRef.current) {
+            faceHighlightSphereRef.current.visible = false;
         }
 
         if (rendererRef.current) {
@@ -214,6 +226,14 @@
         scene.add(vSphere);
         vertexHighlightSphereRef.current = vSphere;
 
+        const fSphereGeo = new THREE.SphereGeometry(0.12, 16, 16);
+        const fSphereMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, depthTest: false });
+        const fSphere = new THREE.Mesh(fSphereGeo, fSphereMat);
+        fSphere.renderOrder = 999;
+        fSphere.visible = false;
+        scene.add(fSphere);
+        faceHighlightSphereRef.current = fSphere;
+
         const worldGroup = new THREE.Group();
         scene.add(worldGroup);
         worldGroupRef.current = worldGroup;
@@ -258,6 +278,43 @@
           mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
           mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
           raycaster.current.setFromCamera(mouse.current, camera);
+
+          if (activeToolRef.current === 'face') {
+              if (hoveredFaceMeshRef.current !== null && faceHighlightSphereRef.current.visible) {
+                  isDraggingFace.current = true;
+                  controls.enabled = false;
+                  const mesh = hoveredFaceMeshRef.current;
+                  
+                  const uniqueGlobals = [...new Set(mesh.userData.vertexMap)];
+                  draggedFaceVertsGlobal.current = uniqueGlobals;
+                  
+                  dragFaceStartVerts.current.clear();
+                  const posAttr = mesh.geometry.attributes.position;
+                  for (let i = 0; i < posAttr.count; i++) {
+                      const gIdx = mesh.userData.vertexMap[i];
+                      if (!dragFaceStartVerts.current.has(gIdx)) {
+                          const localV = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+                          const worldV = localV.applyMatrix4(mesh.matrixWorld);
+                          dragFaceStartVerts.current.set(gIdx, worldV);
+                      }
+                  }
+                  
+                  const normalLocal = new THREE.Vector3(0,0,1);
+                  if (mesh.geometry.attributes.normal) {
+                       normalLocal.fromBufferAttribute(mesh.geometry.attributes.normal, 0);
+                  }
+                  const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+                  dragFaceNormalWorld.current.copy(normalLocal).applyMatrix3(normalMatrix).normalize();
+                  
+                  dragFaceStartCenter.current.copy(faceHighlightSphereRef.current.position);
+                  
+                  const camDir = new THREE.Vector3();
+                  camera.getWorldDirection(camDir);
+                  dragPlane.current.setFromNormalAndCoplanarPoint(camDir.negate(), dragFaceStartCenter.current);
+                  raycaster.current.ray.intersectPlane(dragPlane.current, dragStartIntersect.current);
+              }
+              return;
+          }
 
           if (activeToolRef.current === 'vertex') {
               if (hoveredVertexGlobalIdx.current !== null) {
@@ -365,6 +422,79 @@
           raycaster.current.setFromCamera(mouse.current, camera);
 
           if (pointerCount.current > 1) return; 
+
+          if (activeToolRef.current === 'face') {
+              if (['cylinder', 'cone'].includes(type)) return;
+
+              if (isDraggingFace.current) {
+                  raycaster.current.ray.intersectPlane(dragPlane.current, intersectionPoint.current);
+                  const rawDelta = intersectionPoint.current.clone().sub(dragStartIntersect.current);
+                  const scalar = rawDelta.dot(dragFaceNormalWorld.current);
+                  const deltaWorld = dragFaceNormalWorld.current.clone().multiplyScalar(scalar);
+                  
+                  faceGroupsRef.current.forEach(group => {
+                      const mesh = group.children[0];
+                      if (!mesh.userData.vertexMap) return;
+                      
+                      const posAttr = mesh.geometry.attributes.position;
+                      let changed = false;
+                      
+                      for (let i = 0; i < posAttr.count; i++) {
+                          const gIdx = mesh.userData.vertexMap[i];
+                          if (draggedFaceVertsGlobal.current.includes(gIdx)) {
+                              const origWorldPos = dragFaceStartVerts.current.get(gIdx);
+                              const newWorldPos = origWorldPos.clone().add(deltaWorld);
+                              const localPos = mesh.worldToLocal(newWorldPos.clone());
+                              posAttr.setXYZ(i, localPos.x, localPos.y, localPos.z);
+                              changed = true;
+                          }
+                      }
+                      
+                      if (changed) {
+                          posAttr.needsUpdate = true;
+                          mesh.geometry.computeVertexNormals();
+                          const edgesMesh = group.children.find(c => c.isLineSegments);
+                          if (edgesMesh) {
+                              edgesMesh.geometry.dispose();
+                              edgesMesh.geometry = new THREE.EdgesGeometry(mesh.geometry);
+                          }
+                      }
+                  });
+                  
+                  faceHighlightSphereRef.current.position.copy(dragFaceStartCenter.current).add(deltaWorld);
+              } else {
+                  const meshes = faceGroupsRef.current.map(g => g.children[0]);
+                  const intersects = raycaster.current.intersectObjects(meshes, false);
+
+                  if (intersects.length > 0) {
+                      const hitMesh = intersects[0].object;
+                      hoveredFaceMeshRef.current = hitMesh;
+                      
+                      const center = new THREE.Vector3();
+                      const posAttr = hitMesh.geometry.attributes.position;
+                      const uniqueVerts = [];
+                      for(let i=0; i<posAttr.count; i++) {
+                         const v = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+                         v.applyMatrix4(hitMesh.matrixWorld);
+                         if(!uniqueVerts.some(uv => uv.distanceTo(v) < 0.05)) {
+                             uniqueVerts.push(v);
+                             center.add(v);
+                         }
+                      }
+                      if(uniqueVerts.length > 0) {
+                         center.divideScalar(uniqueVerts.length);
+                         faceHighlightSphereRef.current.visible = true;
+                         faceHighlightSphereRef.current.position.copy(center);
+                         dom.style.cursor = 'ns-resize';
+                      }
+                  } else {
+                      faceHighlightSphereRef.current.visible = false;
+                      hoveredFaceMeshRef.current = null;
+                      dom.style.cursor = 'crosshair';
+                  }
+              }
+              return;
+          }
 
           if (activeToolRef.current === 'vertex') {
               if (['cylinder', 'cone'].includes(type)) return;
@@ -523,6 +653,11 @@
               controls.enabled = true;
           }
 
+          if (isDraggingFace.current) {
+              isDraggingFace.current = false;
+              controls.enabled = true;
+          }
+
           if (!activeToolRef.current && !hoveredFace.current) dom.style.cursor = 'grab';
 
           if (currentStrokeRef.current) {
@@ -575,7 +710,10 @@
                   hd.update(hd.currentFold);
               }
               
-              const currentAngle = (1 - hd.currentFold) * hd.flatAngle;
+              // CÁLCULO DE ÁNGULO CON COMPATIBILIDAD PLANA/DOBLADA
+              let fA = hd.flatAngle !== undefined ? hd.flatAngle : 0;
+              let foldA = hd.foldedAngle !== undefined ? hd.foldedAngle : 0;
+              const currentAngle = (1 - hd.currentFold) * fA + hd.currentFold * foldA;
               hd.hingeObj.setRotationFromAxisAngle(hd.axis, currentAngle);
               
               if (!draggedObject.current || draggedObject.current !== g) {
@@ -617,6 +755,25 @@
                        }
                    }
                    if(found) break;
+               }
+          }
+
+          if (activeToolRef.current === 'face' && hoveredFaceMeshRef.current !== null && !isDraggingFace.current) {
+               const hitMesh = hoveredFaceMeshRef.current;
+               const center = new THREE.Vector3();
+               const posAttr = hitMesh.geometry.attributes.position;
+               const uniqueVerts = [];
+               for(let i=0; i<posAttr.count; i++) {
+                  const v = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+                  v.applyMatrix4(hitMesh.matrixWorld);
+                  if(!uniqueVerts.some(uv => uv.distanceTo(v) < 0.05)) {
+                      uniqueVerts.push(v);
+                      center.add(v);
+                  }
+               }
+               if(uniqueVerts.length > 0) {
+                  center.divideScalar(uniqueVerts.length);
+                  faceHighlightSphereRef.current.position.copy(center);
                }
           }
 
@@ -672,7 +829,7 @@
 
 
         // ==============================================================
-        // SUPERFICIES CONTINUAS (Cilindro y Cono) 
+        // SUPERFICIES CONTINUAS (CILINDRO Y CONO EN PLANO PERFECTO)
         // ==============================================================
         if (type === 'cylinder' || type === 'cone') {
             const isCyl = type === 'cylinder';
@@ -684,22 +841,24 @@
             const rootGroup = new THREE.Group();
             rootGroup.userData = { isFaceNode: true, isRoot: true };
             
+            // Base Inferior Anclada
             const bottomGeo = new THREE.CircleGeometry(R, 64);
             const bottomMesh = new THREE.Mesh(bottomGeo, stripedMat);
             bottomMesh.rotation.x = -Math.PI / 2;
-            bottomMesh.position.y = -0.01;
+            bottomMesh.position.set(0, -0.01, 0); // Para evitar Z-Fighting al aplanar
             bottomMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(bottomGeo), edgeMaterial.clone()));
             
             const labelMat = new THREE.MeshBasicMaterial({ map: texB, transparent: true, depthTest: false, side: THREE.DoubleSide });
             const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), labelMat);
             labelMesh.rotation.x = -Math.PI / 2;
-            labelMesh.position.y = 0.02;
+            labelMesh.position.set(0, 0.02, 0);
             labelMesh.userData = { isLabel: true, isSelectable: true };
             rootGroup.add(bottomMesh, labelMesh);
             groups.push(rootGroup);
 
+            // Bisagra Lateral
             const latHinge = new THREE.Group();
-            latHinge.position.set(0, 0, R); 
+            latHinge.position.set(0, 0, -R); // Tangente inferior alineada
             rootGroup.add(latHinge);
 
             const latGroup = new THREE.Group();
@@ -736,12 +895,11 @@
             const origPosLat = new THREE.Vector3(0,0,0);
             const scPosLat = new THREE.Vector3(0, 0, 2.0);
 
-            // CORRECCIÓN: Cilindro Tapa Dinámica
+            // Tapa Superior Simétrica (Cilindro)
             if (isCyl) {
                 const topHinge = new THREE.Group();
-                topHinge.position.set(0, H, 0); 
+                topHinge.position.set(0, H, 0); // Siempre anclado al centro superior
                 latGroup.add(topHinge);
-                latGroup.userData.topHinge = topHinge; // Referencia clave añadida para su actualización
                 
                 const topGroup = new THREE.Group();
                 topHinge.add(topGroup);
@@ -749,8 +907,7 @@
                 
                 const topGeo = new THREE.CircleGeometry(R, 64);
                 const topMesh = new THREE.Mesh(topGeo, solidMat.clone());
-                topMesh.rotation.x = -Math.PI / 2;
-                topMesh.position.set(0, 0, -R); 
+                topMesh.position.set(0, R, 0); // Descansa plano en su eje inicial
                 topMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(topGeo), edgeMaterial.clone()));
                 topGroup.add(topMesh);
                 
@@ -758,7 +915,8 @@
                 const scPosTop = new THREE.Vector3(0, 0, 2.0);
                 
                 topGroup.userData.hingeData = {
-                    hingeObj: topHinge, axis: new THREE.Vector3(1, 0, 0), flatAngle: Math.PI / 2, 
+                    hingeObj: topHinge, axis: new THREE.Vector3(1, 0, 0), 
+                    flatAngle: 0, foldedAngle: Math.PI / 2, // Rotación simétrica opuesta al latHinge
                     foldTarget: 0, currentFold: 0, scatterTarget: 1, currentScatter: 1,
                     originalPos: origPosTop, dragPos: scPosTop.clone(), scatterPos: scPosTop.clone(), isDeformable: false
                 };
@@ -767,9 +925,8 @@
             
             latGroup.userData.hingeData = {
                 hingeObj: latHinge,
-                // CORRECCIÓN: El cono usa el eje Y para hacer la pirueta matemática
-                axis: isCyl ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0),
-                flatAngle: isCyl ? -Math.PI / 2 : Math.PI, 
+                axis: new THREE.Vector3(1, 0, 0),
+                flatAngle: -Math.PI / 2, foldedAngle: isCyl ? 0 : -Math.PI / 2, // Cono nunca rota, se tumba directo.
                 foldTarget: 0, currentFold: 0,
                 scatterTarget: 1, currentScatter: 1,
                 originalPos: origPosLat, dragPos: scPosLat.clone(), scatterPos: scPosLat.clone(),
@@ -782,63 +939,45 @@
                     
                     if (isCyl) {
                         let psi = fold;
-                        // CORRECCIÓN: Desplazamiento del rectángulo para los círculos opuestos
-                        const u_bottom = 0.25;
-                        const u_top = 0.75;
-
                         for (let i = 0; i <= segments; i++) {
                             let u01 = uvArr[i * 4];
-                            let u = (u01 - u_bottom) * 2 * Math.PI;
+                            let u = (u01 - 0.5) * 2 * Math.PI; 
                             
-                            let xB, yB, zB;
+                            let x_loc, z_loc;
                             if (psi < 0.0001) { 
-                                xB = R * u; zB = 0; yB = 0; 
+                                x_loc = R * u; 
+                                z_loc = 0; 
                             } else { 
-                                xB = (R/psi) * Math.sin(u*psi); 
-                                zB = -(R/psi) * (1 - Math.cos(u*psi)); 
-                                yB = 0; 
+                                let Rc = R / psi;
+                                x_loc = Rc * Math.sin(u * psi); 
+                                z_loc = Rc * (1 - Math.cos(u * psi)); 
                             }
                             
-                            pos[i*6+0] = xB; pos[i*6+1] = yB; pos[i*6+2] = zB;
-                            pos[i*6+3] = xB; pos[i*6+4] = H;  pos[i*6+5] = zB;
+                            pos[i*6+0] = x_loc; pos[i*6+1] = 0; pos[i*6+2] = z_loc;
+                            pos[i*6+3] = x_loc; pos[i*6+4] = H; pos[i*6+5] = z_loc;
                         }
 
-                        // CORRECCIÓN: Actualizar la tapa superior a la nueva posición matemáticamente
-                        const topHingeRef = latGroup.userData.topHinge;
-                        if (topHingeRef) {
-                            let u_top_angle = (u_top - u_bottom) * 2 * Math.PI;
-                            if (psi < 0.0001) {
-                                topHingeRef.position.set(R * u_top_angle, H, 0);
-                                topHingeRef.rotation.set(0, 0, 0);
-                            } else {
-                                topHingeRef.position.set(
-                                    (R/psi) * Math.sin(u_top_angle * psi),
-                                    H,
-                                    -(R/psi) * (1 - Math.cos(u_top_angle * psi))
-                                );
-                                topHingeRef.rotation.set(0, -u_top_angle * psi, 0);
-                            }
-                        }
-
-                    } else {
-                        // CORRECCIÓN CONO: Cambio a -Math.PI / 2 para evitar rotura interior
+                    } else { // Cono Simétrico en el Suelo
                         let alpha = fold;
-                        let psi = (1 - alpha) * (-Math.PI / 2) + alpha * beta;
+                        let psi = (1 - alpha) * (Math.PI / 2) + alpha * beta;
                         let R_alpha = L * Math.sin(psi);
                         let H_alpha = L * Math.cos(psi);
+                        let Theta_alpha = 2 * Math.PI * R / R_alpha;
                         
                         for (let i = 0; i <= segments; i++) {
                             let u01 = uvArr[i * 4];
-                            let gamma = (u01 - 0.5) * (2 * Math.PI * R / L);
-                            let u_alpha = gamma * L / R_alpha;
+                            let gamma = (u01 - 0.5) * Theta_alpha;
                             
-                            pos[i*6+0] = L * Math.sin(psi) * Math.sin(u_alpha);
-                            pos[i*6+1] = H_alpha - L * Math.cos(psi);
-                            pos[i*6+2] = L * Math.sin(psi) * Math.cos(u_alpha) - R_alpha;
+                            // Base del Cono Expandido
+                            let r_base = L * Math.sin(psi);
+                            pos[i*6+0] = r_base * Math.sin(gamma);
+                            pos[i*6+1] = r_base * Math.cos(gamma) - L * Math.sin(psi);
+                            pos[i*6+2] = 0;
                             
+                            // Vértice del Cono (Punta)
                             pos[i*6+3] = 0;
-                            pos[i*6+4] = H_alpha;
-                            pos[i*6+5] = -R_alpha;
+                            pos[i*6+4] = - L * Math.sin(psi);
+                            pos[i*6+5] = L * Math.cos(psi);
                         }
                     }
                     latGeom.attributes.position.needsUpdate = true;
@@ -856,12 +995,13 @@
 
             const container = new THREE.Group();
             container.add(rootGroup);
-            container.position.set(0, -H/2, 0);
+            container.position.set(0, -H/2, 0); // Centramos globalmente la pieza final
             
             groups.forEach(g => {
                 if (g.userData.hingeData) {
                     if (g.userData.hingeData.update) g.userData.hingeData.update(0);
-                    g.userData.hingeData.hingeObj.setRotationFromAxisAngle(g.userData.hingeData.axis, g.userData.hingeData.flatAngle);
+                    let fA = g.userData.hingeData.flatAngle !== undefined ? g.userData.hingeData.flatAngle : 0;
+                    g.userData.hingeData.hingeObj.setRotationFromAxisAngle(g.userData.hingeData.axis, fA);
                 }
             });
 
@@ -1053,7 +1193,7 @@
 
           face.vertices.forEach((v, idx) => {
             verts[idx*3] = v.x - face.centroid.x; verts[idx*3+1] = v.y - face.centroid.y; verts[idx*3+2] = v.z - face.centroid.z;
-            vertexMap[idx] = face.globalVertexIndices[idx]; // Mapeo de BufferID -> GlobalID
+            vertexMap[idx] = face.globalVertexIndices[idx]; 
           });
           face.origNormals.forEach((n, idx) => {
             norms[idx*3] = n.x; norms[idx*3+1] = n.y; norms[idx*3+2] = n.z;
@@ -1064,7 +1204,7 @@
 
           const isB = face.isBase;
           const mesh = new THREE.Mesh(faceGeom, isB ? stripedMat : solidMat.clone());
-          mesh.userData.vertexMap = vertexMap; // Almacenado en la malla
+          mesh.userData.vertexMap = vertexMap; 
           
           const edgeMesh = new THREE.LineSegments(new THREE.EdgesGeometry(faceGeom), edgeMaterial.clone());
           mesh.add(edgeMesh);
@@ -1110,9 +1250,9 @@
           const scPos = origPos.clone().add(origPos.clone().normalize().multiplyScalar(2.0));
 
           cGroup.userData.hingeData = {
-            hingeObj: hinge, axis: axis.clone(), flatAngle: -sign * angle, foldTarget: 0, currentFold: 0,
-            scatterTarget: 1, currentScatter: 1, originalPos: origPos, scatterPos: scPos, dragPos: scPos.clone(),
-            isDeformable: false
+            hingeObj: hinge, axis: axis.clone(), flatAngle: -sign * angle, foldedAngle: 0,
+            foldTarget: 0, currentFold: 0, scatterTarget: 1, currentScatter: 1, 
+            originalPos: origPos, scatterPos: scPos, dragPos: scPos.clone(), isDeformable: false
           };
           cGroup.position.copy(cGroup.userData.hingeData.dragPos);
           hinge.add(cGroup); pGroup.add(hinge);
@@ -1128,7 +1268,10 @@
         container.position.set(-center.x, -center.y, -center.z);
 
         groups.forEach(g => {
-          if (g.userData.hingeData) g.userData.hingeData.hingeObj.setRotationFromAxisAngle(g.userData.hingeData.axis, g.userData.hingeData.flatAngle);
+          if (g.userData.hingeData) {
+              let fA = g.userData.hingeData.flatAngle !== undefined ? g.userData.hingeData.flatAngle : 0;
+              g.userData.hingeData.hingeObj.setRotationFromAxisAngle(g.userData.hingeData.axis, fA);
+          }
         });
 
         worldGroupRef.current.add(container);
@@ -1412,15 +1555,22 @@
                   🗑️
                 </button>
 
-                {/* BOTONES A (Aristas) y V (Vértices) */}
+                {/* BOTONES A (Aristas), C (Caras) y V (Vértices) APILADOS */}
                 <div className="w-full h-px bg-slate-200 rounded-full my-1"></div>
-                <div className="flex gap-1.5 w-full justify-center">
+                <div className="flex flex-col gap-1.5 w-full items-center">
                   <button 
                     onClick={() => setEdgesHighlighted(!edgesHighlighted)} 
                     className={`w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-black transition-all ${edgesHighlighted ? 'bg-amber-400 text-amber-900 shadow-inner' : 'bg-slate-100 text-slate-500 hover:bg-amber-100 hover:text-amber-600'}`} 
                     title="Resaltar Aristas (Wireframe)"
                   >
                     A
+                  </button>
+                  <button 
+                    onClick={() => setActiveTool(activeTool === 'face' ? null : 'face')} 
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-black transition-all ${activeTool === 'face' ? 'bg-indigo-400 text-indigo-900 shadow-inner' : 'bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-600'}`} 
+                    title="Editar Caras y Extruir (No aplicable en Curvas)"
+                  >
+                    C
                   </button>
                   <button 
                     onClick={() => setActiveTool(activeTool === 'vertex' ? null : 'vertex')} 
