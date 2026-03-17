@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Dictados - CEIP Poeta Antón</title>
+    <title>Generador de Dictados</title>
     <!-- Tailwind CSS para los estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons para los iconos -->
@@ -152,7 +152,7 @@
                     </div>
                     <div>
                         <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Generador de Dictados</h1>
-                        <p class="text-slate-500 text-sm font-medium">CEIP Poeta Antón - Herramienta Docente</p>
+                        <p class="text-slate-500 text-sm font-medium">Herramienta Docente</p>
                     </div>
                 </div>
                 
@@ -329,9 +329,9 @@
                         <label for="juego-velocidad" class="hidden sm:inline">Velocidad:</label>
                         <i data-lucide="gauge" class="w-4 h-4 sm:hidden"></i>
                         <select id="juego-velocidad" class="bg-transparent font-bold text-amber-400 outline-none cursor-pointer">
-                            <option value="0.25">Lenta</option>
-                            <option value="0.5" selected>Normal</option>
-                            <option value="0.9">Rápida</option>
+                            <option value="0.15">Lenta</option>
+                            <option value="0.3" selected>Normal</option>
+                            <option value="0.6">Rápida</option>
                         </select>
                     </div>
                     <button onclick="pausarReanudarJuego()" id="btn-pausa-juego" class="bg-indigo-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded font-bold hover:bg-indigo-600 text-xs sm:text-sm shadow-md border border-indigo-50 transition-colors">Pausar</button>
@@ -463,7 +463,8 @@
             "güe/güi": " El simpático pingüino saludó a la cigüeña sin ninguna vergüenza.",
             "bla/ble/bli/blo/blu": " Pablo llevaba una blusa blanca y habló sobre aquel pueblo nublado.",
             "bra/bre/bri/bro/bru": " Braulio hizo una broma amable mientras abría el sobre con brío.",
-            "y/ll": " Ayer llovió mucho, así que el chiquillo desayunó un yogur con galletas."
+            "y/ll": " Ayer llovió mucho, así que el chiquillo desayunó un yogur con galletas.",
+            "h/": " Hoy, Héctor y su hermana hicieron un hermoso huerto con higueras y hortalizas."
         };
 
         const baseCategorias = ["adjetivos", "s. comunes", "s. propios", "verbos"];
@@ -479,7 +480,7 @@
 
         const categoriasGramaticales = {
             "adjetivos": ['corto', 'rico', 'genial', 'hermoso', 'especial', 'interesante', 'asturiano', 'imponente', 'maravillosas', 'impresionados', 'estupendas', 'sabrosos', 'cercana', 'nueva', 'azules', 'dulces', 'secas', 'blanca', 'amable', 'amarillo', 'simpático', 'histórico', 'pesqueros', 'amarrados', 'educativa', 'grandes', 'excelente', 'preciosas', 'nublado', 'veloz', 'limpia', 'mejor', 'tranquila', 'fuerte', 'precioso', 'urbano', 'tremenda', 'último', 'antiguo', 'extremo'],
-            "adverbios": ['muy', 'primero', 'después', 'luego', 'finalmente', 'mucho', 'ayer', 'cerca', 'lejos', 'no', 'sí', 'así', 'también', 'intensamente', 'tanto', 'rápido'],
+            "adverbios": ['muy', 'primero', 'después', 'luego', 'finalmente', 'mucho', 'ayer', 'cerca', 'lejos', 'no', 'sí', 'así', 'también', 'intensamente', 'tanto', 'rápido', 'hoy'],
             "artículos": ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'al', 'del'],
             "conjunciones": ['y', 'o', 'pero', 'porque', 'aunque', 'mientras', 'que'],
             "demostrativos": ['este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'aquellos', 'aquellas'],
@@ -489,12 +490,12 @@
             "posesivos": ['mi', 'tu', 'su', 'mis', 'tus', 'sus', 'nuestro', 'nuestra', 'nuestros', 'nuestras'],
             "preposiciones": ['a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'en', 'entre', 'hacia', 'hasta', 'para', 'por', 'según', 'sin', 'sobre', 'tras'],
             "pronombres": ['ellos', 'le', 'se', 'me', 'te', 'nos', 'lo', 'la', 'él', 'nosotros'],
-            "s. comunes": ['alumno', 'alumnos', 'alumnas', 'niña', 'niños', 'paseo', 'muelle', 'helado', 'playa', 'parque', 'fin', 'semana', 'mochila', 'alegría', 'amigos', 'compañeros', 'colegio', 'faro', 'escondite', 'mañana', 'excursión', 'clase', 'biblioteca', 'texto', 'patrimonio', 'senda', 'vistas', 'alcalde', 'exposiciones', 'estudiantes', 'bocadillos', 'bocadillo', 'plaza', 'iglesia', 'bolsa', 'verduras', 'zapatos', 'cerezas', 'hojas', 'jardín', 'amigo', 'guitarra', 'higuera', 'pingüino', 'cigüeña', 'vergüenza', 'pueblo', 'broma', 'chiquillo', 'yogur', 'abuelo', 'galletas', 'material', 'carreras', 'residuos', 'espacios', 'juegos', 'mesa', 'maravilla', 'viernes', 'cuidado', 'plantas', 'ahorro', 'energía', 'compañero', 'libros', 'autorretrato', 'jornada', 'barcos', 'blusa', 'sobre', 'brío', 'tigre', 'agua', 'árbol', 'barco', 'toalla', 'vaca', 'uva', 'tomate', 'valle', 'ascensor', 'vecino', 'traje', 'tambor', 'juguete', 'viaje', 'taxi', 'tormenta', 'ventana', 'tía', 'tijeras', 'tablero', 'ajedrez', 'abogado', 'ayuntamiento', 'acuerdo', 'transporte', 'temperatura', 'atmósfera', 'tempestad', 'trimestre', 'turismo', 'avenida', 'agente', 'aduana', 'archivo', 'atención'],
-            "s. propios": ['yago', 'lia', 'candás', 'khadija', 'yoel', 'poeta', 'antón', 'santarúa', 'kairo', 'noa', 'rebolleres', 'museo', 'víctor', 'celia', 'zacarías', 'jorge', 'ángela', 'guillermo', 'braulio', 'luanco', 'beltrán', 'rula', 'conserveres', 'pablo'],
-            "verbos": ['dan', 'comen', 'es', 'jugar', 'prepararon', 'estudian', 'dieron', 'vieron', 'jugaron', 'decidieron', 'organizar', 'visitaron', 'leyeron', 'pasearon', 'debatiendo', 'dejaron', 'inauguró', 'compartieron', 'llevaba', 'cruzó', 'compró', 'recogieron', 'siguió', 'tocando', 'asustó', 'dio', 'habló', 'llovió', 'desayunó', 'saludó', 'haciendo', 'comió', 'organizan', 'fuimos', 'ganamos', 'recogió', 'debatieron', 'propuso', 'donar', 'usamos', 'terminar', 'admirando', 'hizo', 'abría', 'bebe', 'tiene', 'come', 'subimos', 'vimos', 'analizó', 'cambió', 'aumentó', 'revisó']
+            "s. comunes": ['alumno', 'alumnos', 'alumnas', 'niña', 'niños', 'paseo', 'muelle', 'helado', 'playa', 'parque', 'fin', 'semana', 'mochila', 'alegría', 'amigos', 'compañeros', 'colegio', 'faro', 'escondite', 'mañana', 'excursión', 'clase', 'biblioteca', 'texto', 'patrimonio', 'senda', 'vistas', 'alcalde', 'exposiciones', 'estudiantes', 'bocadillos', 'bocadillo', 'plaza', 'iglesia', 'bolsa', 'verduras', 'zapatos', 'cerezas', 'hojas', 'jardín', 'amigo', 'guitarra', 'higuera', 'pingüino', 'cigüeña', 'vergüenza', 'pueblo', 'broma', 'chiquillo', 'yogur', 'abuelo', 'galletas', 'material', 'carreras', 'residuos', 'espacios', 'juegos', 'mesa', 'maravilla', 'viernes', 'cuidado', 'plantas', 'ahorro', 'energía', 'compañero', 'libros', 'autorretrato', 'jornada', 'barcos', 'blusa', 'sobre', 'brío', 'tigre', 'agua', 'árbol', 'barco', 'toalla', 'vaca', 'uva', 'tomate', 'valle', 'ascensor', 'vecino', 'traje', 'tambor', 'juguete', 'viaje', 'taxi', 'tormenta', 'ventana', 'tía', 'tijeras', 'tablero', 'ajedrez', 'abogado', 'ayuntamiento', 'acuerdo', 'transporte', 'temperatura', 'atmósfera', 'tempestad', 'trimestre', 'turismo', 'avenida', 'agente', 'aduana', 'archivo', 'atención', 'hermana', 'huerto', 'higueras', 'hortalizas'],
+            "s. propios": ['yago', 'lia', 'candás', 'khadija', 'yoel', 'poeta', 'antón', 'santarúa', 'kairo', 'noa', 'rebolleres', 'museo', 'víctor', 'celia', 'zacarías', 'jorge', 'ángela', 'guillermo', 'braulio', 'luanco', 'beltrán', 'rula', 'conserveres', 'pablo', 'héctor'],
+            "verbos": ['dan', 'comen', 'es', 'jugar', 'prepararon', 'estudian', 'dieron', 'vieron', 'jugaron', 'decidieron', 'organizar', 'visitaron', 'leyeron', 'pasearon', 'debatiendo', 'dejaron', 'inauguró', 'compartieron', 'llevaba', 'cruzó', 'compró', 'recogieron', 'siguió', 'tocando', 'asustó', 'dio', 'habló', 'llovió', 'desayunó', 'saludó', 'haciendo', 'comió', 'organizan', 'fuimos', 'ganamos', 'recogió', 'debatieron', 'propuso', 'donar', 'usamos', 'terminar', 'admirando', 'hizo', 'abría', 'bebe', 'tiene', 'come', 'subimos', 'vimos', 'analizó', 'cambió', 'aumentó', 'revisó', 'hicieron']
         };
 
-        const listadoFallos = ["b/v", "c/z", "g/j", "gue/gui", "güe/güi", "bla/ble/bli/blo/blu", "bra/bre/bri/bro/bru", "y/ll"];
+        const listadoFallos = ["b/v", "c/z", "g/j", "gue/gui", "güe/güi", "bla/ble/bli/blo/blu", "bra/bre/bri/bro/bru", "y/ll", "h/"];
 
         // ==========================================
         // ESTADO GLOBAL
@@ -704,7 +705,7 @@
                 conError: Math.random() < 0.85 ? generarErrorOrtografico(p) : p
             })).sort(() => Math.random() - 0.5);
 
-            mostrarNotificacionJuego("¡Nuevas palabras cayendo!");
+            mostrarNotificacionJuego("¡A CORREGIR!");
         }
 
         function cambiarNivelJuego(nuevoNivel) {
@@ -788,7 +789,7 @@
                     return; 
                 }
                 spawnWord(palabrasPendientesJuego.pop(), canvas);
-            }, 1800);
+            }, 2200);
 
             gameLoopFrame = requestAnimationFrame(gameLoop);
         }
@@ -802,7 +803,7 @@
             const x = Math.random() * (wWidth > 150 ? wWidth - 150 : 50);
             const h = canvas.clientHeight;
             const y = h + 10; 
-            const baseSpeed = 1 + Math.random() * 1.5; 
+            const baseSpeed = 0.6 + Math.random() * 1.0; 
             
             el.style.transform = `translate(${x}px, ${y}px)`;
             canvas.appendChild(el);
