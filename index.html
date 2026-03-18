@@ -24,11 +24,6 @@
             min-height: 100vh;
         }
 
-        /* Clase para bloquear el scroll cuando la pantalla de login está activa */
-        body.locked {
-            overflow: hidden;
-        }
-
         header {
             background-color: var(--primary-color);
             color: white;
@@ -235,130 +230,9 @@
             width: 14px;
             height: 14px;
         }
-
-        /* ================= ESTILOS DEL LOGIN ================= */
-        .login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--primary-color);
-            background-image: linear-gradient(135deg, var(--primary-color) 0%, #1a252f 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
-        }
-
-        .login-overlay.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .login-box {
-            background-color: var(--card-bg);
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            animation: slideUp 0.5s ease forwards;
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .login-box h2 {
-            margin-top: 0;
-            color: var(--primary-color);
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-        }
-
-        .login-box p {
-            color: #7f8c8d;
-            font-size: 0.95rem;
-            margin-bottom: 25px;
-        }
-
-        .login-box input {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 20px;
-            border: 2px solid #ecf0f1;
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            transition: border-color 0.3s;
-            text-align: center;
-        }
-
-        .login-box input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
-        .login-box button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
-            width: 100%;
-        }
-
-        .login-box button:hover {
-            background-color: #2980b9;
-        }
-
-        .login-box button:active {
-            transform: scale(0.98);
-        }
-
-        .error-msg {
-            color: #e74c3c !important;
-            margin-top: 15px;
-            margin-bottom: 0 !important;
-            font-size: 0.9rem !important;
-            display: none;
-            font-weight: 600;
-        }
-        
-        /* Efecto de temblor para contraseña incorrecta */
-        .shake {
-            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
-
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
     </style>
 </head>
-<body class="locked">
-
-    <!-- ================= CAPA DE LOGIN ================= -->
-    <div id="login-overlay" class="login-overlay">
-        <div class="login-box" id="login-box">
-            <h2>Acceso Restringido</h2>
-            <p>Por favor, introduce la contraseña para acceder al portal educativo.</p>
-            <input type="password" id="password-input" placeholder="Contraseña">
-            <button id="login-btn">Entrar</button>
-            <p id="login-error" class="error-msg">❌ Contraseña incorrecta</p>
-        </div>
-    </div>
+<body>
 
     <header>
         <h1>CP POETA ANTÓN DE MARIRREGUERA</h1>
@@ -853,56 +727,5 @@
         <span id="contador-visitas">1.428</span>
     </div>
 
-    <!-- ================= SCRIPT DE AUTENTICACIÓN ================= -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const overlay = document.getElementById('login-overlay');
-            const loginBox = document.getElementById('login-box');
-            const input = document.getElementById('password-input');
-            const btn = document.getElementById('login-btn');
-            const errorMsg = document.getElementById('login-error');
-            const body = document.body;
-
-            const CORRECT_PASSWORD = 'padm2026';
-
-            // Comprueba si ya ha introducido la contraseña en esta sesión
-            if (sessionStorage.getItem('portal_auth') === 'true') {
-                overlay.classList.add('hidden');
-                body.classList.remove('locked');
-            } else {
-                // Enfoca el input automáticamente al cargar
-                input.focus();
-            }
-
-            function verificarPassword() {
-                if (input.value === CORRECT_PASSWORD) {
-                    // Contraseña correcta: oculta el panel, permite scroll y guarda la sesión
-                    sessionStorage.setItem('portal_auth', 'true');
-                    overlay.classList.add('hidden');
-                    body.classList.remove('locked');
-                } else {
-                    // Contraseña incorrecta: muestra error, limpia y hace efecto temblor
-                    errorMsg.style.display = 'block';
-                    input.value = '';
-                    input.focus();
-                    
-                    loginBox.classList.remove('shake');
-                    // Forzar reflow para reiniciar la animación
-                    void loginBox.offsetWidth; 
-                    loginBox.classList.add('shake');
-                }
-            }
-
-            // Validar al pulsar el botón
-            btn.addEventListener('click', verificarPassword);
-
-            // Validar al pulsar 'Enter' en el campo de texto
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    verificarPassword();
-                }
-            });
-        });
-    </script>
 </body>
 </html>
