@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador Anatómico 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111827;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #ffffff;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* --- NAVEGACIÓN GLOBAL --- */
+        #global-nav {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(31, 41, 55, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            display: flex;
+            padding: 5px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .nav-tab {
+            background: transparent;
+            color: #9ca3af;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            color: #ffffff;
+        }
+
+        .nav-tab.active {
+            background: #6366f1;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
+        }
+
+        /* --- CONTENEDORES DE UI --- */
+        .ui-wrapper {
+            position: absolute;
+            top: 80px; 
+            left: 20px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #spine-ui-container, #tools-container {
+            display: none; 
+        }
+
+        .panel {
+            background: rgba(31, 41, 55, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            pointer-events: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 280px; /* Panel más estrecho */
+            box-sizing: border-box;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .panel.collapsed-left {
+            transform: translateX(calc(-100% + 72px));
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: transparent;
+            color: #9ca3af;
+            border: 1px solid transparent;
+            padding: 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            width: 32px;
+            height: 32px;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .icon-btn.collapsed svg {
+            transform: rotate(180deg);
+        }
+
+        .panel-content {
+            margin-top: 15px;
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; color: #f3f4f6; }
+        p { font-size: 0.85rem; color: #d1d5db; line-height: 1.4; margin-bottom: 20px; }
+
+        /* Estilos para toggles del Cuerpo y Botones Detalles */
+        .system-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Alineación a la izquierda */
+            gap: 10px; /* Espacio entre switch y texto */
+            padding: 8px 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .system-toggle > span {
+            flex-grow: 1; /* Empuja los botones de la derecha al extremo */
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .detail-btn {
+            background: transparent;
+            border: 1px solid #6366f1;
+            color: #a5b4fc;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: 0.65rem; /* Botones más pequeños */
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .detail-btn:hover {
+            background: #6366f1;
+            color: white;
+        }
+
+        .detail-btn.active-detail {
+            background: #4f46e5;
+            color: white;
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+        }
+        
+        .sim-btn {
+            border-color: #10b981;
+            color: #6ee7b7;
+        }
+
+        .toggle-container { margin-top: 20px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #4b5563; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #6366f1; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .action-btn { background: #4f46e5; color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 0.9rem;}
+        .action-btn:hover { background: #4338ca; }
+
+        /* Botones Columna */
+        .btn-group { display: flex; flex-direction: column; gap: 8px; }
+        button.list-btn { background: #374151; color: #f9fafb; border: 1px solid #4b5563; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s ease; text-align: left; display: flex; align-items: center; justify-content: space-between; }
+        button.list-btn:hover { background: #4b5563; }
+        button.active-cervical { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.2); }
+        button.active-toracica { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.2); }
+        button.active-lumbar { border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.2); }
+        button.active-sacro { border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.2); }
+        button.active-hernia { border-left: 4px solid #ff0000; background: rgba(255, 0, 0, 0.2); }
+        button.active-hernia-l4l5 { border-left: 4px solid #991b1b; background: rgba(153, 27, 27, 0.2); }
+        button.active-espon-l4l5 { border-left: 4px solid #ea580c; background: rgba(234, 88, 12, 0.2); }
+        button.active-espon-l3l4 { border-left: 4px solid #ca8a04; background: rgba(202, 138, 4, 0.2); }
+        button.active-estenosis { border-left: 4px solid #a855f7; background: rgba(168, 85, 247, 0.2); }
+        button.active-all { border-left: 4px solid #9ca3af; background: rgba(156, 163, 175, 0.2); }
+        .color-indicator { width: 12px; height: 12px; border-radius: 50%; }
+
+        /* Sliders y Herramientas */
+        .slider-container { margin-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 15px; }
+        .range-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #4b5563; border-radius: 5px; outline: none; margin-top: 10px; }
+        .range-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #6366f1; cursor: pointer; transition: transform 0.1s; }
+        
+        #drawing-canvas { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
+        #tools-container { position: absolute; top: 80px; right: 20px; z-index: 10; display: flex; flex-direction: column; gap: 15px; }
+        .tools-panel { background: rgba(31, 41, 55, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; pointer-events: auto; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); width: 280px; box-sizing: border-box; transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .tools-panel.collapsed-right { transform: translateX(calc(100% - 72px)); }
+        .tools-section { margin-bottom: 15px; }
+        .tools-section h3 { margin: 0 0 10px 0; font-size: 0.85rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+        .color-row { display: flex; gap: 10px; }
+        .color-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; transition: transform 0.2s, border-color 0.2s; padding: 0; }
+        .color-btn.active-tool { border-color: white; box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); transform: scale(1.1); }
+        .mode-btn { width: 100%; text-align: center; justify-content: center; margin-bottom: 5px; background: #374151; color: white; border: 1px solid #4b5563; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;}
+        .mode-btn.active-mode { background: #6366f1; border-color: #4f46e5; }
+        .clear-btn { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.5); width: 100%; justify-content: center; margin-top: 5px; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;}
+
+        /* --- ETIQUETAS ANATÓMICAS 3D --- */
+        #labels-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 20;
+            overflow: hidden;
+        }
+        
+        .anatomy-label {
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .anatomy-label.visible { opacity: 1; }
+
+        .label-dot {
+            position: absolute;
+            width: 8px; height: 8px;
+            background: #38bdf8;
+            border-radius: 50%;
+            top: -4px; left: -4px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+
+        .label-line {
+            position: absolute;
+            top: 0; left: 0;
+            height: 1px;
+            background: #38bdf8;
+            transform-origin: 0 50%;
+            width: 70px;
+        }
+
+        .label-text {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #38bdf8;
+            color: #e0f2fe;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            transform: translateY(-50%);
+        }
+
+        .anatomy-label.dir-right .label-line { transform: rotate(-25deg); }
+        .anatomy-label.dir-right .label-text { left: 63px; top: -29px; }
+        .anatomy-label.dir-left .label-line { transform: rotate(205deg); }
+        .anatomy-label.dir-left .label-text { right: 63px; top: -29px; }
+
+        /* --- PANEL DE SIMULACIÓN --- */
+        #sim-overlay {
+            position: absolute;
+            bottom: 30px;
+            right: 30px; /* Movido a la esquina inferior derecha */
+            left: auto;
+            transform: none; /* Quitamos el centrado */
+            background: rgba(31, 41, 55, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid #3b82f6;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            display: none;
+            pointer-events: none;
+            max-width: 350px;
+            transition: border-color 0.3s;
+        }
+
+        /* --- BOCADILLO DE TEXTO ANIMADO --- */
+        .speech-bubble {
+            position: absolute;
+            left: 110px; /* Movido a la izquierda, ocupando el espacio del menú recogido */
+            right: auto;
+            top: 50%;
+            width: 230px;
+            background: #ffffff;
+            color: #111827;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            pointer-events: none;
+            opacity: 0;
+            transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s, border-color 0.3s;
+            border: 3px solid #3b82f6;
+            z-index: 60;
+            transform: translateY(-50%);
+        }
+        
+        .speech-bubble.inhale { border-color: #3b82f6; }
+        .speech-bubble.exhale { border-color: #ef4444; }
+        
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -12px; /* A la derecha del bocadillo para apuntar al modelo */
+            left: auto;
+            transform: translateY(-50%);
+            border-width: 10px 0 10px 12px; /* Dirección del borde hacia la derecha */
+            border-style: solid;
+            border-color: transparent transparent transparent #3b82f6;
+            transition: border-color 0.3s;
+        }
+        
+        .speech-bubble.inhale::before { border-color: transparent transparent transparent #3b82f6; }
+        .speech-bubble.exhale::before { border-color: transparent transparent transparent #ef4444; }
+        
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -7px; /* A la derecha del bocadillo */
+            left: auto;
+            transform: translateY(-50%);
+            border-width: 8px 0 8px 10px; /* Dirección del borde interior hacia la derecha */
+            border-style: solid;
+            border-color: transparent transparent transparent #ffffff;
+        }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="labels-container"></div>
+    
+    <!-- Panel descriptivo de Simulación -->
+    <div id="sim-overlay"></div>
+
+    <!-- Bocadillo de texto animado de la Simulación -->
+    <div id="sim-speech-bubble" class="speech-bubble"></div>
+
+    <!-- Menú de Navegación Global -->
+    <div id="global-nav">
+        <button id="nav-body" class="nav-tab active" onclick="switchMainView('body')">Cuerpo Humano</button>
+        <button id="nav-spine" class="nav-tab" onclick="switchMainView('spine')">Detalle Columna</button>
+    </div>
+
+    <!-- UI: Vista General del Cuerpo -->
+    <div id="body-ui-container" class="ui-wrapper">
+        <div class="panel" id="body-panel">
+            <div class="panel-header">
+                <h1>Anatomía General</h1>
+                <button class="icon-btn" onclick="togglePanel('body-panel', 'collapsed-left', this)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+            </div>
+            <div class="panel-content">
+                <p>Visualiza los sistemas anatómicos y su relación con el esqueleto.</p>
+                
+                <div class="system-toggle">
+                    <label class="switch"><input type="checkbox" id="toggle-locomotor" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <span>Aparato Locomotor</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="btn-detail-locomotor" class="detail-btn" onclick="detailSystem('locomotor')" title="Detallar">🔍 Ver</button>
+                        <button id="btn-sim-locomotor" class="detail-btn sim-btn" onclick="toggleSimulation('locomotor')" title="Simulación">▶️ Sim</button>
+                    </div>
+                </div>
+                <div class="system-toggle">
+                    <label class="switch"><input type="checkbox" id="toggle-skin" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <span>Piel y Contorno</span>
+                </div>
+                <div class="system-toggle">
+                    <label class="switch"><input type="checkbox" id="toggle-circulatory" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <span>Sis. Circulatorio</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="btn-detail-circulatory" class="detail-btn" onclick="detailSystem('circulatory')" title="Detallar">🔍 Ver</button>
+                        <button id="btn-sim-circulatory" class="detail-btn sim-btn" onclick="toggleSimulation('circulatory')" title="Simulación">▶️ Sim</button>
+                    </div>
+                </div>
+                <div class="system-toggle">
+                    <label class="switch"><input type="checkbox" id="toggle-digestive" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <span>Sis. Digestivo</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="btn-detail-digestive" class="detail-btn" onclick="detailSystem('digestive')" title="Detallar">🔍 Ver</button>
+                        <button id="btn-sim-digestive" class="detail-btn sim-btn" onclick="toggleSimulation('digestive')" title="Simulación">▶️ Sim</button>
+                    </div>
+                </div>
+                <div class="system-toggle">
+                    <label class="switch"><input type="checkbox" id="toggle-excretory" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <span>Sis. Excretor</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="btn-detail-excretory" class="detail-btn" onclick="detailSystem('excretory')" title="Detallar">🔍 Ver</button>
+                        <button id="btn-sim-excretory" class="detail-btn sim-btn" onclick="toggleSimulation('excretory')" title="Simulación">▶️ Sim</button>
+                    </div>
+                </div>
+                <div class="system-toggle">
+                    <label class="switch"><input type="checkbox" id="toggle-nervous" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <span>Sis. Nervioso</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="btn-detail-nervous" class="detail-btn" onclick="detailSystem('nervous')" title="Detallar">🔍 Ver</button>
+                        <button id="btn-sim-nervous" class="detail-btn sim-btn" onclick="toggleSimulation('nervous')" title="Simulación">▶️ Sim</button>
+                    </div>
+                </div>
+                <div class="system-toggle">
+                    <label class="switch"><input type="checkbox" id="toggle-respiratory" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <span>Sis. Respiratorio</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="btn-detail-respiratory" class="detail-btn" onclick="detailSystem('respiratory')" title="Detallar">🔍 Ver</button>
+                        <button id="btn-sim-respiratory" class="detail-btn sim-btn" onclick="toggleSimulation('respiratory')" title="Simulación">▶️ Sim</button>
+                    </div>
+                </div>
+
+                <button class="action-btn" onclick="switchMainView('spine')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                    Inspeccionar Columna
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI: Vista Detallada de la Columna -->
+    <div id="spine-ui-container" class="ui-wrapper">
+        <div class="panel" id="spine-panel">
+            <div class="panel-header">
+                <h1>Columna Vertebral</h1>
+                <button class="icon-btn" onclick="togglePanel('spine-panel', 'collapsed-left', this)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+            </div>
+            
+            <div class="panel-content">
+                <p>Anatomía 3D. Selecciona patologías o regiones.</p>
+                <div class="btn-group">
+                    <button id="btn-all" class="list-btn active-all" onclick="highlightRegion('all')"> Mostrar Todo <span class="color-indicator" style="background: #e5e7eb;"></span></button>
+                    <button id="btn-cervical" class="list-btn" onclick="highlightRegion('cervical')"> Región Cervical <span class="color-indicator" style="background: #ef4444;"></span></button>
+                    <button id="btn-toracica" class="list-btn" onclick="highlightRegion('toracica')"> Región Torácica <span class="color-indicator" style="background: #3b82f6;"></span></button>
+                    <button id="btn-lumbar" class="list-btn" onclick="highlightRegion('lumbar')"> Región Lumbar <span class="color-indicator" style="background: #10b981;"></span></button>
+                    <button id="btn-sacro" class="list-btn" onclick="highlightRegion('sacro')"> Sacro y Cóccix <span class="color-indicator" style="background: #f59e0b;"></span></button>
+                    
+                    <button id="btn-toggle-lesiones" class="list-btn" onclick="toggleLesiones()" style="margin-top: 5px; border-color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+                        <span>⚠️ Patologías/Cortes</span>
+                        <span id="lesiones-icon">▼</span>
+                    </button>
+                    
+                    <div id="lesiones-container" style="display: none; flex-direction: column; gap: 8px; padding-left: 12px; border-left: 2px solid #ef4444; margin-top: 5px;">
+                        <button id="btn-hernia" class="list-btn" onclick="highlightRegion('hernia')"> Hernia L5-S1 <span class="color-indicator" style="background: #ff0000;"></span></button>
+                        <button id="btn-hernia-l4l5" class="list-btn" onclick="highlightRegion('hernia-l4l5')"> Hernia L4-L5 <span class="color-indicator" style="background: #991b1b;"></span></button>
+                        <button id="btn-espon-l4l5" class="list-btn" onclick="highlightRegion('espon-l4l5')"> Espondilo. L4-L5 (Ant) <span class="color-indicator" style="background: #ea580c;"></span></button>
+                        <button id="btn-espon-l3l4" class="list-btn" onclick="highlightRegion('espon-l3l4')"> Espondilo. L3-L4 (Ret) <span class="color-indicator" style="background: #ca8a04;"></span></button>
+                        <button id="btn-estenosis" class="list-btn" onclick="highlightRegion('estenosis')"> Estenosis L3-L4 <span class="color-indicator" style="background: #a855f7;"></span></button>
+                        
+                        <hr style="border-color: rgba(255,255,255,0.1); margin: 2px 0;">
+                        <button id="btn-axial-L3L4" class="list-btn" onclick="toggleAxialView('L3L4')" style="justify-content: center; background: #4f46e5; border-color: #4338ca;">👁️ Axial L3-L4</button>
+                        <button id="btn-axial-L4L5" class="list-btn" onclick="toggleAxialView('L4L5')" style="justify-content: center; background: #4f46e5; border-color: #4338ca;">👁️ Axial L4-L5</button>
+                        <button id="btn-axial-L5S1" class="list-btn" onclick="toggleAxialView('L5S1')" style="justify-content: center; background: #4f46e5; border-color: #4338ca;">👁️ Axial L5-S1</button>
+                    </div>
+                </div>
+                <div class="toggle-container">
+                    <label class="switch"><input type="checkbox" id="auto-rotate" checked><span class="slider"></span></label>
+                    <span>Rotación automática</span>
+                </div>
+                <div class="slider-container">
+                    <label for="vertical-pan" style="font-size: 0.85rem; color: #d1d5db;">Foco Vertical</label>
+                    <input type="range" id="vertical-pan" class="range-slider" min="-25" max="15" value="0">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Capa de dibujo y Herramientas -->
+    <canvas id="drawing-canvas"></canvas>
+    <div id="tools-container">
+        <div class="tools-panel" id="draw-panel">
+            <div class="panel-header" style="margin-bottom: 15px;">
+                <button class="icon-btn" onclick="togglePanel('draw-panel', 'collapsed-right', this)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                <h1 style="font-size: 1.2rem; margin: 0; text-align: right; flex-grow: 1;">Herramientas</h1>
+            </div>
+            
+            <div class="panel-content" style="margin-top: 0;">
+                <button id="btn-mode-3d" class="mode-btn active-mode" onclick="setMode('3d')">Navegación 3D</button>
+                <button id="btn-mode-draw" class="mode-btn" onclick="setMode('draw')">Modo Dibujo</button>
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+                <div class="tools-section">
+                    <h3>Bolígrafo</h3>
+                    <div class="color-row">
+                        <button class="color-btn" style="background: #ef4444;" onclick="setTool('pen', '#ef4444', this)"></button>
+                        <button class="color-btn" style="background: #22c55e;" onclick="setTool('pen', '#22c55e', this)"></button>
+                        <button class="color-btn" style="background: #3b82f6;" onclick="setTool('pen', '#3b82f6', this)"></button>
+                    </div>
+                </div>
+                <div class="tools-section">
+                    <h3>Subrayador</h3>
+                    <div class="color-row">
+                        <button class="color-btn" style="background: #eab308;" onclick="setTool('highlighter', '#eab308', this)"></button>
+                        <button class="color-btn" style="background: #f97316;" onclick="setTool('highlighter', '#f97316', this)"></button>
+                        <button class="color-btn" style="background: #ec4899;" onclick="setTool('highlighter', '#ec4899', this)"></button>
+                    </div>
+                </div>
+                <button class="clear-btn" onclick="clearDrawing()">Borrar Dibujo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- VARIABLES GLOBALES ---
+        let scene, camera, renderer, controls;
+        let globalMode = 'body'; 
+        let activeDetailedSystem = null; 
+        
+        // Grupos 3D
+        let spineGroup = new THREE.Group();
+        let skinGroup = new THREE.Group();
+        let nervousGroup = new THREE.Group();
+        let respiratoryGroup = new THREE.Group();
+        let circulatoryGroup = new THREE.Group();
+        let digestiveGroup = new THREE.Group();
+        let excretoryGroup = new THREE.Group();
+        let masterGroup = new THREE.Group(); 
+        
+        // Variables para Simulación Dinámica
+        let activeSimulation = null;
+        let lungLRef, lungRRef, diaphragmRef, heartRef, stomachRef, bladderRef;
+        let simParticles = { respiratory: [], circulatory: [], digestive: [], excretory: [], nervous: [] };
+
+        // Datos Columna
+        let vertebraeMeshes = [];
+        let discsMeshes = [];
+        let isAutoRotating = true;
+        let activeSelections = new Set(['all']);
+        let isAxialView = false;
+        let currentAxialLevel = null;
+        let axialPositions = { 'L3L4': new THREE.Vector3(), 'L4L5': new THREE.Vector3(), 'L5S1': new THREE.Vector3() };
+        let clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100); 
+
+        // Dibujo
+        let drawCanvas, ctx;
+        let isDrawing = false;
+        let currentDrawMode = '3d'; 
+        let currentTool = null, currentColor = '#ef4444';
+        let lastX = 0, lastY = 0;
+
+        // Datos de Etiquetas Anatómicas Múltiples
+        const systemLabels = [
+            // Respiratorio
+            { text: "Cavidad Nasal", pos: new THREE.Vector3(0, 20.5, 6), system: 'respiratory', element: null, dir: 'right' },
+            { text: "Faringe", pos: new THREE.Vector3(0, 17.5, 4), system: 'respiratory', element: null, dir: 'left' },
+            { text: "Laringe", pos: new THREE.Vector3(0, 14, 3.5), system: 'respiratory', element: null, dir: 'right' },
+            { text: "Tráquea", pos: new THREE.Vector3(0, 10.5, 2.5), system: 'respiratory', element: null, dir: 'left' },
+            { text: "Bronquio Principal", pos: new THREE.Vector3(1.5, 7.5, 2.5), system: 'respiratory', element: null, dir: 'right' },
+            { text: "Pulmón Izquierdo", pos: new THREE.Vector3(3.5, 4, 3.5), system: 'respiratory', element: null, dir: 'right' }, 
+            { text: "Pulmón Derecho", pos: new THREE.Vector3(-3.5, 4, 3.5), system: 'respiratory', element: null, dir: 'left' },
+            { text: "Diafragma", pos: new THREE.Vector3(0, -0.5, 3.5), system: 'respiratory', element: null, dir: 'left' },
+            // Circulatorio
+            { text: "Corazón", pos: new THREE.Vector3(-1.5, 5, 4.5), system: 'circulatory', element: null, dir: 'left' },
+            { text: "Arteria Aorta", pos: new THREE.Vector3(1.5, 0, 2), system: 'circulatory', element: null, dir: 'right' },
+            { text: "Vena Cava", pos: new THREE.Vector3(-1.5, 0, 2), system: 'circulatory', element: null, dir: 'left' },
+            // Digestivo
+            { text: "Hígado", pos: new THREE.Vector3(2.5, -3, 4), system: 'digestive', element: null, dir: 'right' },
+            { text: "Estómago", pos: new THREE.Vector3(-2.5, -3, 4), system: 'digestive', element: null, dir: 'left' },
+            { text: "Intestinos", pos: new THREE.Vector3(0, -9, 4.5), system: 'digestive', element: null, dir: 'right' },
+            // Excretor
+            { text: "Riñón Izquierdo", pos: new THREE.Vector3(3, -4, 2), system: 'excretory', element: null, dir: 'right' },
+            { text: "Riñón Derecho", pos: new THREE.Vector3(-3, -4, 2), system: 'excretory', element: null, dir: 'left' },
+            { text: "Vejiga", pos: new THREE.Vector3(0, -14, 3.5), system: 'excretory', element: null, dir: 'right' },
+            // Nervioso
+            { text: "Cerebro", pos: new THREE.Vector3(0, 23, 3), system: 'nervous', element: null, dir: 'right' },
+            { text: "Médula Espinal", pos: new THREE.Vector3(0, 8, 2), system: 'nervous', element: null, dir: 'left' },
+            // Locomotor
+            { text: "Columna Vertebral", pos: new THREE.Vector3(0, 5, 2), system: 'locomotor', element: null, dir: 'right' },
+            { text: "Pelvis / Sacro", pos: new THREE.Vector3(0, -18, 2), system: 'locomotor', element: null, dir: 'left' }
+        ];
+
+        const colors = { base: 0xe5e7eb, cervical: 0xef4444, toracica: 0x3b82f6, lumbar: 0x10b981, sacro: 0xf59e0b, hernia: 0xff0000, 'hernia-l4l5': 0x991b1b, 'espon-l4l5': 0xea580c, 'espon-l3l4': 0xca8a04, estenosis: 0xa855f7, disc: 0x88ccff, faded: 0x374151 };
+        const boneMaterial = new THREE.MeshStandardMaterial({ color: colors.base, roughness: 0.6, metalness: 0.1, side: THREE.DoubleSide });
+        const discMaterial = new THREE.MeshStandardMaterial({ color: colors.disc, transparent: true, opacity: 0.6, roughness: 0.2, side: THREE.DoubleSide });
+        const nerveMaterial = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4, side: THREE.DoubleSide });
+
+        window.onload = function() {
+            init();
+            initLabels();
+            createSpine();
+            createHumanBody();
+            initDrawing();
+            setupEvents();
+            switchMainView('body'); 
+            animate();
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x111827, 0.008);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.localClippingEnabled = true;
+
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; controls.dampingFactor = 0.05;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 15); dirLight.castShadow = true;
+            scene.add(dirLight);
+            const backLight = new THREE.DirectionalLight(0x88bbff, 0.5);
+            backLight.position.set(-10, 10, -15);
+            scene.add(backLight);
+
+            scene.add(masterGroup);
+        }
+
+        function initLabels() {
+            const container = document.getElementById('labels-container');
+            systemLabels.forEach(label => {
+                const div = document.createElement('div');
+                div.className = `anatomy-label dir-${label.dir}`;
+                
+                const dot = document.createElement('div');
+                dot.className = 'label-dot';
+                
+                const line = document.createElement('div');
+                line.className = 'label-line';
+                
+                const text = document.createElement('div');
+                text.className = 'label-text';
+                text.textContent = label.text;
+                
+                div.appendChild(dot);
+                div.appendChild(line);
+                div.appendChild(text);
+                
+                container.appendChild(div);
+                label.element = div;
+            });
+        }
+
+        // ==========================================
+        // CREACIÓN DEL CUERPO HUMANO Y SIMULACIÓN
+        // ==========================================
+        function createHumanBody() {
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.2 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(4.5, 32, 32), skinMat); head.position.set(0, 21, 1.5);
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.5, 4, 16), skinMat); neck.position.set(0, 16, 1.5);
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 28, 32), skinMat); torso.position.set(0, 2, 1);
+            const armGeo = new THREE.CylinderGeometry(2.5, 2.5, 22, 16);
+            const armL = new THREE.Mesh(armGeo, skinMat); armL.position.set(10, 2, 1); armL.rotation.z = Math.PI/16;
+            const armR = new THREE.Mesh(armGeo, skinMat); armR.position.set(-10, 2, 1); armR.rotation.z = -Math.PI/16;
+            const legGeo = new THREE.CylinderGeometry(3.5, 3.5, 28, 16);
+            const legL = new THREE.Mesh(legGeo, skinMat); legL.position.set(4, -22, 1);
+            const legR = new THREE.Mesh(legGeo, skinMat); legR.position.set(-4, -22, 1);
+            skinGroup.add(head, neck, torso, armL, armR, legL, legR);
+
+            const brain = new THREE.Mesh(new THREE.SphereGeometry(3.2, 16, 16), new THREE.MeshStandardMaterial({color: 0xfbcfe8})); brain.position.set(0, 21.5, 1.5);
+            const spinalCordBody = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 25, 8), new THREE.MeshStandardMaterial({color: 0xfacc15})); spinalCordBody.position.set(0, 8, 1);
+            nervousGroup.add(brain, spinalCordBody);
+
+            const nasalGeo = new THREE.BoxGeometry(1.5, 2.5, 3.5); const nasalMesh = new THREE.Mesh(nasalGeo, new THREE.MeshStandardMaterial({color: 0xbae6fd})); nasalMesh.position.set(0, 20.5, 4); nasalMesh.rotation.x = -Math.PI / 10;
+            const pharynxGeo = new THREE.CylinderGeometry(0.8, 0.6, 3.5, 8); const pharynxMesh = new THREE.Mesh(pharynxGeo, new THREE.MeshStandardMaterial({color: 0xbae6fd})); pharynxMesh.position.set(0, 17.5, 2.8); pharynxMesh.rotation.x = -Math.PI / 12;
+            const larynxGeo = new THREE.CylinderGeometry(0.7, 0.6, 2.5, 8); const larynxMesh = new THREE.Mesh(larynxGeo, new THREE.MeshStandardMaterial({color: 0x7dd3fc})); larynxMesh.position.set(0, 14, 2.2);
+            const trachea = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 5, 8), new THREE.MeshStandardMaterial({color: 0xbae6fd})); trachea.position.set(0, 10.5, 2);
+            const bronchusGeo = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
+            const bronchusL = new THREE.Mesh(bronchusGeo, new THREE.MeshStandardMaterial({color: 0xbae6fd})); bronchusL.position.set(1.5, 7.5, 2); bronchusL.rotation.z = -Math.PI / 4;
+            const bronchusR = new THREE.Mesh(bronchusGeo, new THREE.MeshStandardMaterial({color: 0xbae6fd})); bronchusR.position.set(-1.5, 7.5, 2); bronchusR.rotation.z = Math.PI / 4;
+            
+            const lungGeo = new THREE.SphereGeometry(2.8, 32, 32); const lungMat = new THREE.MeshStandardMaterial({color: 0xfca5a5, transparent: true, opacity: 0.85, roughness: 0.3});
+            lungLRef = new THREE.Mesh(lungGeo, lungMat); lungLRef.position.set(3.5, 4, 2); lungLRef.scale.set(1, 1.6, 0.8);
+            lungRRef = new THREE.Mesh(lungGeo, lungMat); lungRRef.position.set(-3.5, 4, 2); lungRRef.scale.set(1, 1.6, 0.8);
+            
+            const diaphragmMat = new THREE.MeshStandardMaterial({color: 0xfca5a5, side: THREE.DoubleSide});
+            diaphragmRef = new THREE.Mesh(new THREE.SphereGeometry(4.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 4), diaphragmMat); diaphragmRef.position.set(0, -0.5, 2); diaphragmRef.scale.set(1.1, 0.5, 0.8);
+            respiratoryGroup.add(nasalMesh, pharynxMesh, larynxMesh, lungLRef, lungRRef, trachea, bronchusL, bronchusR, diaphragmRef);
+
+            heartRef = new THREE.Mesh(new THREE.SphereGeometry(1.8, 16, 16), new THREE.MeshStandardMaterial({color: 0xdc2626})); heartRef.position.set(-1.5, 5, 3); 
+            const aorta = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 26, 8), new THREE.MeshStandardMaterial({color: 0xef4444})); aorta.position.set(0.8, -2, 1);
+            const vena = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 26, 8), new THREE.MeshStandardMaterial({color: 0x3b82f6})); vena.position.set(-0.8, -2, 1);
+            circulatoryGroup.add(heartRef, aorta, vena);
+
+            const liver = new THREE.Mesh(new THREE.SphereGeometry(3.5, 16, 16), new THREE.MeshStandardMaterial({color: 0x7f1d1d})); liver.position.set(2.5, -3, 2.5); liver.scale.set(1.2, 0.7, 1);
+            stomachRef = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 16), new THREE.MeshStandardMaterial({color: 0xf472b6})); stomachRef.position.set(-2, -3, 2.5); stomachRef.scale.set(1.2, 0.8, 0.8);
+            const intestines = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshStandardMaterial({color: 0xd97706})); intestines.position.set(0, -9, 2.5); intestines.scale.set(1.1, 0.8, 0.7);
+            digestiveGroup.add(liver, stomachRef, intestines);
+
+            const kidneyMat = new THREE.MeshStandardMaterial({color: 0x78350f});
+            const kidneyL = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), kidneyMat); kidneyL.position.set(3, -4, 0.5); kidneyL.scale.set(1, 1.4, 0.7);
+            const kidneyR = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), kidneyMat); kidneyR.position.set(-3, -4, 0.5); kidneyR.scale.set(1, 1.4, 0.7);
+            bladderRef = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), new THREE.MeshStandardMaterial({color: 0xfef08a})); bladderRef.position.set(0, -14, 2);
+            excretoryGroup.add(kidneyL, kidneyR, bladderRef);
+
+            // Creador Genérico de Partículas
+            const createParticles = (group, count, color, array) => {
+                for(let i=0; i<count; i++) {
+                    const p = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), new THREE.MeshBasicMaterial({color: color}));
+                    p.visible = false; group.add(p); array.push({ mesh: p, offset: Math.random() }); 
+                }
+            };
+            createParticles(respiratoryGroup, 30, 0x3b82f6, simParticles.respiratory);
+            createParticles(circulatoryGroup, 40, 0xef4444, simParticles.circulatory);
+            createParticles(digestiveGroup, 20, 0x22c55e, simParticles.digestive);
+            createParticles(excretoryGroup, 20, 0xfef08a, simParticles.excretory);
+            createParticles(nervousGroup, 30, 0xfacc15, simParticles.nervous);
+
+            masterGroup.add(skinGroup, nervousGroup, respiratoryGroup, circulatoryGroup, digestiveGroup, excretoryGroup);
+        }
+
+        function createSpine() {
+            const curvePoints = [ new THREE.Vector3(0, 16, 1.5), new THREE.Vector3(0, 12, 2.5), new THREE.Vector3(0, 8, 1), new THREE.Vector3(0, 2, -2.5), new THREE.Vector3(0, -4, -3), new THREE.Vector3(0, -10, 0), new THREE.Vector3(0, -14, 2.5), new THREE.Vector3(0, -18, 1.5), new THREE.Vector3(0, -21, -1), new THREE.Vector3(0, -23, -2) ];
+            const spineCurve = new THREE.CatmullRomCurve3(curvePoints);
+            const numVertebrae = 24; 
+
+            for (let i = 0; i < numVertebrae; i++) {
+                const t = (i / (numVertebrae - 1)) * 0.8; 
+                const position = spineCurve.getPoint(t);
+                const tangent = spineCurve.getTangent(t);
+                let region = ''; let sizeModifier = 0.5;
+
+                if (i < 7) { region = 'cervical'; sizeModifier = 0.6 + (i * 0.05); }
+                else if (i < 19) { region = 'toracica'; sizeModifier = 0.95 + ((i - 7) * 0.03); }
+                else { region = 'lumbar'; sizeModifier = 1.3 + ((i - 19) * 0.05); }
+
+                const vertebraGroup = new THREE.Group();
+                const mat = boneMaterial.clone(); 
+                
+                const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(sizeModifier, sizeModifier * 1.05, sizeModifier * 0.8, 16), mat); vertebraGroup.add(bodyMesh);
+                const spinousMesh = new THREE.Mesh(new THREE.BoxGeometry(sizeModifier * 0.3, sizeModifier * 0.4, sizeModifier * 1.5), mat); spinousMesh.position.set(0, 0, (sizeModifier * 1.5)/2 + sizeModifier * 0.8);
+                if (region === 'toracica') { spinousMesh.rotation.x = -Math.PI / 6; spinousMesh.position.y -= sizeModifier * 0.3; }
+                vertebraGroup.add(spinousMesh);
+                const transMesh = new THREE.Mesh(new THREE.BoxGeometry(sizeModifier * 2.5, sizeModifier * 0.3, sizeModifier * 0.4), mat); transMesh.position.set(0, 0, sizeModifier * 0.5); vertebraGroup.add(transMesh);
+
+                const nerveMesh = new THREE.Mesh(new THREE.CylinderGeometry(sizeModifier * 0.18, sizeModifier * 0.18, sizeModifier * 0.8, 8), nerveMaterial); nerveMesh.position.set(0, 0, sizeModifier * 0.85); vertebraGroup.add(nerveMesh);
+
+                vertebraGroup.position.copy(position); vertebraGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+
+                let zTranslation = 0;
+                if (i <= 21) zTranslation += 0.5; if (i <= 22) zTranslation -= 0.6;
+                if (zTranslation !== 0) vertebraGroup.translateZ(zTranslation);
+
+                let meshTags = [region];
+                if (i === 21 || i === 22) meshTags.push('espon-l3l4'); if (i === 22 || i === 23) meshTags.push('espon-l4l5');
+
+                spineGroup.add(vertebraGroup); vertebraeMeshes.push({ mesh: vertebraGroup, materials: [mat], region: region, tags: meshTags, originalColor: colors.base });
+
+                let createDisc = false, nextT_disc = 0, isL5S1 = false, isL4L5 = false, isL3L4 = false;
+                if (i < numVertebrae - 1) { createDisc = true; nextT_disc = ((i + 1) / (numVertebrae - 1)) * 0.8; if (i === 21) isL3L4 = true; if (i === 22) isL4L5 = true; } 
+                else if (i === 23) { createDisc = true; nextT_disc = 0.835; isL5S1 = true; }
+
+                if (createDisc) {
+                    const nextPos = spineCurve.getPoint(nextT_disc);
+                    const midPoint = new THREE.Vector3().lerpVectors(position, nextPos, 0.5);
+                    if (isL3L4) axialPositions['L3L4'].copy(midPoint); if (isL4L5) axialPositions['L4L5'].copy(midPoint); if (isL5S1) axialPositions['L5S1'].copy(midPoint);
+
+                    const midTangent = spineCurve.getTangent((t + nextT_disc) / 2);
+                    const discMat = discMaterial.clone(); const discHeight = isL5S1 ? sizeModifier * 0.2 : sizeModifier * 0.25;
+                    const discMesh = new THREE.Mesh(new THREE.CylinderGeometry(sizeModifier * 0.95, sizeModifier * 1.0, discHeight, 16), discMat);
+                    discMesh.position.copy(midPoint); discMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), midTangent);
+                    
+                    const discNerveMesh = new THREE.Mesh(new THREE.CylinderGeometry(sizeModifier * 0.18, sizeModifier * 0.18, discHeight * 1.1, 8), nerveMaterial.clone()); discNerveMesh.position.set(0, 0, sizeModifier * 0.85);
+                    let stenosisMeshRef = null;
+
+                    if (isL3L4) {
+                        discNerveMesh.scale.set(0.3, 1, 0.3);
+                        const stenosisMesh = new THREE.Mesh(new THREE.TorusGeometry(sizeModifier * 0.25, sizeModifier * 0.15, 16, 32), new THREE.MeshStandardMaterial({ color: 0xa855f7, transparent: true, opacity: 1.0, side: THREE.DoubleSide }));
+                        stenosisMesh.position.set(0, 0, sizeModifier * 0.85); stenosisMesh.rotation.x = Math.PI / 2;
+                        discMesh.add(stenosisMesh); stenosisMeshRef = stenosisMesh;
+                    }
+                    discMesh.add(discNerveMesh);
+
+                    let slip_i = 0, slip_next = 0;
+                    if (i <= 21) slip_i += 0.5; if (i <= 22) slip_i -= 0.6; let next_idx = i + 1;
+                    if (next_idx <= 21) slip_next += 0.5; if (next_idx <= 22) slip_next -= 0.6;
+                    let discSlip = (slip_i + slip_next) / 2; if (discSlip !== 0) discMesh.translateZ(discSlip);
+
+                    let herniaMeshRef = null;
+                    if (isL5S1 || isL4L5) {
+                        const hMat = new THREE.MeshStandardMaterial({ color: isL5S1 ? 0xff0000 : 0x991b1b, roughness: 0.2, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
+                        const hSize = isL5S1 ? sizeModifier * 0.65 : sizeModifier * 0.45;
+                        const hMesh = new THREE.Mesh(new THREE.SphereGeometry(hSize, 16, 16), hMat);
+                        if (isL5S1) { hMesh.position.set(sizeModifier * 0.7, 0, sizeModifier * 1.0); hMesh.scale.set(1.4, 0.5, 1.2); } 
+                        else { hMesh.position.set(-sizeModifier * 0.5, 0, sizeModifier * 0.85); hMesh.scale.set(1.2, 0.4, 1.0); }
+                        discMesh.add(hMesh); herniaMeshRef = hMesh;
+                    }
+
+                    let discTags = [region];
+                    if (isL5S1) discTags.push('hernia'); if (isL4L5) discTags.push('hernia-l4l5'); if (isL3L4) discTags.push('estenosis');
+                    if (i === 21) discTags.push('espon-l3l4'); if (i === 22) discTags.push('espon-l4l5');
+
+                    spineGroup.add(discMesh); discsMeshes.push({ mesh: discMesh, material: discMat, region: region, tags: discTags, herniaMesh: herniaMeshRef, stenosisMesh: stenosisMeshRef });
+                }
+            }
+
+            const sacrumGroup = new THREE.Group(); const mat = boneMaterial.clone(); const t1 = 0.85;
+            for(let i=0; i<5; i++) {
+                const fraction = i/4; const width = 1.8 * (1 - fraction*0.7); const sacrumPart = new THREE.Mesh(new THREE.BoxGeometry(width * 2, 0.8, width), mat);
+                const t = t1 + fraction * 0.15; sacrumPart.position.copy(spineCurve.getPoint(t)); sacrumPart.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), spineCurve.getTangent(t));
+                sacrumGroup.add(sacrumPart);
+            }
+            spineGroup.add(sacrumGroup); vertebraeMeshes.push({ mesh: sacrumGroup, materials: [mat], region: 'sacro', tags: ['sacro'], originalColor: colors.base });
+            masterGroup.add(spineGroup);
+        }
+
+        // ==========================================
+        // VISTAS, DETALLES, ETIQUETAS Y SIMULACIÓN GLOBALES
+        // ==========================================
+        
+        function toggleSimulation(systemId) {
+            const btn = document.getElementById(`btn-sim-${systemId}`);
+            const bubble = document.getElementById('sim-speech-bubble');
+            const bodyPanel = document.getElementById('body-panel');
+            const iconBtnLeft = bodyPanel.querySelector('.panel-header .icon-btn');
+            const toolsPanel = document.getElementById('draw-panel');
+            const iconBtnRight = toolsPanel.querySelector('.panel-header .icon-btn');
+            
+            // Si ya hay una simulación activa y es diferente, la paramos primero
+            if (activeSimulation && activeSimulation !== systemId) {
+                const prevBtn = document.getElementById(`btn-sim-${activeSimulation}`);
+                if(prevBtn) { prevBtn.innerHTML = '▶️ Sim'; prevBtn.style.background = 'transparent'; prevBtn.style.color = '#6ee7b7'; }
+                simParticles[activeSimulation].forEach(p => p.mesh.visible = false);
+            }
+
+            if (activeSimulation !== systemId) {
+                // INICIAR
+                activeSimulation = systemId;
+                btn.innerHTML = '⏹️ Fin';
+                btn.style.background = '#10b981';
+                btn.style.color = 'white';
+                
+                if (activeDetailedSystem !== systemId) detailSystem(systemId);
+
+                if (!bodyPanel.classList.contains('collapsed-left')) { bodyPanel.classList.add('collapsed-left'); iconBtnLeft.classList.add('collapsed'); }
+                if (!toolsPanel.classList.contains('collapsed-right')) { toolsPanel.classList.add('collapsed-right'); iconBtnRight.classList.add('collapsed'); }
+                
+                document.getElementById('sim-overlay').style.display = 'block';
+                bubble.style.opacity = '1';
+                
+            } else {
+                // DETENER
+                activeSimulation = null;
+                btn.innerHTML = '▶️ Sim';
+                btn.style.background = 'transparent';
+                btn.style.color = '#6ee7b7';
+
+                if (bodyPanel.classList.contains('collapsed-left')) { bodyPanel.classList.remove('collapsed-left'); iconBtnLeft.classList.remove('collapsed'); }
+                if (toolsPanel.classList.contains('collapsed-right')) { toolsPanel.classList.remove('collapsed-right'); iconBtnRight.classList.remove('collapsed'); }
+                
+                document.getElementById('sim-overlay').style.display = 'none';
+                bubble.style.opacity = '0';
+                
+                // Restablecer escalas base
+                if (lungLRef) { lungLRef.scale.set(1, 1.6, 0.8); lungRRef.scale.set(1, 1.6, 0.8); diaphragmRef.position.y = -0.5; }
+                if (heartRef) heartRef.scale.set(1, 1, 1);
+                if (stomachRef) stomachRef.scale.set(1.2, 0.8, 0.8);
+                if (bladderRef) bladderRef.scale.set(1, 1, 1);
+                
+                Object.keys(simParticles).forEach(sys => { simParticles[sys].forEach(p => p.mesh.visible = false); });
+            }
+        }
+
+        function updateSimulations(time) {
+            if (!activeSimulation) return;
+            const overlay = document.getElementById('sim-overlay');
+            const bubble = document.getElementById('sim-speech-bubble');
+            
+            if (activeSimulation === 'respiratory' && lungLRef) {
+                const speed = 0.0002; 
+                const sineWave = Math.sin(time * speed); 
+                const isExhaling = Math.cos(time * speed) < 0; 
+                
+                lungLRef.scale.set(1 + (sineWave * 0.15), 1.6 + (sineWave * 0.2), 0.8 + (sineWave * 0.15));
+                lungRRef.scale.set(1 + (sineWave * 0.15), 1.6 + (sineWave * 0.2), 0.8 + (sineWave * 0.15));
+                diaphragmRef.position.y = -0.5 - (sineWave * 0.5);
+
+                let progress = (sineWave + 1) / 2; if (isExhaling) progress = 1 - progress; 
+
+                if (!isExhaling) {
+                    overlay.innerHTML = "<strong>Fase 1: Inspiración (Inhalación)</strong><br><br>El diafragma se contrae y desciende. Los pulmones se expanden para llenarse de aire rico en Oxígeno (O₂).";
+                    overlay.style.borderColor = "#3b82f6";
+                    bubble.className = 'speech-bubble inhale';
+                    if (progress < 0.3) { bubble.innerHTML = "👃 <b>Entrada</b><br>El O₂ entra y se calienta."; bubble.style.top = "25%"; } 
+                    else if (progress < 0.6) { bubble.innerHTML = "⬇️ <b>Conducción</b><br>El aire desciende por la tráquea."; bubble.style.top = "40%"; } 
+                    else { bubble.innerHTML = "🫁 <b>Llenado</b><br>Los alvéolos se llenan."; bubble.style.top = "60%"; }
+                } else {
+                    overlay.innerHTML = "<strong>Fase 2: Espiración (Exhalación)</strong><br><br>El diafragma se relaja y asciende. Los pulmones se contraen para expulsar el Dióxido de Carbono (CO₂).";
+                    overlay.style.borderColor = "#ef4444";
+                    bubble.className = 'speech-bubble exhale';
+                    if (progress < 0.3) { bubble.innerHTML = "🫁 <b>Contracción</b><br>Los pulmones comprimen el aire."; bubble.style.top = "60%"; } 
+                    else if (progress < 0.6) { bubble.innerHTML = "⬆️ <b>Retorno</b><br>El CO₂ asciende por la tráquea."; bubble.style.top = "40%"; } 
+                    else { bubble.innerHTML = "💨 <b>Expulsión</b><br>El CO₂ sale al exterior."; bubble.style.top = "25%"; }
+                }
+
+                simParticles.respiratory.forEach((p, index) => {
+                    p.mesh.visible = true; p.mesh.material.color.setHex(isExhaling ? 0xef4444 : 0x3b82f6);
+                    let t = (progress + p.offset) % 1.0; if (isExhaling) t = 1.0 - t; 
+                    const pathY = 21.0 - (t * 17.0); let pathX = 0; let pathZ = 2.0;
+                    if (pathY > 17.5) pathZ = 2.0 + (pathY - 17.5) * 0.8; 
+                    if (pathY < 10.5) { const dir = (index % 2 === 0) ? 1 : -1; pathX = ((10.5 - pathY) / 6.5) * 3.5 * dir; }
+                    p.mesh.position.set(pathX, pathY, pathZ);
+                });
+            } 
+            else if (activeSimulation === 'circulatory' && heartRef) {
+                const beatSpeed = 0.005;
+                const beat = Math.abs(Math.sin(time * beatSpeed));
+                const isSystole = beat > 0.5;
+                
+                heartRef.scale.set(1 + beat*0.2, 1 + beat*0.2, 1 + beat*0.2);
+                
+                if (isSystole) {
+                    overlay.innerHTML = "<strong>Sístole (Contracción)</strong><br><br>El corazón bombea sangre rica en oxígeno al resto del cuerpo a través de la aorta.";
+                    overlay.style.borderColor = "#ef4444"; bubble.className = 'speech-bubble exhale'; 
+                    bubble.innerHTML = "🫀 <b>Bombeo</b><br>Sangre sale por la arteria a gran presión."; bubble.style.top = "30%";
+                } else {
+                    overlay.innerHTML = "<strong>Diástole (Relajación)</strong><br><br>El corazón se relaja y se llena de sangre desoxigenada que regresa por las venas.";
+                    overlay.style.borderColor = "#3b82f6"; bubble.className = 'speech-bubble inhale'; 
+                    bubble.innerHTML = "🩸 <b>Retorno</b><br>La sangre regresa por las venas cavas."; bubble.style.top = "60%";
+                }
+                
+                simParticles.circulatory.forEach((p, i) => {
+                    p.mesh.visible = true; const isArtery = i % 2 === 0;
+                    p.mesh.material.color.setHex(isArtery ? 0xef4444 : 0x3b82f6);
+                    let t = ((time * 0.001) + p.offset) % 1.0;
+                    if (!isArtery) t = 1.0 - t; // Venas van hacia arriba
+                    const y = 10 - (t * 30);
+                    p.mesh.position.set(isArtery ? 0.8 : -0.8, y, 1);
+                });
+            }
+            else if (activeSimulation === 'digestive' && stomachRef) {
+                const digSpeed = 0.001;
+                const pulse = Math.sin(time * digSpeed);
+                stomachRef.scale.set(1.2 + pulse*0.1, 0.8 + pulse*0.1, 0.8);
+                
+                overlay.innerHTML = "<strong>Tránsito Intestinal</strong><br><br>Los nutrientes son procesados en el estómago y descienden por los intestinos para su absorción.";
+                overlay.style.borderColor = "#22c55e"; bubble.className = 'speech-bubble inhale'; bubble.style.borderColor = "#22c55e";
+                bubble.innerHTML = "🍽️ <b>Digestión</b><br>Movimientos peristálticos mueven el alimento."; bubble.style.top = "40%";
+                
+                simParticles.digestive.forEach((p) => {
+                    p.mesh.visible = true;
+                    let t = ((time * 0.0005) + p.offset) % 1.0;
+                    const pathY = -3 - (t * 6); // De estómago a intestinos
+                    const pathX = Math.sin(t * Math.PI * 4) * 2; // Zigzag
+                    p.mesh.position.set(pathX, pathY, 2.5);
+                });
+            }
+            else if (activeSimulation === 'excretory' && bladderRef) {
+                const excSpeed = 0.0005;
+                const fill = (time * excSpeed) % 1.0;
+                bladderRef.scale.set(1 + fill*0.5, 1 + fill*0.5, 1 + fill*0.5);
+                
+                overlay.innerHTML = "<strong>Filtración Renal</strong><br><br>Los riñones filtran la sangre y la orina desciende por los uréteres hasta la vejiga.";
+                overlay.style.borderColor = "#facc15"; bubble.className = 'speech-bubble inhale'; bubble.style.borderColor = "#facc15";
+                bubble.innerHTML = "💧 <b>Almacenamiento</b><br>La vejiga se expande acumulando líquidos."; bubble.style.top = "70%";
+                
+                simParticles.excretory.forEach((p, i) => {
+                    p.mesh.visible = true;
+                    let t = ((time * 0.001) + p.offset) % 1.0;
+                    const isLeft = i % 2 === 0;
+                    const startX = isLeft ? 3 : -3;
+                    const pathX = startX - (t * startX); // Hacia el centro
+                    const pathY = -4 - (t * 10);
+                    p.mesh.position.set(pathX, pathY, 1.5);
+                });
+            }
+            else if (activeSimulation === 'nervous') {
+                overlay.innerHTML = "<strong>Transmisión Sináptica</strong><br><br>Impulsos eléctricos viajan a gran velocidad desde el cerebro a la médula y nervios periféricos.";
+                overlay.style.borderColor = "#facc15"; bubble.className = 'speech-bubble inhale'; bubble.style.borderColor = "#facc15";
+                bubble.innerHTML = "⚡ <b>Señales</b><br>Órdenes motoras descienden y sensaciones ascienden."; bubble.style.top = "30%";
+                
+                simParticles.nervous.forEach((p, i) => {
+                    p.mesh.visible = true;
+                    const isMotor = i % 2 === 0;
+                    p.mesh.material.color.setHex(isMotor ? 0xfacc15 : 0xffffff); // Amarillo baja, Blanco sube
+                    let t = ((time * 0.005) + p.offset) % 1.0;
+                    if (!isMotor) t = 1.0 - t;
+                    const pathY = 21.5 - (t * 25);
+                    p.mesh.position.set(0, pathY, 1.5);
+                });
+            }
+            else if (activeSimulation === 'locomotor') {
+                overlay.innerHTML = "<strong>Soporte Estructural</strong><br><br>El esqueleto y la columna vertebral proveen el eje central que sostiene y protege todos los sistemas.";
+                overlay.style.borderColor = "#f3f4f6"; bubble.className = 'speech-bubble inhale'; bubble.style.borderColor = "#9ca3af";
+                bubble.innerHTML = "🦴 <b>Armazón</b><br>Protege órganos vitales y permite el movimiento."; bubble.style.top = "50%";
+            }
+        }
+
+        function detailSystem(systemId) {
+            const btn = document.getElementById(`btn-detail-${systemId}`);
+            
+            if (activeSimulation && activeSimulation !== systemId) toggleSimulation(activeSimulation);
+
+            if (activeDetailedSystem === systemId) {
+                activeDetailedSystem = null;
+                btn.classList.remove('active-detail');
+                btn.innerHTML = '🔍 Ver';
+                
+                camera.position.set(0, 10, 65);
+                controls.target.set(0, 0, 0);
+                
+                document.getElementById('toggle-skin').checked = true;
+                ['locomotor', 'nervous', 'respiratory', 'circulatory', 'digestive', 'excretory'].forEach(s => {
+                    document.getElementById(`toggle-${s}`).checked = true;
+                });
+                updateBodyVisibility();
+
+                if (activeSimulation === systemId) toggleSimulation(systemId);
+
+            } else {
+                activeDetailedSystem = systemId;
+                
+                document.querySelectorAll('.detail-btn:not(.sim-btn)').forEach(b => {
+                    b.classList.remove('active-detail');
+                    b.innerHTML = '🔍 Ver';
+                });
+                
+                btn.classList.add('active-detail');
+                btn.innerHTML = '🔙 Salir';
+
+                document.getElementById('toggle-skin').checked = false;
+                ['locomotor', 'nervous', 'respiratory', 'circulatory', 'digestive', 'excretory'].forEach(s => {
+                    document.getElementById(`toggle-${s}`).checked = (s === systemId || s === 'locomotor');
+                });
+                updateBodyVisibility();
+
+                // Focos de cámara específicos por sistema
+                if (systemId === 'respiratory') { camera.position.set(0, 10, 35); controls.target.set(0, 10, 0); }
+                else if (systemId === 'circulatory') { camera.position.set(0, 5, 30); controls.target.set(0, 5, 0); }
+                else if (systemId === 'digestive') { camera.position.set(0, -5, 30); controls.target.set(0, -5, 0); }
+                else if (systemId === 'excretory') { camera.position.set(0, -8, 25); controls.target.set(0, -8, 0); }
+                else if (systemId === 'nervous') { camera.position.set(0, 12, 35); controls.target.set(0, 12, 0); }
+                else if (systemId === 'locomotor') { camera.position.set(0, 0, 55); controls.target.set(0, 0, 0); }
+                
+                isAutoRotating = false;
+                document.getElementById('auto-rotate').checked = false;
+            }
+        }
+
+        function updateLabelsPosition() {
+            if (globalMode !== 'body' || !activeDetailedSystem) {
+                systemLabels.forEach(l => l.element.classList.remove('visible'));
+                return;
+            }
+
+            systemLabels.forEach(label => {
+                if (label.system === activeDetailedSystem) {
+                    let worldPos = label.pos.clone();
+                    worldPos.applyMatrix4(masterGroup.matrixWorld);
+                    
+                    worldPos.project(camera);
+                    
+                    if (worldPos.z > 1) {
+                        label.element.classList.remove('visible');
+                        return;
+                    }
+
+                    let x = (worldPos.x * .5 + .5) * window.innerWidth;
+                    let y = (worldPos.y * -.5 + .5) * window.innerHeight;
+                    
+                    label.element.style.left = `${x}px`;
+                    label.element.style.top = `${y}px`;
+                    label.element.classList.add('visible');
+                } else {
+                    label.element.classList.remove('visible');
+                }
+            });
+        }
+
+        function disableAxialView() {
+            isAxialView = false; currentAxialLevel = null;
+            document.getElementById('btn-axial-L3L4').innerHTML = '👁️ Axial L3-L4'; document.getElementById('btn-axial-L4L5').innerHTML = '👁️ Axial L4-L5'; document.getElementById('btn-axial-L5S1').innerHTML = '👁️ Axial L5-S1';
+            ['L3L4', 'L4L5', 'L5S1'].forEach(l => { const b = document.getElementById('btn-axial-' + l); if (b) { b.style.background = '#4f46e5'; b.style.borderColor = '#4338ca'; } });
+            spineGroup.traverse((child) => { if (child.isMesh && child.material) { if (Array.isArray(child.material)) { child.material.forEach(m => { m.clippingPlanes = []; m.needsUpdate = true; }); } else { child.material.clippingPlanes = []; child.material.needsUpdate = true; } } });
+            if (camera.userData.oldPos) { camera.position.copy(camera.userData.oldPos); controls.target.copy(camera.userData.oldTarget); camera.userData.oldPos = null; } else { camera.position.set(25, 5, 30); controls.target.set(0, 0, 0); }
+            controls.update();
+        }
+
+        function toggleAxialView(level) {
+            if (isAxialView && currentAxialLevel === level) { disableAxialView(); return; }
+            isAxialView = true; currentAxialLevel = level;
+            document.getElementById('btn-axial-L3L4').innerHTML = '👁️ Axial L3-L4'; document.getElementById('btn-axial-L4L5').innerHTML = '👁️ Axial L4-L5'; document.getElementById('btn-axial-L5S1').innerHTML = '👁️ Axial L5-S1';
+            ['L3L4', 'L4L5', 'L5S1'].forEach(l => { const b = document.getElementById('btn-axial-' + l); if (b) { b.style.background = '#4f46e5'; b.style.borderColor = '#4338ca'; } });
+            const btn = document.getElementById('btn-axial-' + level); btn.innerHTML = '🔙 Volver a Vista 3D'; btn.style.background = '#dc2626'; btn.style.borderColor = '#b91c1c';
+            const targetPos = axialPositions[level]; clipPlane.constant = targetPos.y + 0.1; 
+            spineGroup.traverse((child) => { if (child.isMesh && child.material) { if (Array.isArray(child.material)) { child.material.forEach(m => { m.clippingPlanes = [clipPlane]; m.needsUpdate = true; }); } else { child.material.clippingPlanes = [clipPlane]; child.material.needsUpdate = true; } } });
+            if (!camera.userData.oldPos) { camera.userData.oldPos = camera.position.clone(); camera.userData.oldTarget = controls.target.clone(); }
+            camera.position.set(targetPos.x, targetPos.y + 12, targetPos.z); controls.target.copy(targetPos);
+            if (level === 'L3L4' && !activeSelections.has('estenosis')) highlightRegion('estenosis');
+            if (level === 'L4L5' && !activeSelections.has('hernia-l4l5')) highlightRegion('hernia-l4l5');
+            if (level === 'L5S1' && !activeSelections.has('hernia')) highlightRegion('hernia');
+            isAutoRotating = false; document.getElementById('auto-rotate').checked = false;
+            controls.update();
+        }
+
+        function switchMainView(viewId) {
+            globalMode = viewId;
+            if (viewId === 'body' && isAxialView) disableAxialView();
+            if (viewId === 'spine' && activeSimulation) toggleSimulation(activeSimulation);
+
+            document.getElementById('nav-body').classList.toggle('active', viewId === 'body'); document.getElementById('nav-spine').classList.toggle('active', viewId === 'spine');
+            document.getElementById('body-ui-container').style.display = viewId === 'body' ? 'block' : 'none'; document.getElementById('spine-ui-container').style.display = viewId === 'spine' ? 'block' : 'none'; document.getElementById('tools-container').style.display = viewId === 'spine' ? 'flex' : 'none';
+            
+            if (viewId === 'body') {
+                if (activeDetailedSystem === null) {
+                    camera.position.set(0, 10, 65); controls.target.set(0, 0, 0);
+                }
+                updateBodyVisibility(); 
+                if(activeSelections.size > 0 && !activeSelections.has('all')) highlightRegion('all');
+            } else { 
+                camera.position.set(25, 5, 30); controls.target.set(0, parseFloat(document.getElementById('vertical-pan').value) || 0, 0);
+                skinGroup.visible = false; nervousGroup.visible = false; respiratoryGroup.visible = false; circulatoryGroup.visible = false; digestiveGroup.visible = false; excretoryGroup.visible = false; spineGroup.visible = true;
+                systemLabels.forEach(l => l.element.classList.remove('visible'));
+            }
+        }
+
+        function updateBodyVisibility() {
+            if (globalMode !== 'body') return;
+            skinGroup.visible = document.getElementById('toggle-skin').checked;
+            spineGroup.visible = document.getElementById('toggle-locomotor').checked;
+            nervousGroup.visible = document.getElementById('toggle-nervous').checked;
+            respiratoryGroup.visible = document.getElementById('toggle-respiratory').checked;
+            circulatoryGroup.visible = document.getElementById('toggle-circulatory').checked;
+            digestiveGroup.visible = document.getElementById('toggle-digestive').checked;
+            excretoryGroup.visible = document.getElementById('toggle-excretory').checked;
+        }
+
+        function togglePanel(panelId, hideClass, btn) { document.getElementById(panelId).classList.toggle(hideClass); btn.classList.toggle('collapsed'); }
+        function toggleLesiones() { const container = document.getElementById('lesiones-container'); const icon = document.getElementById('lesiones-icon'); if (container.style.display === 'none') { container.style.display = 'flex'; icon.textContent = '▲'; } else { container.style.display = 'none'; icon.textContent = '▼'; } }
+        
+        function highlightRegion(targetRegion) {
+            if (targetRegion === 'all') { activeSelections.clear(); activeSelections.add('all'); } else { activeSelections.delete('all'); if (activeSelections.has(targetRegion)) activeSelections.delete(targetRegion); else activeSelections.add(targetRegion); if (activeSelections.size === 0) activeSelections.add('all'); }
+            document.querySelectorAll('#spine-panel .list-btn').forEach(btn => btn.className = 'list-btn');
+            if (activeSelections.has('all')) document.getElementById('btn-all').classList.add('active-all'); else activeSelections.forEach(tag => { const btn = document.getElementById(`btn-${tag}`); if (btn) btn.classList.add(`active-${tag}`); });
+            const duration = 500, start = performance.now();
+            vertebraeMeshes.forEach(v => {
+                v.startColor = v.materials[0].color.clone();
+                if (activeSelections.has('all')) v.targetColor = new THREE.Color(colors.base);
+                else {
+                    let matchedTag = null; const pTags = ['hernia', 'hernia-l4l5', 'espon-l4l5', 'espon-l3l4', 'estenosis'];
+                    for (let pt of pTags) if (activeSelections.has(pt) && v.tags.includes(pt)) { matchedTag = pt; break; }
+                    if (!matchedTag) for (let rt of ['cervical', 'toracica', 'lumbar', 'sacro']) if (activeSelections.has(rt) && v.tags.includes(rt)) { matchedTag = rt; break; }
+                    v.targetColor = new THREE.Color(matchedTag ? colors[matchedTag] : colors.faded);
+                }
+            });
+            discsMeshes.forEach(d => { d.startOpacity = d.material.opacity; d.targetOpacity = (activeSelections.has('all') || d.tags.some(t => activeSelections.has(t))) ? 0.6 : 0.1; });
+            function animateColors(time) {
+                const prog = Math.min((time - start) / duration, 1); const ease = prog < 0.5 ? 2*prog*prog : 1-Math.pow(-2*prog+2, 2)/2;
+                vertebraeMeshes.forEach(v => v.materials[0].color.lerpColors(v.startColor, v.targetColor, ease));
+                discsMeshes.forEach(d => {
+                    d.material.opacity = d.startOpacity + (d.targetOpacity - d.startOpacity) * ease;
+                    if (d.herniaMesh) { let showH = activeSelections.has('all') || activeSelections.has('lumbar'); if (d.tags.includes('hernia') && activeSelections.has('hernia')) showH = true; if (d.tags.includes('hernia-l4l5') && activeSelections.has('hernia-l4l5')) showH = true; d.herniaMesh.material.opacity = d.herniaMesh.material.opacity + ((showH ? 1.0 : 0.05) - d.herniaMesh.material.opacity) * ease; }
+                    if (d.stenosisMesh) { let showS = activeSelections.has('all') || activeSelections.has('lumbar'); if (d.tags.includes('estenosis') && activeSelections.has('estenosis')) showS = true; d.stenosisMesh.material.opacity = d.stenosisMesh.material.opacity + ((showS ? 1.0 : 0.05) - d.stenosisMesh.material.opacity) * ease; }
+                });
+                if (prog < 1) requestAnimationFrame(animateColors);
+            }
+            requestAnimationFrame(animateColors);
+        }
+
+        // ==========================================
+        // DIBUJO Y EVENTOS
+        // ==========================================
+        function initDrawing() {
+            drawCanvas = document.getElementById('drawing-canvas'); ctx = drawCanvas.getContext('2d'); resizeDrawCanvas();
+            drawCanvas.addEventListener('mousedown', startDrawing); drawCanvas.addEventListener('mousemove', draw); drawCanvas.addEventListener('mouseup', stopDrawing); drawCanvas.addEventListener('mouseout', stopDrawing);
+            drawCanvas.addEventListener('touchstart', handleTouchStart, {passive: false}); drawCanvas.addEventListener('touchmove', handleTouchMove, {passive: false}); drawCanvas.addEventListener('touchend', stopDrawing);
+        }
+        function resizeDrawCanvas() { if (drawCanvas) { drawCanvas.width = window.innerWidth; drawCanvas.height = window.innerHeight; } }
+        function setMode(mode) {
+            currentDrawMode = mode; document.getElementById('btn-mode-3d').classList.toggle('active-mode', mode === '3d'); document.getElementById('btn-mode-draw').classList.toggle('active-mode', mode === 'draw');
+            if (mode === '3d') { controls.enabled = true; drawCanvas.style.pointerEvents = 'none'; document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active-tool')); currentTool = null; } 
+            else { controls.enabled = false; drawCanvas.style.pointerEvents = 'auto'; if (!currentTool) setTool('pen', '#ef4444', document.querySelector('.color-row .color-btn')); isAutoRotating = false; document.getElementById('auto-rotate').checked = false; }
+        }
+        function setTool(tool, color, btn) { currentTool = tool; currentColor = color; if (currentDrawMode !== 'draw') setMode('draw'); document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active-tool')); if (btn) btn.classList.add('active-tool'); }
+        function startDrawing(e) { if (currentDrawMode === 'draw') { isDrawing = true; lastX = e.offsetX; lastY = e.offsetY; } }
+        function draw(e) { if (!isDrawing) return; ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY); ctx.strokeStyle = currentColor; ctx.lineCap = 'round'; if (currentTool === 'pen') { ctx.lineWidth = 3; ctx.globalAlpha = 1.0; } else { ctx.lineWidth = 20; ctx.globalAlpha = 0.3; } ctx.stroke(); lastX = e.offsetX; lastY = e.offsetY; }
+        function stopDrawing() { isDrawing = false; }
+        function handleTouchStart(e) { if (currentDrawMode !== 'draw') return; e.preventDefault(); const rect = drawCanvas.getBoundingClientRect(); lastX = e.touches[0].clientX - rect.left; lastY = e.touches[0].clientY - rect.top; isDrawing = true; }
+        function handleTouchMove(e) { if (!isDrawing) return; e.preventDefault(); const rect = drawCanvas.getBoundingClientRect(); draw({ offsetX: e.touches[0].clientX - rect.left, offsetY: e.touches[0].clientY - rect.top }); }
+        function clearDrawing() { if (ctx) ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height); }
+
+        function setupEvents() {
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); resizeDrawCanvas(); });
+            document.getElementById('auto-rotate').addEventListener('change', (e) => { isAutoRotating = e.target.checked; });
+            document.getElementById('vertical-pan').addEventListener('input', (e) => { if (!isAxialView) { controls.target.y = parseFloat(e.target.value); controls.update(); } });
+            window.highlightRegion = highlightRegion;
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            if (isAutoRotating && !isAxialView) masterGroup.rotation.y += 0.003;
+            
+            updateLabelsPosition();
+            updateSimulations(time);
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
