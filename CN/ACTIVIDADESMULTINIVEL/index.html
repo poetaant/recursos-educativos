@@ -341,13 +341,14 @@
         let lastX = 0, lastY = 0;
 
         // --- ETIQUETAS DISTRIBUIDAS ---
+        // Se ha añadido la propiedad "view" ('front' o 'back') para ocultarlas según el ángulo de la cámara.
         const systemLabels = [
             // Respiratorio
-            { text: "Cavidad Nasal", pos: new THREE.Vector3(0, 20.5, 6), system: 'respiratory', element: null, dir: 'right' },
+            { text: "Cavidad Nasal", pos: new THREE.Vector3(0, 20.5, 6), system: 'respiratory', element: null, dir: 'right', view: 'front' },
             { text: "Faringe", pos: new THREE.Vector3(0, 17.5, 3.5), system: 'respiratory', element: null, dir: 'left' },
-            { text: "Laringe", pos: new THREE.Vector3(0, 14.0, 3.0), system: 'respiratory', element: null, dir: 'right' },
-            { text: "Tráquea", pos: new THREE.Vector3(0, 10.5, 2.5), system: 'respiratory', element: null, dir: 'left' },
-            { text: "Bronquios", pos: new THREE.Vector3(1.5, 7.5, 2.5), system: 'respiratory', element: null, dir: 'right' },
+            { text: "Laringe", pos: new THREE.Vector3(0, 14.0, 3.0), system: 'respiratory', element: null, dir: 'right', view: 'front' },
+            { text: "Tráquea", pos: new THREE.Vector3(0, 10.5, 2.5), system: 'respiratory', element: null, dir: 'left', view: 'front' },
+            { text: "Bronquios", pos: new THREE.Vector3(1.5, 7.5, 2.5), system: 'respiratory', element: null, dir: 'right', view: 'front' },
             { text: "Alvéolos", pos: new THREE.Vector3(-2.2, 6.8, 3.2), system: 'respiratory', element: null, dir: 'left' },
             { text: "Pulmón Izquierdo", pos: new THREE.Vector3(4.5, 4.5, 3.5), system: 'respiratory', element: null, dir: 'right' }, 
             { text: "Pulmón Derecho", pos: new THREE.Vector3(-4.5, 4.5, 3.5), system: 'respiratory', element: null, dir: 'left' },
@@ -355,75 +356,77 @@
             
             // Óseo 
             { text: "Cráneo", pos: new THREE.Vector3(0, 24.5, 4.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Mandíbula", pos: new THREE.Vector3(0, 19.5, 5.0), system: 'bone', element: null, dir: 'left' },
-            { text: "Clavícula", pos: new THREE.Vector3(-4, 14.5, 3.5), system: 'bone', element: null, dir: 'left' },
-            { text: "Escápula", pos: new THREE.Vector3(-5, 13, -1), system: 'bone', element: null, dir: 'left' },
-            { text: "Esternón", pos: new THREE.Vector3(0, 10, 5.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Mandíbula", pos: new THREE.Vector3(0, 19.5, 5.0), system: 'bone', element: null, dir: 'left', view: 'front' },
+            { text: "Clavícula", pos: new THREE.Vector3(-4, 14.5, 3.5), system: 'bone', element: null, dir: 'left', view: 'front' },
+            { text: "Escápula", pos: new THREE.Vector3(-5, 13, -1), system: 'bone', element: null, dir: 'left', view: 'back' },
+            { text: "Esternón", pos: new THREE.Vector3(0, 10, 5.5), system: 'bone', element: null, dir: 'left', view: 'front' },
             { text: "Costillas", pos: new THREE.Vector3(5.5, 10, 4), system: 'bone', element: null, dir: 'right' },
-            { text: "Columna Vertebral", pos: new THREE.Vector3(0, 5, 2), system: 'bone', element: null, dir: 'right' },
+            { text: "Columna Vertebral", pos: new THREE.Vector3(0, 5, -1.5), system: 'bone', element: null, dir: 'right', view: 'back' },
             { text: "Pelvis", pos: new THREE.Vector3(5.5, -6.5, 4.0), system: 'bone', element: null, dir: 'right' },
-            { text: "Sacro", pos: new THREE.Vector3(0, -5.5, -2.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Sacro", pos: new THREE.Vector3(0, -5.5, -2.5), system: 'bone', element: null, dir: 'left', view: 'back' },
             { text: "Húmero", pos: new THREE.Vector3(11.5, 8, 2.5), system: 'bone', element: null, dir: 'right' },
             { text: "Radio", pos: new THREE.Vector3(13.1, -2, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Cúbito", pos: new THREE.Vector3(-13.9, -2, 2.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Cúbito", pos: new THREE.Vector3(-13.9, -2, 1.0), system: 'bone', element: null, dir: 'left' },
             { text: "Carpos", pos: new THREE.Vector3(14.5, -6.5, 2.5), system: 'bone', element: null, dir: 'right' },
             { text: "Metacarpos", pos: new THREE.Vector3(-14.5, -7.5, 2.5), system: 'bone', element: null, dir: 'left' },
             { text: "Falanges (Mano)", pos: new THREE.Vector3(14.5, -9.5, 2.5), system: 'bone', element: null, dir: 'right' },
             { text: "Fémur", pos: new THREE.Vector3(5.5, -15, 3.2), system: 'bone', element: null, dir: 'right' },
-            { text: "Rótula", pos: new THREE.Vector3(-5.5, -22.5, 3.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Rótula", pos: new THREE.Vector3(-5.5, -22.5, 3.5), system: 'bone', element: null, dir: 'left', view: 'front' },
             { text: "Tibia", pos: new THREE.Vector3(5.0, -31, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Peroné", pos: new THREE.Vector3(-7.0, -31, 2.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Peroné", pos: new THREE.Vector3(-7.0, -31, 1.0), system: 'bone', element: null, dir: 'left' },
             { text: "Tarsos", pos: new THREE.Vector3(4.2, -37.5, 4), system: 'bone', element: null, dir: 'right' },
             { text: "Metatarsos", pos: new THREE.Vector3(-4.2, -38.5, 4.5), system: 'bone', element: null, dir: 'left' },
             { text: "Falanges (Pie)", pos: new THREE.Vector3(4.2, -39.5, 5), system: 'bone', element: null, dir: 'right' },
             
-            // Muscular Mejorado
-            { text: "Pectoral Mayor", pos: new THREE.Vector3(3.5, 10.5, 5.5), system: 'muscular', element: null, dir: 'right' },
-            { text: "Abdominales", pos: new THREE.Vector3(0, 3, 6.5), system: 'muscular', element: null, dir: 'left' },
+            // Muscular Mejorado (Añadidos Dorsales y Glúteos)
+            { text: "Pectoral Mayor", pos: new THREE.Vector3(3.5, 10.5, 5.5), system: 'muscular', element: null, dir: 'right', view: 'front' },
+            { text: "Abdominales", pos: new THREE.Vector3(0, 3, 6.5), system: 'muscular', element: null, dir: 'left', view: 'front' },
             { text: "Oblicuos", pos: new THREE.Vector3(-5.5, 3, 5.5), system: 'muscular', element: null, dir: 'left' },
-            { text: "Trapecios", pos: new THREE.Vector3(2.5, 15.5, -0.5), system: 'muscular', element: null, dir: 'right' },
+            { text: "Trapecios", pos: new THREE.Vector3(2.5, 15.5, -0.5), system: 'muscular', element: null, dir: 'right', view: 'back' },
+            { text: "Dorsal Ancho", pos: new THREE.Vector3(5.0, 6.0, -1.0), system: 'muscular', element: null, dir: 'right', view: 'back' },
             { text: "Deltoides", pos: new THREE.Vector3(-10.0, 13.5, 2), system: 'muscular', element: null, dir: 'left' },
-            { text: "Bíceps Braquial", pos: new THREE.Vector3(11.0, 8, 3), system: 'muscular', element: null, dir: 'right' },
-            { text: "Tríceps Braquial", pos: new THREE.Vector3(-10.0, 8, 0.5), system: 'muscular', element: null, dir: 'left' },
+            { text: "Bíceps Braquial", pos: new THREE.Vector3(11.0, 8, 3), system: 'muscular', element: null, dir: 'right', view: 'front' },
+            { text: "Tríceps Braquial", pos: new THREE.Vector3(-10.0, 8, -0.5), system: 'muscular', element: null, dir: 'left', view: 'back' },
             { text: "Músculos del Antebrazo", pos: new THREE.Vector3(12.5, -2, 2.5), system: 'muscular', element: null, dir: 'right' },
-            { text: "Cuádriceps Femoral", pos: new THREE.Vector3(6.5, -14.5, 5.5), system: 'muscular', element: null, dir: 'right' },
-            { text: "Bíceps Femoral", pos: new THREE.Vector3(-6.5, -14.5, -2.0), system: 'muscular', element: null, dir: 'left' },
-            { text: "Gemelos (Gastrocnemio)", pos: new THREE.Vector3(-6.5, -29, -1.5), system: 'muscular', element: null, dir: 'left' },
+            { text: "Glúteos", pos: new THREE.Vector3(4.0, -6.5, -2.5), system: 'muscular', element: null, dir: 'right', view: 'back' },
+            { text: "Cuádriceps Femoral", pos: new THREE.Vector3(6.5, -14.5, 5.5), system: 'muscular', element: null, dir: 'right', view: 'front' },
+            { text: "Bíceps Femoral", pos: new THREE.Vector3(-6.5, -14.5, -2.0), system: 'muscular', element: null, dir: 'left', view: 'back' },
+            { text: "Gemelos (Gastrocnemio)", pos: new THREE.Vector3(-6.5, -29, -1.5), system: 'muscular', element: null, dir: 'left', view: 'back' },
 
             // Ligamentos
             { text: "Cápsula Articular (Hombro)", pos: new THREE.Vector3(10.0, 13.5, 2), system: 'ligaments', element: null, dir: 'right' },
             { text: "Ligamentos del Codo", pos: new THREE.Vector3(-12.0, 2.5, 2), system: 'ligaments', element: null, dir: 'left' },
             { text: "Cápsula Articular (Cadera)", pos: new THREE.Vector3(6.5, -6.5, 3.5), system: 'ligaments', element: null, dir: 'right' },
-            { text: "Tendón Rotuliano", pos: new THREE.Vector3(5.5, -24, 4.0), system: 'ligaments', element: null, dir: 'right' },
-            { text: "Tendón de Aquiles", pos: new THREE.Vector3(-5.5, -36, 0), system: 'ligaments', element: null, dir: 'left' },
+            { text: "Tendón Rotuliano", pos: new THREE.Vector3(5.5, -24, 4.0), system: 'ligaments', element: null, dir: 'right', view: 'front' },
+            { text: "Tendón de Aquiles", pos: new THREE.Vector3(-5.5, -36, 0), system: 'ligaments', element: null, dir: 'left', view: 'back' },
 
             // Circulatorio
-            { text: "Corazón", pos: new THREE.Vector3(1.2, 5.5, 4.5), system: 'circulatory', element: null, dir: 'right' },
+            { text: "Corazón", pos: new THREE.Vector3(1.2, 5.5, 4.5), system: 'circulatory', element: null, dir: 'right', view: 'front' },
             { text: "Arteria Aorta", pos: new THREE.Vector3(0.8, -2, 2), system: 'circulatory', element: null, dir: 'right' },
             { text: "Vena Cava", pos: new THREE.Vector3(-0.8, -2, 2), system: 'circulatory', element: null, dir: 'left' },
-            { text: "Arteria Carótida", pos: new THREE.Vector3(1, 18, 1.8), system: 'circulatory', element: null, dir: 'right' },
-            { text: "Vena Yugular", pos: new THREE.Vector3(-1, 18, 1.8), system: 'circulatory', element: null, dir: 'left' },
+            { text: "Arteria Carótida", pos: new THREE.Vector3(1, 18, 1.8), system: 'circulatory', element: null, dir: 'right', view: 'front' },
+            { text: "Vena Yugular", pos: new THREE.Vector3(-1, 18, 1.8), system: 'circulatory', element: null, dir: 'left', view: 'front' },
             { text: "Arteria Braquial", pos: new THREE.Vector3(8.5, 5, 1.5), system: 'circulatory', element: null, dir: 'right' },
             { text: "Vena Basílica", pos: new THREE.Vector3(-8.5, 5, 2), system: 'circulatory', element: null, dir: 'left' },
-            { text: "Arteria Radial", pos: new THREE.Vector3(12.5, -4, 1.5), system: 'circulatory', element: null, dir: 'right' },
-            { text: "Arteria Femoral", pos: new THREE.Vector3(6.5, -15, 1.5), system: 'circulatory', element: null, dir: 'right' },
-            { text: "Vena Safena", pos: new THREE.Vector3(-6.5, -25, 2), system: 'circulatory', element: null, dir: 'left' },
-            { text: "Arteria Tibial", pos: new THREE.Vector3(5.5, -32, 1.5), system: 'circulatory', element: null, dir: 'right' },
+            { text: "Arteria Radial", pos: new THREE.Vector3(12.5, -4, 1.5), system: 'circulatory', element: null, dir: 'right', view: 'front' },
+            { text: "Arteria Femoral", pos: new THREE.Vector3(6.5, -15, 1.5), system: 'circulatory', element: null, dir: 'right', view: 'front' },
+            { text: "Vena Safena", pos: new THREE.Vector3(-6.5, -25, 2), system: 'circulatory', element: null, dir: 'left', view: 'front' },
+            { text: "Arteria Tibial", pos: new THREE.Vector3(5.5, -32, 1.5), system: 'circulatory', element: null, dir: 'right', view: 'front' },
             { text: "Red Capilar", pos: new THREE.Vector3(-13.5, -8, 1.5), system: 'circulatory', element: null, dir: 'left' },
             
             // Digestivo, Excretor, Nervioso
             { text: "Esófago", pos: new THREE.Vector3(0, 6, 2.5), system: 'digestive', element: null, dir: 'right' },
-            { text: "Hígado", pos: new THREE.Vector3(-3.5, -2.5, 4), system: 'digestive', element: null, dir: 'left' },
-            { text: "Vesícula Biliar", pos: new THREE.Vector3(-2.0, -4.8, 3.8), system: 'digestive', element: null, dir: 'left' },
-            { text: "Estómago", pos: new THREE.Vector3(3.0, -2.5, 4), system: 'digestive', element: null, dir: 'right' },
+            { text: "Hígado", pos: new THREE.Vector3(-3.5, -2.5, 4), system: 'digestive', element: null, dir: 'left', view: 'front' },
+            { text: "Vesícula Biliar", pos: new THREE.Vector3(-2.0, -4.8, 3.8), system: 'digestive', element: null, dir: 'left', view: 'front' },
+            { text: "Estómago", pos: new THREE.Vector3(3.0, -2.5, 4), system: 'digestive', element: null, dir: 'right', view: 'front' },
             { text: "Páncreas", pos: new THREE.Vector3(1.0, -4.2, 2.0), system: 'digestive', element: null, dir: 'right' },
-            { text: "Intestino Grueso", pos: new THREE.Vector3(-4.5, -8.0, 3.5), system: 'digestive', element: null, dir: 'left' },
-            { text: "Intestino Delgado", pos: new THREE.Vector3(0, -10.0, 3.5), system: 'digestive', element: null, dir: 'right' },
-            { text: "Riñones", pos: new THREE.Vector3(3.8, -4.5, 0.5), system: 'excretory', element: null, dir: 'right' },
-            { text: "Uréteres", pos: new THREE.Vector3(2.5, -9.0, 1.5), system: 'excretory', element: null, dir: 'right' },
-            { text: "Vejiga", pos: new THREE.Vector3(0, -13.5, 2), system: 'excretory', element: null, dir: 'right' },
+            { text: "Intestino Grueso", pos: new THREE.Vector3(-4.5, -8.0, 3.5), system: 'digestive', element: null, dir: 'left', view: 'front' },
+            { text: "Intestino Delgado", pos: new THREE.Vector3(0, -10.0, 3.5), system: 'digestive', element: null, dir: 'right', view: 'front' },
+            { text: "Riñones", pos: new THREE.Vector3(3.8, -4.5, 0.5), system: 'excretory', element: null, dir: 'right', view: 'back' },
+            { text: "Uréteres", pos: new THREE.Vector3(2.5, -9.0, 1.5), system: 'excretory', element: null, dir: 'right', view: 'back' },
+            { text: "Vejiga", pos: new THREE.Vector3(0, -13.5, 2), system: 'excretory', element: null, dir: 'right', view: 'front' },
             { text: "Cerebro", pos: new THREE.Vector3(0, 23.5, 1.5), system: 'nervous', element: null, dir: 'right' },
-            { text: "Médula Espinal", pos: new THREE.Vector3(0, 8, 1.5), system: 'nervous', element: null, dir: 'left' }
+            { text: "Médula Espinal", pos: new THREE.Vector3(0, 8, 1.5), system: 'nervous', element: null, dir: 'left', view: 'back' }
         ];
 
         const colors = { base: 0xe5e7eb, cervical: 0xef4444, toracica: 0x3b82f6, lumbar: 0x10b981, sacro: 0xf59e0b, hernia: 0xff0000, 'hernia-l4l5': 0x991b1b, 'espon-l4l5': 0xea580c, 'espon-l3l4': 0xca8a04, estenosis: 0xa855f7, disc: 0x88ccff, faded: 0x374151 };
@@ -1478,8 +1481,24 @@
                 return;
             }
 
+            // --- LÓGICA DE FRENTE/ESPALDA ---
+            // Convertimos la posición de la cámara al espacio local del modelo para saber si miramos de frente (z > 0) o de espaldas (z < 0)
+            let camLocalPos = camera.position.clone();
+            groups.master.worldToLocal(camLocalPos);
+            let isLookingFront = camLocalPos.z > 0;
+
             systemLabels.forEach(label => {
                 if (label.system === activeDetailedSystem) {
+                    
+                    // Ocultamos la etiqueta si es exclusiva de la cara opuesta a la que estamos mirando
+                    if (label.view) {
+                        if ((label.view === 'front' && !isLookingFront) || 
+                            (label.view === 'back' && isLookingFront)) {
+                            label.element.classList.remove('visible');
+                            return;
+                        }
+                    }
+
                     let worldPos = label.pos.clone();
                     worldPos.applyMatrix4(groups.master.matrixWorld);
                     
