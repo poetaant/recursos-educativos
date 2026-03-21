@@ -9,7 +9,7 @@
         #canvas-container { width: 100vw; height: 100vh; display: block; }
         
         /* --- NAVEGACIÓN GLOBAL --- */
-        #global-nav { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; background: rgba(31, 41, 55, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; display: flex; padding: 5px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); }
+        #global-nav { position: absolute; top: 20px; left: 20px; z-index: 100; background: rgba(31, 41, 55, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; display: flex; padding: 5px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); }
         .nav-tab { background: transparent; color: #9ca3af; border: none; padding: 10px 20px; border-radius: 25px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
         .nav-tab:hover { color: #ffffff; }
         .nav-tab.active { background: #6366f1; color: #ffffff; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); }
@@ -69,7 +69,7 @@
 
         /* Herramientas de Dibujo */
         #drawing-canvas { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
-        #tools-container { position: absolute; top: 80px; right: 20px; z-index: 10; display: flex; flex-direction: column; gap: 15px; }
+        #tools-container { position: absolute; top: 80px; right: 20px; z-index: 10; display: flex; flex-direction: column; gap: 15px; pointer-events: none; }
         .tools-section { margin-bottom: 15px; }
         .tools-section h3 { margin: 0 0 10px 0; font-size: 0.85rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
         .color-row { display: flex; gap: 10px; }
@@ -115,7 +115,12 @@
     <div id="body-ui-container" class="ui-wrapper">
         <div class="panel" id="body-panel">
             <div class="panel-header">
-                <h1>Anatomía General</h1>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="icon-btn" id="btn-toggle-all" onclick="toggleAllSystems()" title="Mostrar/Ocultar todo" style="padding: 4px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                    <h1>Anatomía General</h1>
+                </div>
                 <button class="icon-btn" onclick="togglePanel('body-panel', 'collapsed-left', this)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
@@ -131,25 +136,25 @@
                     </div>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-muscular" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-muscular" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Sistema Muscular</span>
                     <div style="display: flex; gap: 4px;">
                         <button id="btn-detail-muscular" class="detail-btn" onclick="detailSystem('muscular')">🔍 Ver</button>
                     </div>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-ligaments" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-ligaments" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Artic. y Ligamentos</span>
                     <div style="display: flex; gap: 4px;">
                         <button id="btn-detail-ligaments" class="detail-btn" onclick="detailSystem('ligaments')">🔍 Ver</button>
                     </div>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-skin" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-skin" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Piel y Contorno</span>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-circulatory" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-circulatory" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Sis. Circulatorio</span>
                     <div style="display: flex; gap: 4px;">
                         <button id="btn-detail-circulatory" class="detail-btn" onclick="detailSystem('circulatory')">🔍 Ver</button>
@@ -157,7 +162,7 @@
                     </div>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-digestive" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-digestive" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Sis. Digestivo</span>
                     <div style="display: flex; gap: 4px;">
                         <button id="btn-detail-digestive" class="detail-btn" onclick="detailSystem('digestive')">🔍 Ver</button>
@@ -165,7 +170,7 @@
                     </div>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-excretory" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-excretory" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Sis. Excretor</span>
                     <div style="display: flex; gap: 4px;">
                         <button id="btn-detail-excretory" class="detail-btn" onclick="detailSystem('excretory')">🔍 Ver</button>
@@ -173,7 +178,7 @@
                     </div>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-nervous" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-nervous" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Sis. Nervioso</span>
                     <div style="display: flex; gap: 4px;">
                         <button id="btn-detail-nervous" class="detail-btn" onclick="detailSystem('nervous')">🔍 Ver</button>
@@ -181,7 +186,7 @@
                     </div>
                 </div>
                 <div class="system-toggle">
-                    <label class="switch"><input type="checkbox" id="toggle-respiratory" checked onchange="updateBodyVisibility()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-respiratory" onchange="updateBodyVisibility()"><span class="slider"></span></label>
                     <span>Sis. Respiratorio</span>
                     <div style="display: flex; gap: 4px;">
                         <button id="btn-detail-respiratory" class="detail-btn" onclick="detailSystem('respiratory')">🔍 Ver</button>
@@ -190,8 +195,13 @@
                 </div>
 
                 <div class="toggle-container" style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
-                    <label class="switch"><input type="checkbox" id="auto-rotate" checked><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="auto-rotate"><span class="slider"></span></label>
                     <span>Rotación automática</span>
+                </div>
+                
+                <div class="slider-container" style="margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px;">
+                    <label for="body-vertical-pan" style="font-size: 0.9rem; color: #d1d5db;">Desplazamiento Vertical</label>
+                    <input type="range" id="body-vertical-pan" class="range-slider" min="-40" max="25" value="0">
                 </div>
             </div>
         </div>
@@ -244,7 +254,7 @@
     <!-- Herramientas de Dibujo -->
     <canvas id="drawing-canvas"></canvas>
     <div id="tools-container">
-        <div class="tools-panel" id="draw-panel">
+        <div class="panel" id="draw-panel">
             <div class="panel-header" style="margin-bottom: 15px;">
                 <button class="icon-btn" onclick="togglePanel('draw-panel', 'collapsed-right', this)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -317,7 +327,7 @@
 
         let vertebraeMeshes = [];
         let discsMeshes = [];
-        let isAutoRotating = true;
+        let isAutoRotating = false;
         let activeSelections = new Set(['all']);
         let isAxialView = false;
         let currentAxialLevel = null;
@@ -334,52 +344,56 @@
         const systemLabels = [
             // Respiratorio
             { text: "Cavidad Nasal", pos: new THREE.Vector3(0, 20.5, 6), system: 'respiratory', element: null, dir: 'right' },
+            { text: "Faringe", pos: new THREE.Vector3(0, 17.5, 3.5), system: 'respiratory', element: null, dir: 'left' },
+            { text: "Laringe", pos: new THREE.Vector3(0, 14.0, 3.0), system: 'respiratory', element: null, dir: 'right' },
             { text: "Tráquea", pos: new THREE.Vector3(0, 10.5, 2.5), system: 'respiratory', element: null, dir: 'left' },
-            { text: "Pulmón Izquierdo", pos: new THREE.Vector3(3.8, 5.5, 3.5), system: 'respiratory', element: null, dir: 'right' }, 
-            { text: "Pulmón Derecho", pos: new THREE.Vector3(-3.8, 5.5, 3.5), system: 'respiratory', element: null, dir: 'left' },
-            { text: "Diafragma", pos: new THREE.Vector3(0, -0.5, 3.5), system: 'respiratory', element: null, dir: 'left' },
+            { text: "Bronquios", pos: new THREE.Vector3(1.5, 7.5, 2.5), system: 'respiratory', element: null, dir: 'right' },
+            { text: "Alvéolos", pos: new THREE.Vector3(-2.2, 6.8, 3.2), system: 'respiratory', element: null, dir: 'left' },
+            { text: "Pulmón Izquierdo", pos: new THREE.Vector3(4.5, 4.5, 3.5), system: 'respiratory', element: null, dir: 'right' }, 
+            { text: "Pulmón Derecho", pos: new THREE.Vector3(-4.5, 4.5, 3.5), system: 'respiratory', element: null, dir: 'left' },
+            { text: "Diafragma", pos: new THREE.Vector3(-5.0, 0.0, 2.5), system: 'respiratory', element: null, dir: 'left' },
             
             // Óseo 
-            { text: "Cráneo", pos: new THREE.Vector3(0, 23.5, 3.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Mandíbula", pos: new THREE.Vector3(0, 20.5, 4.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Cráneo", pos: new THREE.Vector3(0, 24.5, 4.5), system: 'bone', element: null, dir: 'right' },
+            { text: "Mandíbula", pos: new THREE.Vector3(0, 19.5, 5.0), system: 'bone', element: null, dir: 'left' },
             { text: "Clavícula", pos: new THREE.Vector3(-4, 14.5, 3.5), system: 'bone', element: null, dir: 'left' },
             { text: "Escápula", pos: new THREE.Vector3(-5, 13, -1), system: 'bone', element: null, dir: 'left' },
             { text: "Esternón", pos: new THREE.Vector3(0, 10, 5.5), system: 'bone', element: null, dir: 'left' },
             { text: "Costillas", pos: new THREE.Vector3(5.5, 10, 4), system: 'bone', element: null, dir: 'right' },
             { text: "Columna Vertebral", pos: new THREE.Vector3(0, 5, 2), system: 'bone', element: null, dir: 'right' },
-            { text: "Pelvis", pos: new THREE.Vector3(4, -6.5, 3.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Sacro", pos: new THREE.Vector3(0, -6.5, -1), system: 'bone', element: null, dir: 'left' },
-            { text: "Húmero", pos: new THREE.Vector3(8.5, 8, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Radio", pos: new THREE.Vector3(10.1, -2, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Cúbito", pos: new THREE.Vector3(-10.9, -2, 2.5), system: 'bone', element: null, dir: 'left' },
-            { text: "Carpos", pos: new THREE.Vector3(11.5, -6.5, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Metacarpos", pos: new THREE.Vector3(-11.5, -7.5, 2.5), system: 'bone', element: null, dir: 'left' },
-            { text: "Falanges (Mano)", pos: new THREE.Vector3(11.5, -9.5, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Fémur", pos: new THREE.Vector3(4.2, -15, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Rótula", pos: new THREE.Vector3(-4.2, -22.5, 3.5), system: 'bone', element: null, dir: 'left' },
-            { text: "Tibia", pos: new THREE.Vector3(4.0, -31, 2.5), system: 'bone', element: null, dir: 'right' },
-            { text: "Peroné", pos: new THREE.Vector3(-4.7, -31, 2.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Pelvis", pos: new THREE.Vector3(5.5, -6.5, 4.0), system: 'bone', element: null, dir: 'right' },
+            { text: "Sacro", pos: new THREE.Vector3(0, -5.5, -2.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Húmero", pos: new THREE.Vector3(11.5, 8, 2.5), system: 'bone', element: null, dir: 'right' },
+            { text: "Radio", pos: new THREE.Vector3(13.1, -2, 2.5), system: 'bone', element: null, dir: 'right' },
+            { text: "Cúbito", pos: new THREE.Vector3(-13.9, -2, 2.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Carpos", pos: new THREE.Vector3(14.5, -6.5, 2.5), system: 'bone', element: null, dir: 'right' },
+            { text: "Metacarpos", pos: new THREE.Vector3(-14.5, -7.5, 2.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Falanges (Mano)", pos: new THREE.Vector3(14.5, -9.5, 2.5), system: 'bone', element: null, dir: 'right' },
+            { text: "Fémur", pos: new THREE.Vector3(5.5, -15, 3.2), system: 'bone', element: null, dir: 'right' },
+            { text: "Rótula", pos: new THREE.Vector3(-5.5, -22.5, 3.5), system: 'bone', element: null, dir: 'left' },
+            { text: "Tibia", pos: new THREE.Vector3(5.0, -31, 2.5), system: 'bone', element: null, dir: 'right' },
+            { text: "Peroné", pos: new THREE.Vector3(-7.0, -31, 2.5), system: 'bone', element: null, dir: 'left' },
             { text: "Tarsos", pos: new THREE.Vector3(4.2, -37.5, 4), system: 'bone', element: null, dir: 'right' },
             { text: "Metatarsos", pos: new THREE.Vector3(-4.2, -38.5, 4.5), system: 'bone', element: null, dir: 'left' },
             { text: "Falanges (Pie)", pos: new THREE.Vector3(4.2, -39.5, 5), system: 'bone', element: null, dir: 'right' },
             
             // Muscular Mejorado
             { text: "Pectoral Mayor", pos: new THREE.Vector3(3.5, 10.5, 5.5), system: 'muscular', element: null, dir: 'right' },
-            { text: "Abdominales", pos: new THREE.Vector3(0, 3, 5.5), system: 'muscular', element: null, dir: 'left' },
-            { text: "Oblicuos", pos: new THREE.Vector3(-4.5, 3, 4.5), system: 'muscular', element: null, dir: 'left' },
+            { text: "Abdominales", pos: new THREE.Vector3(0, 3, 6.5), system: 'muscular', element: null, dir: 'left' },
+            { text: "Oblicuos", pos: new THREE.Vector3(-5.5, 3, 5.5), system: 'muscular', element: null, dir: 'left' },
             { text: "Trapecios", pos: new THREE.Vector3(2.5, 15.5, -0.5), system: 'muscular', element: null, dir: 'right' },
             { text: "Deltoides", pos: new THREE.Vector3(-10.0, 13.5, 2), system: 'muscular', element: null, dir: 'left' },
             { text: "Bíceps Braquial", pos: new THREE.Vector3(11.0, 8, 3), system: 'muscular', element: null, dir: 'right' },
             { text: "Tríceps Braquial", pos: new THREE.Vector3(-10.0, 8, 0.5), system: 'muscular', element: null, dir: 'left' },
             { text: "Músculos del Antebrazo", pos: new THREE.Vector3(12.5, -2, 2.5), system: 'muscular', element: null, dir: 'right' },
-            { text: "Cuádriceps Femoral", pos: new THREE.Vector3(5.5, -14.5, 4), system: 'muscular', element: null, dir: 'right' },
-            { text: "Bíceps Femoral", pos: new THREE.Vector3(-5.5, -14.5, 0), system: 'muscular', element: null, dir: 'left' },
-            { text: "Gemelos (Gastrocnemio)", pos: new THREE.Vector3(-5.5, -29, 0), system: 'muscular', element: null, dir: 'left' },
+            { text: "Cuádriceps Femoral", pos: new THREE.Vector3(6.5, -14.5, 5.5), system: 'muscular', element: null, dir: 'right' },
+            { text: "Bíceps Femoral", pos: new THREE.Vector3(-6.5, -14.5, -2.0), system: 'muscular', element: null, dir: 'left' },
+            { text: "Gemelos (Gastrocnemio)", pos: new THREE.Vector3(-6.5, -29, -1.5), system: 'muscular', element: null, dir: 'left' },
 
             // Ligamentos
             { text: "Cápsula Articular (Hombro)", pos: new THREE.Vector3(10.0, 13.5, 2), system: 'ligaments', element: null, dir: 'right' },
             { text: "Ligamentos del Codo", pos: new THREE.Vector3(-12.0, 2.5, 2), system: 'ligaments', element: null, dir: 'left' },
-            { text: "Cápsula Articular (Cadera)", pos: new THREE.Vector3(5.0, -6.5, 2), system: 'ligaments', element: null, dir: 'right' },
+            { text: "Cápsula Articular (Cadera)", pos: new THREE.Vector3(6.5, -6.5, 3.5), system: 'ligaments', element: null, dir: 'right' },
             { text: "Tendón Rotuliano", pos: new THREE.Vector3(5.5, -24, 4.0), system: 'ligaments', element: null, dir: 'right' },
             { text: "Tendón de Aquiles", pos: new THREE.Vector3(-5.5, -36, 0), system: 'ligaments', element: null, dir: 'left' },
 
@@ -392,15 +406,21 @@
             { text: "Arteria Braquial", pos: new THREE.Vector3(8.5, 5, 1.5), system: 'circulatory', element: null, dir: 'right' },
             { text: "Vena Basílica", pos: new THREE.Vector3(-8.5, 5, 2), system: 'circulatory', element: null, dir: 'left' },
             { text: "Arteria Radial", pos: new THREE.Vector3(12.5, -4, 1.5), system: 'circulatory', element: null, dir: 'right' },
-            { text: "Arteria Femoral", pos: new THREE.Vector3(5.5, -15, 1.5), system: 'circulatory', element: null, dir: 'right' },
-            { text: "Vena Safena", pos: new THREE.Vector3(-5.5, -25, 2), system: 'circulatory', element: null, dir: 'left' },
+            { text: "Arteria Femoral", pos: new THREE.Vector3(6.5, -15, 1.5), system: 'circulatory', element: null, dir: 'right' },
+            { text: "Vena Safena", pos: new THREE.Vector3(-6.5, -25, 2), system: 'circulatory', element: null, dir: 'left' },
             { text: "Arteria Tibial", pos: new THREE.Vector3(5.5, -32, 1.5), system: 'circulatory', element: null, dir: 'right' },
             { text: "Red Capilar", pos: new THREE.Vector3(-13.5, -8, 1.5), system: 'circulatory', element: null, dir: 'left' },
             
             // Digestivo, Excretor, Nervioso
+            { text: "Esófago", pos: new THREE.Vector3(0, 6, 2.5), system: 'digestive', element: null, dir: 'right' },
             { text: "Hígado", pos: new THREE.Vector3(-3.5, -2.5, 4), system: 'digestive', element: null, dir: 'left' },
+            { text: "Vesícula Biliar", pos: new THREE.Vector3(-2.0, -4.8, 3.8), system: 'digestive', element: null, dir: 'left' },
             { text: "Estómago", pos: new THREE.Vector3(3.0, -2.5, 4), system: 'digestive', element: null, dir: 'right' },
+            { text: "Páncreas", pos: new THREE.Vector3(1.0, -4.2, 2.0), system: 'digestive', element: null, dir: 'right' },
+            { text: "Intestino Grueso", pos: new THREE.Vector3(-4.5, -8.0, 3.5), system: 'digestive', element: null, dir: 'left' },
+            { text: "Intestino Delgado", pos: new THREE.Vector3(0, -10.0, 3.5), system: 'digestive', element: null, dir: 'right' },
             { text: "Riñones", pos: new THREE.Vector3(3.8, -4.5, 0.5), system: 'excretory', element: null, dir: 'right' },
+            { text: "Uréteres", pos: new THREE.Vector3(2.5, -9.0, 1.5), system: 'excretory', element: null, dir: 'right' },
             { text: "Vejiga", pos: new THREE.Vector3(0, -13.5, 2), system: 'excretory', element: null, dir: 'right' },
             { text: "Cerebro", pos: new THREE.Vector3(0, 23.5, 1.5), system: 'nervous', element: null, dir: 'right' },
             { text: "Médula Espinal", pos: new THREE.Vector3(0, 8, 1.5), system: 'nervous', element: null, dir: 'left' }
@@ -409,7 +429,8 @@
         const colors = { base: 0xe5e7eb, cervical: 0xef4444, toracica: 0x3b82f6, lumbar: 0x10b981, sacro: 0xf59e0b, hernia: 0xff0000, 'hernia-l4l5': 0x991b1b, 'espon-l4l5': 0xea580c, 'espon-l3l4': 0xca8a04, estenosis: 0xa855f7, disc: 0x88ccff, faded: 0x374151 };
         const boneMaterial = new THREE.MeshStandardMaterial({ color: colors.base, roughness: 0.6, metalness: 0.1, side: THREE.DoubleSide });
         const discMaterial = new THREE.MeshStandardMaterial({ color: colors.disc, transparent: true, opacity: 0.6, roughness: 0.2, side: THREE.DoubleSide });
-        const nerveMaterial = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4, side: THREE.DoubleSide });
+        // MEJORA: Añadimos emisividad (brillo) al material nervioso para que destaque como impulsos eléctricos.
+        const nerveMaterial = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4, side: THREE.DoubleSide, emissive: 0xca8a04, emissiveIntensity: 0.4 });
         const muscleMaterial = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.8, metalness: 0.1 }); 
         const ligamentMaterial = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, transparent: true, opacity: 0.85, roughness: 0.5 }); 
 
@@ -483,37 +504,138 @@
         // ==========================================
         function createHumanBody() {
             // --- PIEL ---
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.2 });
-            const head = new THREE.Mesh(new THREE.SphereGeometry(4.8, 32, 32), skinMat); head.position.set(0, 22.5, 1.5);
-            const neck = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 3.0, 4, 16), skinMat); neck.position.set(0, 16.5, 1.5);
-            const torso = new THREE.Mesh(new THREE.CylinderGeometry(10.5, 10.0, 29, 32), skinMat); torso.position.set(0, 3, 1.5);
+            const skinMat = new THREE.MeshStandardMaterial({ 
+                color: 0xe0f2fe, 
+                transparent: true, 
+                opacity: 0.35, // Aumentada la visibilidad
+                depthWrite: false, 
+                roughness: 0.2,
+                metalness: 0.1,
+                side: THREE.DoubleSide
+            });
+            // Brillo emisivo para un efecto "holograma"
+            skinMat.emissive = new THREE.Color(0x0284c7);
+            skinMat.emissiveIntensity = 0.3;
+
+            // CABEZA PIEL (Esculpida modificando vértices para un contorno craneal real)
+            const headGeo = new THREE.SphereGeometry(5.2, 32, 32);
+            const posAttr = headGeo.attributes.position;
+            for(let i = 0; i < posAttr.count; i++) {
+                let x = posAttr.getX(i); let y = posAttr.getY(i); let z = posAttr.getZ(i);
+                x *= 0.85; // Cabeza más estrecha lateralmente
+                if (z < 0) z *= 1.2; // Cráneo alargado hacia la nuca
+                if (y < 0 && z > 0) { // Mandíbula y barbilla
+                    y -= (z / 5.2) * 1.5; // La mandíbula baja hacia el frente
+                    z *= 1.1; // Prominencia de la barbilla
+                }
+                posAttr.setXYZ(i, x, y, z);
+            }
+            headGeo.computeVertexNormals();
+            const head = new THREE.Mesh(headGeo, skinMat); 
+            head.position.set(0, 22.5, 1.5);
+
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.5, 4, 16), skinMat); neck.position.set(0, 16.5, 1.5);
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(12.5, 11.5, 30, 32), skinMat); torso.position.set(0, 3, 2.5);
             
-            const armGeo = new THREE.CylinderGeometry(3.2, 2.5, 28, 16);
-            const armL = new THREE.Mesh(armGeo, skinMat); armL.position.set(13.0, -2, 1.5); armL.rotation.z = Math.PI/16;
-            const armR = new THREE.Mesh(armGeo, skinMat); armR.position.set(-13.0, -2, 1.5); armR.rotation.z = -Math.PI/16;
+            const armGeo = new THREE.CylinderGeometry(4.0, 2.8, 29, 16);
+            const armL = new THREE.Mesh(armGeo, skinMat); armL.position.set(13.5, -2, 1.5); armL.rotation.z = Math.PI/16;
+            const armR = new THREE.Mesh(armGeo, skinMat); armR.position.set(-13.5, -2, 1.5); armR.rotation.z = -Math.PI/16;
             
-            const legGeo = new THREE.CylinderGeometry(4.5, 3.5, 40, 16);
-            const legL = new THREE.Mesh(legGeo, skinMat); legL.position.set(5.5, -28, 1.5);
-            const legR = new THREE.Mesh(legGeo, skinMat); legR.position.set(-5.5, -28, 1.5);
+            const legGeo = new THREE.CylinderGeometry(6.2, 4.2, 41, 16);
+            const legL = new THREE.Mesh(legGeo, skinMat); legL.position.set(6.0, -28, 1.5);
+            const legR = new THREE.Mesh(legGeo, skinMat); legR.position.set(-6.0, -28, 1.5);
+            
             groups.skin.add(head, neck, torso, armL, armR, legL, legR);
 
             // --- SISTEMA ÓSEO COMPLETO ---
-            const skull = new THREE.Mesh(new THREE.SphereGeometry(3.8, 32, 32), boneMaterial);
-            skull.scale.set(1, 1.15, 1.2); skull.position.set(0, 23.5, 1.5);
-            const jaw = new THREE.Mesh(new THREE.BoxGeometry(4.8, 2.2, 4.2), boneMaterial);
-            jaw.position.set(0, 20.5, 2.5);
-            groups.skeletonExtra.add(skull, jaw);
-
-            const sternum = new THREE.Mesh(new THREE.BoxGeometry(2.5, 10, 0.6), boneMaterial);
-            sternum.position.set(0, 10, 5.2);
-            groups.skeletonExtra.add(sternum);
+            const skullGroup = new THREE.Group();
             
-            for (let i = 0; i < 11; i++) {
-                const ribY = 15.5 - i * 0.9;
-                const curveL = new THREE.CatmullRomCurve3([new THREE.Vector3(0.8, ribY, 1.5), new THREE.Vector3(7.5, ribY-0.5, 3), new THREE.Vector3(1.2, ribY-1.5, 5.2)]);
-                const curveR = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.8, ribY, 1.5), new THREE.Vector3(-7.5, ribY-0.5, 3), new THREE.Vector3(-1.2, ribY-1.5, 5.2)]);
-                groups.skeletonExtra.add(new THREE.Mesh(new THREE.TubeGeometry(curveL, 12, 0.25, 8, false), boneMaterial));
-                groups.skeletonExtra.add(new THREE.Mesh(new THREE.TubeGeometry(curveR, 12, 0.25, 8, false), boneMaterial));
+            // Cráneo (Bóveda craneal esculpida)
+            const craniumGeo = new THREE.SphereGeometry(3.8, 32, 32);
+            const cPos = craniumGeo.attributes.position;
+            for(let i=0; i<cPos.count; i++) {
+                let x = cPos.getX(i); let y = cPos.getY(i); let z = cPos.getZ(i);
+                x *= 0.85; // Estrechar sienes
+                if (z < 0) z *= 1.25; // Hueso occipital hacia atrás
+                if (y > 0 && z > 0) y *= 1.05; // Frente más alta
+                cPos.setXYZ(i, x, y, z);
+            }
+            craniumGeo.computeVertexNormals();
+            const cranium = new THREE.Mesh(craniumGeo, boneMaterial);
+            cranium.position.set(0, 23.5, 1.5);
+            
+            // Pómulos y Maxilar Superior
+            const maxilla = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.5, 2.5, 16), boneMaterial);
+            maxilla.position.set(0, 21.5, 3.2);
+            maxilla.scale.set(1, 1, 0.85);
+            
+            // Mandíbula (Maxilar Inferior)
+            const jaw = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 1.6, 2.0, 16), boneMaterial);
+            jaw.position.set(0, 19.8, 3.3);
+            jaw.scale.set(1, 1, 0.95);
+            jaw.rotation.x = 0.15;
+
+            // Cuencas oculares y cavidad nasal (material oscuro simulando huecos)
+            const voidMat = new THREE.MeshBasicMaterial({color: 0x111827});
+            const eyeGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.5, 16);
+            const eyeL = new THREE.Mesh(eyeGeo, voidMat); eyeL.position.set(1.3, 22.2, 4.6); eyeL.rotation.x = Math.PI/2; eyeL.rotation.y = -0.2;
+            const eyeR = new THREE.Mesh(eyeGeo, voidMat); eyeR.position.set(-1.3, 22.2, 4.6); eyeR.rotation.x = Math.PI/2; eyeR.rotation.y = 0.2;
+            
+            const noseHole = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.7, 0.5, 3), voidMat);
+            noseHole.position.set(0, 21.0, 4.8); noseHole.rotation.x = Math.PI/2;
+
+            skullGroup.add(cranium, maxilla, jaw, eyeL, eyeR, noseHole);
+            groups.skeletonExtra.add(skullGroup);
+
+            // NUEVO ESTERNÓN MÁS REALISTA (Manubrio, Cuerpo, Apófisis)
+            const sternumGroup = new THREE.Group();
+            const manubrium = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.5, 0.8), boneMaterial);
+            manubrium.position.set(0, 14.5, 5.5);
+            const bodySternum = new THREE.Mesh(new THREE.BoxGeometry(2.2, 6.5, 0.6), boneMaterial);
+            bodySternum.position.set(0, 10.0, 6.0);
+            bodySternum.rotation.x = 0.1; // Curva hacia afuera
+            const xiphoid = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.5, 1.5), boneMaterial);
+            xiphoid.position.set(0, 6.0, 6.2);
+            sternumGroup.add(manubrium, bodySternum, xiphoid);
+            groups.skeletonExtra.add(sternumGroup);
+            
+            // NUEVAS COSTILLAS MÁS ANATÓMICAS (12 pares reales dinámicos)
+            for (let i = 0; i < 12; i++) {
+                const t = i / 11;
+                // Extraemos la posición exacta en 3D de la vértebra torácica correspondiente (T1 es el índice 7)
+                const vertPos = vertebraeMeshes[7 + i].mesh.position;
+                const spineY = vertPos.y;
+                const spineZ = vertPos.z;
+                
+                let sternumY = 14.5 - i * 0.9;
+                
+                // Ensanchamiento natural de la caja torácica en el medio
+                const width = 4.2 + Math.sin(t * Math.PI) * 4.0; 
+                const depth = 2.0 + Math.sin(t * Math.PI) * 3.0;
+
+                // Las costillas 1-7 van al esternón, 8-10 al cartílago, 11-12 son flotantes
+                let endX = (i < 7) ? 1.2 : (i < 10) ? 2.5 : width * 0.8;
+                let endY = (i < 7) ? sternumY : sternumY - (i-6)*0.8;
+                let endZ = (i < 7) ? 5.8 : (i < 10) ? 5.5 : 3.5;
+
+                const curveL = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(1.0, spineY, spineZ),                        // Anclaje a columna dinámico
+                    new THREE.Vector3(width * 0.5, spineY - 0.5, spineZ - 0.5),    // Extensión hacia atrás
+                    new THREE.Vector3(width, spineY - 1.5, depth),                 // Caída lateral
+                    new THREE.Vector3(width * 0.7, endY + 0.5, endZ - 0.5),        // Regreso hacia adelante
+                    new THREE.Vector3(endX, endY, endZ)                            // Unión esternón
+                ]);
+                const curveR = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(-1.0, spineY, spineZ),
+                    new THREE.Vector3(-width * 0.5, spineY - 0.5, spineZ - 0.5),
+                    new THREE.Vector3(-width, spineY - 1.5, depth),
+                    new THREE.Vector3(-width * 0.7, endY + 0.5, endZ - 0.5),
+                    new THREE.Vector3(-endX, endY, endZ)
+                ]);
+                
+                // Grosor variable de la costilla
+                groups.skeletonExtra.add(new THREE.Mesh(new THREE.TubeGeometry(curveL, 16, 0.35 - (i*0.01), 8, false), boneMaterial));
+                groups.skeletonExtra.add(new THREE.Mesh(new THREE.TubeGeometry(curveR, 16, 0.35 - (i*0.01), 8, false), boneMaterial));
             }
 
             const pelvis = new THREE.Mesh(new THREE.TorusGeometry(5.0, 1.5, 16, 32), boneMaterial);
@@ -550,10 +672,14 @@
 
             function createLowerLeg(length, isLeft) {
                 const group = new THREE.Group();
-                const tibia = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.6, length, 16), boneMaterial);
-                tibia.position.set(0.4, 0, 0);
+                const sign = isLeft ? 1 : -1;
+                
+                const tibia = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 0.7, length, 16), boneMaterial);
+                tibia.position.set(sign * -0.5, 0, 0);
+                
                 const fibula = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, length, 12), boneMaterial);
-                fibula.position.set(-0.7, 0, 0);
+                fibula.position.set(sign * 1.5, 0, 0); 
+                
                 group.add(tibia, fibula);
                 return group;
             }
@@ -578,7 +704,7 @@
                     const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.15, lengths[i]*0.4), boneMaterial); p2.position.y = -1.8 - lengths[i]*0.5 - lengths[i]*0.2;
                     fGroup.add(meta, p1, p2);
                     
-                    if(i === 0) { // Pulgar
+                    if(i === 0) {
                         fGroup.rotation.z = sign * -Math.PI / 6; fGroup.position.set(sign * 1.3, -0.6, 0.3);
                     } else {
                         fGroup.position.set(sign * fingerPos[i], -1.4, 0);
@@ -592,8 +718,8 @@
             
             groups.skeletonExtra.add(humerusL, humerusR, forearmL, forearmR, handL, handR);
 
-            const femurL = createLongBone(16, 1.5, 1.2); femurL.position.set(5.5, -14.5, 1.5);
-            const femurR = createLongBone(16, 1.5, 1.2); femurR.position.set(-5.5, -14.5, 1.5);
+            const femurL = createLongBone(16, 2.0, 1.6); femurL.position.set(5.5, -14.5, 1.5);
+            const femurR = createLongBone(16, 2.0, 1.6); femurR.position.set(-5.5, -14.5, 1.5);
             const patellaL = new THREE.Mesh(new THREE.SphereGeometry(1.2), boneMaterial); patellaL.position.set(5.5, -22.5, 3.0);
             const patellaR = new THREE.Mesh(new THREE.SphereGeometry(1.2), boneMaterial); patellaR.position.set(-5.5, -22.5, 3.0);
             const lowerLegL = createLowerLeg(15, true); lowerLegL.position.set(5.5, -30, 1.5);
@@ -614,65 +740,97 @@
             const footR = buildFoot(false); footR.position.set(-5.5, -37.5, 1.5);
             groups.skeletonExtra.add(femurL, femurR, patellaL, patellaR, lowerLegL, lowerLegR, footL, footR);
 
-            // --- SISTEMA MUSCULAR MEJORADO ---
-            // Pectorales
-            const pecGeo = new THREE.SphereGeometry(3.5, 16, 16);
-            const pecL = new THREE.Mesh(pecGeo, muscleMaterial); pecL.scale.set(1.2, 0.9, 0.5); pecL.position.set(3.5, 10.5, 5.0);
-            const pecR = new THREE.Mesh(pecGeo, muscleMaterial); pecR.scale.set(1.2, 0.9, 0.5); pecR.position.set(-3.5, 10.5, 5.0);
+
+            // --- SISTEMA MUSCULAR MEJORADO Y ORGÁNICO ---
+            // Usamos esferas estiradas (elipsoides) para formas anatómicas perfectas
+            const baseMuscleGeo = new THREE.SphereGeometry(1, 16, 16);
+            const tendonMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.9 });
             
-            // Abdominales (Estructura Rayada / Six-pack)
-            const absGroup = new THREE.Group();
-            const lineaAlba = new THREE.Mesh(new THREE.BoxGeometry(4.5, 11, 1.0), new THREE.MeshStandardMaterial({color: 0x991b1b, roughness: 0.9}));
-            lineaAlba.position.set(0, 3, 4.6);
-            absGroup.add(lineaAlba);
-            for(let i=0; i<3; i++) {
-                for(let j=0; j<2; j++) {
-                    const pack = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 1.0), muscleMaterial);
-                    pack.position.set(j === 0 ? -1.1 : 1.1, 6.5 - i*3.2, 5.0);
-                    pack.rotation.x = i === 0 ? -0.1 : (i === 2 ? 0.1 : 0);
-                    absGroup.add(pack);
-                }
+            function addMuscle(scale, pos, rot) {
+                const m = new THREE.Mesh(baseMuscleGeo, muscleMaterial);
+                m.scale.set(scale[0], scale[1], scale[2]);
+                m.position.set(pos[0], pos[1], pos[2]);
+                if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+                groups.muscular.add(m);
+                return m;
             }
-            
-            // Oblicuos
-            const obliGeo = new THREE.SphereGeometry(3, 16, 16);
-            const obliL = new THREE.Mesh(obliGeo, muscleMaterial); obliL.scale.set(0.6, 1.8, 0.8); obliL.position.set(4.0, 3, 4.0); obliL.rotation.z = Math.PI/12;
-            const obliR = new THREE.Mesh(obliGeo, muscleMaterial); obliR.scale.set(0.6, 1.8, 0.8); obliR.position.set(-4.0, 3, 4.0); obliR.rotation.z = -Math.PI/12;
 
-            // Trapecios
-            const trapGeo = new THREE.SphereGeometry(3.5, 16, 16);
-            const trapL = new THREE.Mesh(trapGeo, muscleMaterial); trapL.scale.set(1.2, 0.8, 0.4); trapL.position.set(2.5, 15.5, 1.0); trapL.rotation.z = Math.PI/8;
-            const trapR = new THREE.Mesh(trapGeo, muscleMaterial); trapR.scale.set(1.2, 0.8, 0.4); trapR.position.set(-2.5, 15.5, 1.0); trapR.rotation.z = -Math.PI/8;
+            // Pectorales (divididos en porción superior e inferior simulando abanico)
+            addMuscle([3.2, 2.0, 1.2], [3.2, 12.0, 5.2], [0.1, 0.1, -0.1]); // L Clavicular
+            addMuscle([3.8, 2.5, 1.2], [3.8, 9.8, 5.6], [-0.1, 0.2, 0.1]);  // L Esternal
+            addMuscle([3.2, 2.0, 1.2], [-3.2, 12.0, 5.2], [0.1, -0.1, 0.1]); // R Clavicular
+            addMuscle([3.8, 2.5, 1.2], [-3.8, 9.8, 5.6], [-0.1, -0.2, -0.1]); // R Esternal
 
-            // Deltoides
-            const deltL = new THREE.Mesh(new THREE.SphereGeometry(2.5), muscleMaterial); deltL.position.set(10.0, 13.5, 1.5); deltL.scale.set(1, 1.2, 1);
-            const deltR = new THREE.Mesh(new THREE.SphereGeometry(2.5), muscleMaterial); deltR.position.set(-10.0, 13.5, 1.5); deltR.scale.set(1, 1.2, 1);
-            
-            // Brazos (Bíceps y Tríceps)
-            const armMuscGeo = new THREE.CylinderGeometry(1.2, 0.8, 8, 12);
-            const bicL = new THREE.Mesh(armMuscGeo, muscleMaterial); bicL.position.set(10.8, 8, 2.5); bicL.rotation.z = Math.PI/12;
-            const bicR = new THREE.Mesh(armMuscGeo, muscleMaterial); bicR.position.set(-10.8, 8, 2.5); bicR.rotation.z = -Math.PI/12;
-            const triL = new THREE.Mesh(armMuscGeo, muscleMaterial); triL.position.set(9.2, 8, 0.5); triL.rotation.z = Math.PI/12;
-            const triR = new THREE.Mesh(armMuscGeo, muscleMaterial); triR.position.set(-9.2, 8, 0.5); triR.rotation.z = -Math.PI/12;
+            // Serrato Anterior (franjas laterales sobre las costillas)
+            for(let i=0; i<4; i++) {
+                addMuscle([1.5, 0.5, 0.8], [6.5, 8.5 - i*1.2, 4.0 + i*0.2], [0, 0, -0.3]); // L
+                addMuscle([1.5, 0.5, 0.8], [-6.5, 8.5 - i*1.2, 4.0 + i*0.2], [0, 0, 0.3]);  // R
+            }
 
-            // Antebrazos
-            const forearmMuscGeo = new THREE.CylinderGeometry(1.1, 0.6, 7, 12);
-            const foreL = new THREE.Mesh(forearmMuscGeo, muscleMaterial); foreL.position.set(12.5, -1.5, 2.2); foreL.rotation.z = Math.PI/16;
-            const foreR = new THREE.Mesh(forearmMuscGeo, muscleMaterial); foreR.position.set(-12.5, -1.5, 2.2); foreR.rotation.z = -Math.PI/16;
+            // Recto Abdominal ("Six/Eight Pack" - curvo hacia el ombligo)
+            const lineaAlba = new THREE.Mesh(new THREE.BoxGeometry(1.0, 13, 0.8), tendonMat);
+            lineaAlba.position.set(0, 3.5, 5.8);
+            groups.muscular.add(lineaAlba);
+            for(let i=0; i<4; i++) {
+                const yPos = 8.5 - i * 3.0;
+                const zOff = 6.0 - Math.abs(i-1)*0.2; // La barriga se curva un poco hacia afuera
+                const rotX = (i === 3) ? 0.2 : (i === 0) ? -0.1 : 0;
+                addMuscle([2.0, 1.3, 0.8], [1.6, yPos, zOff], [rotX, 0.1, 0]); // L
+                addMuscle([2.0, 1.3, 0.8], [-1.6, yPos, zOff], [rotX, -0.1, 0]); // R
+            }
 
-            // Piernas Muslos (Cuádriceps y Bíceps Femoral)
-            const thighMuscGeo = new THREE.CylinderGeometry(2.2, 1.5, 13, 16);
-            const quadL = new THREE.Mesh(thighMuscGeo, muscleMaterial); quadL.position.set(5.5, -14.5, 2.8);
-            const quadR = new THREE.Mesh(thighMuscGeo, muscleMaterial); quadR.position.set(-5.5, -14.5, 2.8);
-            const hamL = new THREE.Mesh(thighMuscGeo, muscleMaterial); hamL.position.set(5.5, -14.5, 0.2);
-            const hamR = new THREE.Mesh(thighMuscGeo, muscleMaterial); hamR.position.set(-5.5, -14.5, 0.2);
+            // Oblicuos Externos (Flancos)
+            addMuscle([2.5, 5.0, 2.0], [5.0, 3.5, 4.5], [0, 0.2, 0.1]); // L
+            addMuscle([2.5, 5.0, 2.0], [-5.0, 3.5, 4.5], [0, -0.2, -0.1]); // R
 
-            // Piernas Inferiores (Gemelos)
-            const calfGeo = new THREE.CylinderGeometry(1.6, 0.9, 11, 16);
-            const calfL = new THREE.Mesh(calfGeo, muscleMaterial); calfL.position.set(5.5, -28.5, 0.5);
-            const calfR = new THREE.Mesh(calfGeo, muscleMaterial); calfR.position.set(-5.5, -28.5, 0.5);
+            // Cuello y Trapecios (Vista frontal y trasera)
+            addMuscle([1.5, 3.0, 1.5], [1.5, 17.0, 1.5], [0, 0, 0.2]); // Cuello L
+            addMuscle([1.5, 3.0, 1.5], [-1.5, 17.0, 1.5], [0, 0, -0.2]); // Cuello R
+            addMuscle([4.5, 1.5, 1.0], [3.5, 15.5, 1.0], [0, 0, 0.2]); // Trapecio L
+            addMuscle([4.5, 1.5, 1.0], [-3.5, 15.5, 1.0], [0, 0, -0.2]); // Trapecio R
 
-            groups.muscular.add(pecL, pecR, absGroup, obliL, obliR, trapL, trapR, deltL, deltR, bicL, bicR, triL, triR, foreL, foreR, quadL, quadR, hamL, hamR, calfL, calfR);
+            // Dorsal Ancho (Latissimus dorsi - espalda baja)
+            addMuscle([3.5, 6.0, 2.0], [5.0, 6.0, 0.5], [0.2, 0, 0.2]); // L
+            addMuscle([3.5, 6.0, 2.0], [-5.0, 6.0, 0.5], [0.2, 0, -0.2]); // R
+
+            // Deltoides (Capuchón redondo sobre los hombros)
+            addMuscle([2.5, 3.5, 2.5], [10.5, 13.5, 1.8], [0, 0, 0.2]); // L
+            addMuscle([2.5, 3.5, 2.5], [-10.5, 13.5, 1.8], [0, 0, -0.2]); // R
+
+            // Bíceps y Tríceps
+            addMuscle([1.6, 3.8, 1.6], [11.2, 8.0, 3.2], [0, 0, 0.2]); // Bíceps L
+            addMuscle([1.6, 3.8, 1.6], [-11.2, 8.0, 3.2], [0, 0, -0.2]); // Bíceps R
+            addMuscle([1.5, 4.2, 1.8], [9.8, 8.0, 0.2], [0, 0, 0.2]); // Tríceps L
+            addMuscle([1.5, 4.2, 1.8], [-9.8, 8.0, 0.2], [0, 0, -0.2]); // Tríceps R
+
+            // Músculos del Antebrazo (Braquiorradial y flexores)
+            addMuscle([1.2, 3.5, 1.4], [12.8, 0.5, 3.0], [0, 0, 0.1]); // L Braquiorradial
+            addMuscle([1.2, 3.5, 1.4], [-12.8, 0.5, 3.0], [0, 0, -0.1]); // R Braquiorradial
+            addMuscle([1.3, 4.0, 1.3], [12.0, -1.5, 1.5], [0, 0, 0.1]); // L Flexores
+            addMuscle([1.3, 4.0, 1.3], [-12.0, -1.5, 1.5], [0, 0, -0.1]); // R Flexores
+
+            // Piernas - Cuádriceps (Separado en 3 cabezas reales)
+            addMuscle([2.0, 6.5, 2.2], [5.5, -13.5, 4.8], [0.05, 0, 0]); // Recto Femoral (Centro L)
+            addMuscle([2.0, 6.5, 2.2], [-5.5, -13.5, 4.8], [0.05, 0, 0]); // Recto Femoral (Centro R)
+            addMuscle([1.8, 6.8, 2.0], [7.5, -13.0, 3.5], [0.05, 0, 0.1]); // Vasto Lateral (Ext L)
+            addMuscle([1.8, 6.8, 2.0], [-7.5, -13.0, 3.5], [0.05, 0, -0.1]); // Vasto Lateral (Ext R)
+            addMuscle([1.5, 3.5, 2.0], [3.8, -17.0, 3.8], [0.05, 0, -0.1]); // Vasto Medial (Lágrima L)
+            addMuscle([1.5, 3.5, 2.0], [-3.8, -17.0, 3.8], [0.05, 0, 0.1]); // Vasto Medial (Lágrima R)
+
+            // Glúteos y Bíceps Femoral (Parte trasera)
+            addMuscle([3.5, 3.5, 2.5], [3.8, -6.5, -0.5], [-0.2, 0.2, 0]); // Glúteo L
+            addMuscle([3.5, 3.5, 2.5], [-3.8, -6.5, -0.5], [-0.2, -0.2, 0]); // Glúteo R
+            addMuscle([2.2, 6.5, 2.0], [5.5, -14.0, 0.5], [-0.05, 0, 0]); // Isquiotibiales L
+            addMuscle([2.2, 6.5, 2.0], [-5.5, -14.0, 0.5], [-0.05, 0, 0]); // Isquiotibiales R
+
+            // Piernas Inferiores - Gemelos y Tibial
+            addMuscle([1.5, 3.8, 1.8], [6.5, -27.5, 0.0], [0, 0, 0.05]); // Gemelo Lateral L
+            addMuscle([1.5, 3.8, 1.8], [-6.5, -27.5, 0.0], [0, 0, -0.05]); // Gemelo Lateral R
+            addMuscle([1.5, 4.2, 1.8], [4.5, -28.0, 0.0], [0, 0, -0.05]); // Gemelo Medial L
+            addMuscle([1.5, 4.2, 1.8], [-4.5, -28.0, 0.0], [0, 0, 0.05]); // Gemelo Medial R
+            addMuscle([1.2, 5.0, 1.5], [6.2, -30.0, 3.0], [0, 0, 0.05]); // Tibial Anterior (Frente) L
+            addMuscle([1.2, 5.0, 1.5], [-6.2, -30.0, 3.0], [0, 0, -0.05]); // Tibial Anterior (Frente) R
+
 
             // --- LIGAMENTOS Y ARTICULACIONES ---
             const shoulderLigL = new THREE.Mesh(new THREE.SphereGeometry(2.0), ligamentMaterial); shoulderLigL.position.set(10.0, 13.5, 1.5);
@@ -692,20 +850,68 @@
 
             groups.ligaments.add(shoulderLigL, shoulderLigR, elbowLigL, elbowLigR, hipLigL, hipLigR, patTendonL, patTendonR, achillesL, achillesR);
 
-            // --- SISTEMA NERVIOSO ---
-            const brain = new THREE.Mesh(new THREE.SphereGeometry(2.8, 16, 16), new THREE.MeshStandardMaterial({color: 0xfbcfe8})); 
-            brain.scale.set(1.1, 1.2, 1.4); brain.position.set(0, 23.5, 1.5);
-            const spinalCordBody = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 25, 8), new THREE.MeshStandardMaterial({color: 0xfacc15})); spinalCordBody.position.set(0, 8, 1);
-            groups.nervous.add(brain, spinalCordBody);
-
-            const nCurveArmL = createCurve([new THREE.Vector3(0, 12, 1), new THREE.Vector3(6.5, 11, 1.5), new THREE.Vector3(10.0, 2, 1.5), new THREE.Vector3(13.5, -6.5, 1.5)]);
-            const nCurveArmR = createCurve([new THREE.Vector3(0, 12, 1), new THREE.Vector3(-6.5, 11, 1.5), new THREE.Vector3(-10.0, 2, 1.5), new THREE.Vector3(-13.5, -6.5, 1.5)]);
-            const nCurveLegL = createCurve([new THREE.Vector3(0, -4, 1), new THREE.Vector3(3.5, -8, 1.5), new THREE.Vector3(5.5, -19, 1.5), new THREE.Vector3(5.5, -37.5, 2.5)]);
-            const nCurveLegR = createCurve([new THREE.Vector3(0, -4, 1), new THREE.Vector3(-3.5, -8, 1.5), new THREE.Vector3(-5.5, -19, 1.5), new THREE.Vector3(-5.5, -37.5, 2.5)]);
-            const nCurveCentral = createCurve([new THREE.Vector3(0, 23.5, 1.5), new THREE.Vector3(0, 8, 1), new THREE.Vector3(0, -4, 1)]);
+            // --- SISTEMA NERVIOSO RENOVADO Y AMPLIO ---
+            const brainGroup = new THREE.Group();
+            const hemisphereGeo = new THREE.SphereGeometry(2.4, 32, 32);
+            const brainMat = new THREE.MeshStandardMaterial({color: 0xfbcfe8, roughness: 0.5});
             
-            const nCurves = [nCurveCentral, nCurveArmL, nCurveArmR, nCurveLegL, nCurveLegR];
-            nCurves.forEach(c => { groups.nervous.add(new THREE.Mesh(new THREE.TubeGeometry(c, 20, 0.15, 8, false), nerveMaterial)); });
+            // Hemisferios Cerebrales
+            const leftHem = new THREE.Mesh(hemisphereGeo, brainMat);
+            leftHem.position.set(1.2, 23.5, 1.5); leftHem.scale.set(0.8, 1.2, 1.4);
+            const rightHem = new THREE.Mesh(hemisphereGeo, brainMat);
+            rightHem.position.set(-1.2, 23.5, 1.5); rightHem.scale.set(0.8, 1.2, 1.4);
+            
+            // Cerebelo
+            const cerebellum = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), brainMat);
+            cerebellum.position.set(0, 21.5, 0.2); cerebellum.scale.set(1.8, 0.8, 1);
+            
+            brainGroup.add(leftHem, rightHem, cerebellum);
+            groups.nervous.add(brainGroup);
+
+            // Médula Espinal (Cónica) - Elevada para encajar en el cerebro
+            const spinalCord = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.3, 26, 12), nerveMaterial);
+            spinalCord.position.set(0, 8.5, 1.2);
+            groups.nervous.add(spinalCord);
+
+            // Red Nerviosa (Curvas CatmullRom)
+            const mainCurves = [];
+            const peripheralCurves = [];
+
+            // Brazos (Plexo Braquial)
+            mainCurves.push(createCurve([new THREE.Vector3(0, 12, 1), new THREE.Vector3(6.5, 11, 1.5), new THREE.Vector3(10.0, 2, 1.5)])); // L Principal
+            mainCurves.push(createCurve([new THREE.Vector3(0, 12, 1), new THREE.Vector3(-6.5, 11, 1.5), new THREE.Vector3(-10.0, 2, 1.5)])); // R Principal
+            peripheralCurves.push(createCurve([new THREE.Vector3(10.0, 2, 1.5), new THREE.Vector3(12.5, -2, 2.0), new THREE.Vector3(13.5, -6.5, 1.5)])); // L Radial
+            peripheralCurves.push(createCurve([new THREE.Vector3(10.0, 2, 1.5), new THREE.Vector3(11.5, -2, 1.0), new THREE.Vector3(14.5, -6.5, 2.5)])); // L Cubital
+            peripheralCurves.push(createCurve([new THREE.Vector3(-10.0, 2, 1.5), new THREE.Vector3(-12.5, -2, 2.0), new THREE.Vector3(-13.5, -6.5, 1.5)])); // R Radial
+            peripheralCurves.push(createCurve([new THREE.Vector3(-10.0, 2, 1.5), new THREE.Vector3(-11.5, -2, 1.0), new THREE.Vector3(-14.5, -6.5, 2.5)])); // R Cubital
+            peripheralCurves.push(createCurve([new THREE.Vector3(13.5, -6.5, 1.5), new THREE.Vector3(14.5, -9.5, 2.5)])); // Dedos L
+            peripheralCurves.push(createCurve([new THREE.Vector3(-13.5, -6.5, 1.5), new THREE.Vector3(-14.5, -9.5, 2.5)])); // Dedos R
+
+            // Piernas (Nervio Ciático)
+            mainCurves.push(createCurve([new THREE.Vector3(0, -4, 1), new THREE.Vector3(3.5, -8, 0.5), new THREE.Vector3(5.5, -14, 0.5), new THREE.Vector3(5.5, -22, 1.0)])); // L Ciático
+            mainCurves.push(createCurve([new THREE.Vector3(0, -4, 1), new THREE.Vector3(-3.5, -8, 0.5), new THREE.Vector3(-5.5, -14, 0.5), new THREE.Vector3(-5.5, -22, 1.0)])); // R Ciático
+            peripheralCurves.push(createCurve([new THREE.Vector3(5.5, -22, 1.0), new THREE.Vector3(6.5, -28, 2.0), new THREE.Vector3(5.5, -37.5, 2.5)])); // L Tibial
+            peripheralCurves.push(createCurve([new THREE.Vector3(5.5, -22, 1.0), new THREE.Vector3(4.0, -28, 0.5), new THREE.Vector3(4.2, -37.5, 1.5)])); // L Peroneo
+            peripheralCurves.push(createCurve([new THREE.Vector3(-5.5, -22, 1.0), new THREE.Vector3(-6.5, -28, 2.0), new THREE.Vector3(-5.5, -37.5, 2.5)])); // R Tibial
+            peripheralCurves.push(createCurve([new THREE.Vector3(-5.5, -22, 1.0), new THREE.Vector3(-4.0, -28, 0.5), new THREE.Vector3(-4.2, -37.5, 1.5)])); // R Peroneo
+            peripheralCurves.push(createCurve([new THREE.Vector3(5.5, -37.5, 2.5), new THREE.Vector3(4.2, -39.5, 5)])); // Pies L
+            peripheralCurves.push(createCurve([new THREE.Vector3(-5.5, -37.5, 2.5), new THREE.Vector3(-4.2, -39.5, 5)])); // Pies R
+
+            // Nervios Intercostales (Torso)
+            for(let i=0; i<8; i++) {
+                let y = 10 - i*1.5;
+                peripheralCurves.push(createCurve([new THREE.Vector3(0, y, 1.0), new THREE.Vector3(3.5, y-0.5, 2.0), new THREE.Vector3(6.0, y-1.0, 3.5)])); // L
+                peripheralCurves.push(createCurve([new THREE.Vector3(0, y, 1.0), new THREE.Vector3(-3.5, y-0.5, 2.0), new THREE.Vector3(-6.0, y-1.0, 3.5)])); // R
+            }
+            
+            // Nervios Faciales/Craneales
+            peripheralCurves.push(createCurve([new THREE.Vector3(0, 21.5, 1.5), new THREE.Vector3(2.5, 20.5, 3.5), new THREE.Vector3(3.0, 19.0, 4.0)])); // L
+            peripheralCurves.push(createCurve([new THREE.Vector3(0, 21.5, 1.5), new THREE.Vector3(-2.5, 20.5, 3.5), new THREE.Vector3(-3.0, 19.0, 4.0)])); // R
+
+            // Generar geometrías
+            mainCurves.forEach(c => groups.nervous.add(new THREE.Mesh(new THREE.TubeGeometry(c, 20, 0.2, 8, false), nerveMaterial)));
+            peripheralCurves.forEach(c => groups.nervous.add(new THREE.Mesh(new THREE.TubeGeometry(c, 16, 0.08, 6, false), nerveMaterial)));
+
 
             // --- SISTEMA RESPIRATORIO ---
             const nasalGeo = new THREE.BoxGeometry(1.5, 2.5, 3.5); const nasalMesh = new THREE.Mesh(nasalGeo, new THREE.MeshStandardMaterial({color: 0xbae6fd})); nasalMesh.position.set(0, 20.5, 4); nasalMesh.rotation.x = -Math.PI / 10;
@@ -716,6 +922,25 @@
             const bronchusL = new THREE.Mesh(bronchusGeo, new THREE.MeshStandardMaterial({color: 0xbae6fd})); bronchusL.position.set(1.5, 7.5, 2); bronchusL.rotation.z = -Math.PI / 4;
             const bronchusR = new THREE.Mesh(bronchusGeo, new THREE.MeshStandardMaterial({color: 0xbae6fd})); bronchusR.position.set(-1.5, 7.5, 2); bronchusR.rotation.z = Math.PI / 4;
             
+            // Ramificaciones Bronquiales y Alvéolos
+            const bronchiolesGroup = new THREE.Group();
+            const bronchioleGeo = new THREE.CylinderGeometry(0.12, 0.1, 1.8, 8);
+            const bMat = new THREE.MeshStandardMaterial({color: 0xbae6fd});
+            
+            const bl1 = new THREE.Mesh(bronchioleGeo, bMat); bl1.position.set(2.5, 6.5, 2.0); bl1.rotation.z = -Math.PI / 6;
+            const bl2 = new THREE.Mesh(bronchioleGeo, bMat); bl2.position.set(2.2, 6.8, 2.8); bl2.rotation.z = -Math.PI / 3; bl2.rotation.x = Math.PI / 4;
+            const br1 = new THREE.Mesh(bronchioleGeo, bMat); br1.position.set(-2.5, 6.5, 2.0); br1.rotation.z = Math.PI / 6;
+            const br2 = new THREE.Mesh(bronchioleGeo, bMat); br2.position.set(-2.2, 6.8, 2.8); br2.rotation.z = Math.PI / 3; br2.rotation.x = Math.PI / 4;
+            
+            const alveoliGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            const alveoliMat = new THREE.MeshStandardMaterial({color: 0xfecaca, roughness: 0.9});
+            const al1 = new THREE.Mesh(alveoliGeo, alveoliMat); al1.position.set(3.2, 5.6, 2.0);
+            const al2 = new THREE.Mesh(alveoliGeo, alveoliMat); al2.position.set(2.8, 6.0, 3.4);
+            const ar1 = new THREE.Mesh(alveoliGeo, alveoliMat); ar1.position.set(-3.2, 5.6, 2.0);
+            const ar2 = new THREE.Mesh(alveoliGeo, alveoliMat); ar2.position.set(-2.8, 6.0, 3.4);
+            
+            bronchiolesGroup.add(bl1, bl2, br1, br2, al1, al2, ar1, ar2);
+            
             const lungGeo = new THREE.SphereGeometry(2.4, 32, 32); 
             const lungMat = new THREE.MeshStandardMaterial({color: 0xfca5a5, transparent: true, opacity: 0.85, roughness: 0.3});
             lungLRef = new THREE.Mesh(lungGeo, lungMat); lungLRef.position.set(3.8, 5.5, 2.2); lungLRef.scale.set(1, 1.8, 0.9);
@@ -724,7 +949,7 @@
             const diaphragmMat = new THREE.MeshStandardMaterial({color: 0xfca5a5, side: THREE.DoubleSide});
             diaphragmRef = new THREE.Mesh(new THREE.SphereGeometry(4.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 4), diaphragmMat); diaphragmRef.position.set(0, -0.5, 2); diaphragmRef.scale.set(1.2, 0.5, 0.9);
             
-            groups.respiratory.add(nasalMesh, pharynxMesh, larynxMesh, lungLRef, lungRRef, trachea, bronchusL, bronchusR, diaphragmRef);
+            groups.respiratory.add(nasalMesh, pharynxMesh, larynxMesh, lungLRef, lungRRef, trachea, bronchusL, bronchusR, bronchiolesGroup, diaphragmRef);
 
             // --- SISTEMAS CIRCULATORIO, DIGESTIVO, EXCRETOR ---
             heartRef = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 16), new THREE.MeshStandardMaterial({color: 0xdc2626})); 
@@ -790,22 +1015,60 @@
             
             stomachRef = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 16), new THREE.MeshStandardMaterial({color: 0xf472b6})); 
             stomachRef.position.set(3.0, -2.5, 2.5); stomachRef.scale.set(1.2, 0.85, 0.6); stomachRef.rotation.z = -Math.PI / 6;
+
+            const esophagus = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 12, 12), new THREE.MeshStandardMaterial({color: 0xfbcfe8}));
+            esophagus.position.set(0, 6, 1.5);
             
-            const intestines = new THREE.Group();
-            const largeInt = new THREE.Mesh(new THREE.TorusGeometry(3.5, 1.0, 16, 32), new THREE.MeshStandardMaterial({color: 0x92400e}));
-            const smallInt = new THREE.Mesh(new THREE.SphereGeometry(3.5, 16, 16), new THREE.MeshStandardMaterial({color: 0xd97706}));
-            smallInt.scale.set(1.0, 0.8, 0.5);
-            intestines.add(largeInt, smallInt);
-            intestines.position.set(0, -8.5, 2.2);
-            groups.digestive.add(liver, stomachRef, intestines);
+            const gallbladder = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({color: 0x16a34a}));
+            gallbladder.position.set(-2.0, -4.5, 3.2); gallbladder.scale.set(1, 1.5, 1); gallbladder.rotation.z = -0.2;
+            
+            const pancreas = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.3, 5, 12), new THREE.MeshStandardMaterial({color: 0xfde047}));
+            pancreas.position.set(1.0, -3.8, 1.6); pancreas.rotation.z = 1.3; pancreas.rotation.x = 0.2;
+            
+            const smallInt = new THREE.Mesh(new THREE.TorusKnotGeometry(2.0, 0.7, 100, 16), new THREE.MeshStandardMaterial({color: 0xd97706}));
+            smallInt.position.set(0, -9.5, 2.2); smallInt.scale.set(1.0, 0.8, 0.6);
+            
+            const colonCurve = createCurve([
+                new THREE.Vector3(-3.8, -13.0, 1.8), // Ciego/Apéndice
+                new THREE.Vector3(-4.0, -6.5, 2.2),  // Colon ascendente
+                new THREE.Vector3(4.0, -6.0, 2.2),   // Colon transverso
+                new THREE.Vector3(4.2, -12.5, 1.8),  // Colon descendente
+                new THREE.Vector3(0, -14.5, 1.5)     // Recto
+            ]);
+            const largeInt = new THREE.Mesh(new THREE.TubeGeometry(colonCurve, 32, 1.2, 12, false), new THREE.MeshStandardMaterial({color: 0x92400e}));
+            
+            // Guardamos la curva de digestión globalmente para la simulación
+            window.digestionCurve = createCurve([
+                new THREE.Vector3(0, 12, 1.5),       // Esófago alto
+                new THREE.Vector3(0, 2, 1.5),        // Esófago bajo
+                new THREE.Vector3(3.0, -2.5, 2.5),   // Estómago
+                new THREE.Vector3(0, -6, 2.2),       // Duodeno
+                new THREE.Vector3(-2, -9, 2.5),      // Intestino Delgado 1
+                new THREE.Vector3(2, -10, 2.5),      // Intestino Delgado 2
+                new THREE.Vector3(-3.8, -12.5, 1.8), // Ciego
+                new THREE.Vector3(-4.0, -6.5, 2.2),  // Ascendente
+                new THREE.Vector3(4.0, -6.0, 2.2),   // Transverso
+                new THREE.Vector3(4.2, -12.5, 1.8),  // Descendente
+                new THREE.Vector3(0, -14.5, 1.5)     // Recto
+            ]);
+
+            groups.digestive.add(esophagus, liver, gallbladder, stomachRef, pancreas, smallInt, largeInt);
 
             const kidneyL = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), new THREE.MeshStandardMaterial({color: 0x78350f})); 
             kidneyL.position.set(3.8, -4.5, 0.5); kidneyL.scale.set(1, 1.5, 0.6); kidneyL.rotation.y = Math.PI/6;
             const kidneyR = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), new THREE.MeshStandardMaterial({color: 0x78350f})); 
             kidneyR.position.set(-3.8, -4.5, 0.5); kidneyR.scale.set(1, 1.5, 0.6); kidneyR.rotation.y = -Math.PI/6;
+            
+            // --- NUEVOS URÉTERES ---
+            const ureterLCurve = createCurve([new THREE.Vector3(3.2, -5.0, 0.8), new THREE.Vector3(2.0, -9.0, 1.5), new THREE.Vector3(0.5, -13.0, 2.0)]);
+            const ureterRCurve = createCurve([new THREE.Vector3(-3.2, -5.0, 0.8), new THREE.Vector3(-2.0, -9.0, 1.5), new THREE.Vector3(-0.5, -13.0, 2.0)]);
+            const ureterMat = new THREE.MeshStandardMaterial({color: 0xfef08a, roughness: 0.4});
+            const ureterL = new THREE.Mesh(new THREE.TubeGeometry(ureterLCurve, 16, 0.15, 6, false), ureterMat);
+            const ureterR = new THREE.Mesh(new THREE.TubeGeometry(ureterRCurve, 16, 0.15, 6, false), ureterMat);
+
             bladderRef = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), new THREE.MeshStandardMaterial({color: 0xfef08a})); 
             bladderRef.position.set(0, -13.5, 2);
-            groups.excretory.add(kidneyL, kidneyR, bladderRef);
+            groups.excretory.add(kidneyL, kidneyR, ureterL, ureterR, bladderRef);
 
             // --- PARTICULAS DE SIMULACIÓN ---
             const createParticles = (group, count, color, array) => {
@@ -817,16 +1080,33 @@
             
             createParticles(groups.respiratory, 30, 0x3b82f6, simParticles.respiratory);
             createParticles(groups.digestive, 20, 0x22c55e, simParticles.digestive);
-            createParticles(groups.excretory, 20, 0xfef08a, simParticles.excretory);
             
-            simParticles.nervous = [];
-            nCurves.forEach(c => {
-                for(let i=0; i<6; i++) {
-                    const p = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({color: 0xfacc15}));
-                    p.visible = false; groups.nervous.add(p);
-                    simParticles.nervous.push({ mesh: p, offset: i/6, curve: c, isMotor: i%2===0 });
+            // Simulación excretora guiada por los uréteres
+            simParticles.excretory = [];
+            [ureterLCurve, ureterRCurve].forEach(c => {
+                for(let i=0; i<10; i++) {
+                    const p = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshBasicMaterial({color: 0xfef08a}));
+                    p.visible = false; groups.excretory.add(p);
+                    simParticles.excretory.push({ mesh: p, offset: i/10, curve: c });
                 }
             });
+            
+            // Simulación del sistema nervioso adaptada a las nuevas curvas
+            simParticles.nervous = [];
+            const allNerveCurves = [...mainCurves, ...peripheralCurves];
+            allNerveCurves.forEach((c, idx) => {
+                for(let i=0; i<3; i++) {
+                    const p = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshBasicMaterial({color: 0xfacc15}));
+                    p.visible = false; groups.nervous.add(p);
+                    simParticles.nervous.push({ mesh: p, offset: i/3 + Math.random()*0.1, curve: c, isMotor: idx % 2 === 0 });
+                }
+            });
+            const centralCurve = createCurve([new THREE.Vector3(0, 23.5, 1.5), new THREE.Vector3(0, -4, 1)]);
+            for(let i=0; i<8; i++) {
+                const p = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({color: 0xfacc15}));
+                p.visible = false; groups.nervous.add(p);
+                simParticles.nervous.push({ mesh: p, offset: i/8, curve: centralCurve, isMotor: i%2 === 0 });
+            }
 
             simParticles.circulatory = [];
             const numParticlesPerCurve = 5;
@@ -850,17 +1130,19 @@
         // COLUMNA VERTEBRAL COMPRIMIDA A LA PELVIS
         // ==========================================
         function createSpine() {
+            // Nueva curva expandida que une el Atlas (C1) con la base del cráneo en Y=21.5
             const curvePoints = [ 
-                new THREE.Vector3(0, 16, 1.5),     
-                new THREE.Vector3(0, 13.7, 2.5),   
-                new THREE.Vector3(0, 11.4, 1),     
-                new THREE.Vector3(0, 7.9, -1.5),   
-                new THREE.Vector3(0, 4.5, -2),     
-                new THREE.Vector3(0, 1.0, 0),      
-                new THREE.Vector3(0, -1.3, 2.5),   
-                new THREE.Vector3(0, -3.6, 1.5),   
-                new THREE.Vector3(0, -5.3, -1),    
-                new THREE.Vector3(0, -6.5, -2)     
+                new THREE.Vector3(0, 21.5, 1.5),     // C1 (Base del cráneo)
+                new THREE.Vector3(0, 19.5, 2.2),     // Curva cervical (Lordosis)
+                new THREE.Vector3(0, 17.5, 1.8),     // C7 / T1
+                new THREE.Vector3(0, 15.5, 0.8),     // Torácica alta
+                new THREE.Vector3(0, 12.3, -0.5),    // Curva torácica (Cifosis)
+                new THREE.Vector3(0, 9.1, -1.2),     
+                new THREE.Vector3(0, 6.0, -0.5),     // Transición T12 / L1
+                new THREE.Vector3(0, 3.0, 1.0),      // Lumbar alta
+                new THREE.Vector3(0, 0.0, 2.0),      // Curva lumbar (Lordosis - L5)
+                new THREE.Vector3(0, -3.5, 0.5),     // Sacro
+                new THREE.Vector3(0, -6.5, -1.5)     // Cóccix
             ];
             const spineCurve = new THREE.CatmullRomCurve3(curvePoints);
             const numVertebrae = 24; 
@@ -877,7 +1159,7 @@
                 else { region = 'lumbar'; baseSize = 1.5 + ((i - 19) * 0.05); }
 
                 const rScale = 0.8;
-                const hScale = 0.55; 
+                const hScale = 0.7; // Aumentado el alto del cuerpo vertebral para que no queden huecos con la nueva longitud de curva
 
                 const vertebraGroup = new THREE.Group();
                 const mat = boneMaterial.clone(); 
@@ -1053,7 +1335,7 @@
                 });
             } 
             else if (activeSimulation === 'circulatory' && heartRef) {
-                const beatSpeed = 0.002; 
+                const beatSpeed = 0.0004; 
                 const beat = Math.abs(Math.sin(time * beatSpeed));
                 const isSystole = beat > 0.5;
                 
@@ -1069,7 +1351,7 @@
                     bubble.innerHTML = "🩸 <b>Retorno</b><br>Las venas devuelven la sangre al corazón."; bubble.style.top = "60%";
                 }
                 
-                const flowSpeed = 0.0001; 
+                const flowSpeed = 0.000015; 
                 simParticles.circulatory.forEach((p) => {
                     p.mesh.visible = true;
                     let t = ((time * flowSpeed) + p.offset) % 1.0; 
@@ -1083,16 +1365,17 @@
                 const pulse = Math.sin(time * digSpeed);
                 stomachRef.scale.set(1.2 + pulse*0.1, 0.85 + pulse*0.1, 0.6);
                 
-                overlay.innerHTML = "<strong>Tránsito Intestinal</strong><br><br>Los nutrientes son procesados en el estómago y descienden por los intestinos para su absorción.";
+                overlay.innerHTML = "<strong>Tránsito Intestinal</strong><br><br>El bolo alimenticio desciende por el esófago al estómago, y los nutrientes son absorbidos a través del complejo sistema de intestinos.";
                 overlay.style.borderColor = "#22c55e"; bubble.className = 'speech-bubble inhale'; bubble.style.borderColor = "#22c55e";
-                bubble.innerHTML = "🍽️ <b>Digestión</b><br>Movimientos peristálticos mueven el alimento."; bubble.style.top = "40%";
+                bubble.innerHTML = "🍽️ <b>Digestión</b><br>Movimientos peristálticos mueven el alimento por todo el tracto."; bubble.style.top = "40%";
                 
                 simParticles.digestive.forEach((p) => {
                     p.mesh.visible = true;
-                    let t = ((time * 0.00015) + p.offset) % 1.0; 
-                    const pathY = -3 - (t * 6); 
-                    const pathX = Math.sin(t * Math.PI * 4) * 2; 
-                    p.mesh.position.set(pathX, pathY, 2.5);
+                    let t = ((time * 0.0001) + p.offset) % 1.0; 
+                    if (window.digestionCurve) {
+                        const pos = window.digestionCurve.getPointAt(t);
+                        p.mesh.position.copy(pos);
+                    }
                 });
             }
             else if (activeSimulation === 'excretory' && bladderRef) {
@@ -1104,14 +1387,11 @@
                 overlay.style.borderColor = "#facc15"; bubble.className = 'speech-bubble inhale'; bubble.style.borderColor = "#facc15";
                 bubble.innerHTML = "💧 <b>Almacenamiento</b><br>La vejiga se expande acumulando líquidos."; bubble.style.top = "70%";
                 
-                simParticles.excretory.forEach((p, i) => {
+                simParticles.excretory.forEach((p) => {
                     p.mesh.visible = true;
-                    let t = ((time * 0.0003) + p.offset) % 1.0; 
-                    const isLeft = i % 2 === 0;
-                    const startX = isLeft ? 3.2 : -3.2;
-                    const pathX = startX - (t * startX); 
-                    const pathY = -4.5 - (t * 9);
-                    p.mesh.position.set(pathX, pathY, 1.5);
+                    let t = ((time * 0.00015) + p.offset) % 1.0; 
+                    const pos = p.curve.getPointAt(t);
+                    p.mesh.position.copy(pos);
                 });
             }
             else if (activeSimulation === 'nervous') {
@@ -1181,6 +1461,9 @@
                     camera.position.set(0, -5, 75); controls.target.set(0, -5, 0); 
                 }
                 
+                const bodyVPan = document.getElementById('body-vertical-pan');
+                if (bodyVPan) bodyVPan.value = controls.target.y;
+                
                 isAutoRotating = false;
                 const autoRotateBtn = document.getElementById('auto-rotate');
                 if(autoRotateBtn) autoRotateBtn.checked = false;
@@ -1209,6 +1492,15 @@
 
                     let x = (worldPos.x * .5 + .5) * window.innerWidth;
                     let y = (worldPos.y * -.5 + .5) * window.innerHeight;
+                    
+                    // Lógica dinámica: cambiar de lado según la posición en pantalla
+                    if (x < window.innerWidth / 2) {
+                        label.element.classList.remove('dir-right');
+                        label.element.classList.add('dir-left');
+                    } else {
+                        label.element.classList.remove('dir-left');
+                        label.element.classList.add('dir-right');
+                    }
                     
                     label.element.style.left = `${x}px`;
                     label.element.style.top = `${y}px`;
@@ -1251,11 +1543,21 @@
             if (viewId === 'spine' && activeSimulation) toggleSimulation(activeSimulation);
 
             document.getElementById('nav-body').classList.toggle('active', viewId === 'body'); document.getElementById('nav-spine').classList.toggle('active', viewId === 'spine');
-            document.getElementById('body-ui-container').style.display = viewId === 'body' ? 'block' : 'none'; document.getElementById('spine-ui-container').style.display = viewId === 'spine' ? 'block' : 'none'; document.getElementById('tools-container').style.display = viewId === 'spine' ? 'flex' : 'none';
+            document.getElementById('body-ui-container').style.display = viewId === 'body' ? 'block' : 'none'; 
+            document.getElementById('spine-ui-container').style.display = viewId === 'spine' ? 'block' : 'none'; 
+            document.getElementById('tools-container').style.display = 'flex'; // Ahora las herramientas están siempre visibles
+            
+            // Ocultar hernias y estenosis en la vista general del cuerpo
+            discsMeshes.forEach(d => {
+                if (d.herniaMesh) d.herniaMesh.visible = (viewId === 'spine');
+                if (d.stenosisMesh) d.stenosisMesh.visible = (viewId === 'spine');
+            });
             
             if (viewId === 'body') {
                 if (activeDetailedSystem === null) {
                     camera.position.set(0, 5, 85); controls.target.set(0, 0, 0);
+                    const bodyVPan = document.getElementById('body-vertical-pan');
+                    if (bodyVPan) bodyVPan.value = 0;
                 }
                 updateBodyVisibility(); 
                 if(activeSelections.size > 0 && !activeSelections.has('all')) highlightRegion('all');
@@ -1291,6 +1593,20 @@
             groups.circulatory.visible = getChecked('toggle-circulatory');
             groups.digestive.visible = getChecked('toggle-digestive');
             groups.excretory.visible = getChecked('toggle-excretory');
+        }
+
+        function toggleAllSystems() {
+            const systems = ['bone', 'muscular', 'ligaments', 'skin', 'circulatory', 'digestive', 'excretory', 'nervous', 'respiratory'];
+            const allChecked = systems.every(s => {
+                const el = document.getElementById(`toggle-${s}`);
+                return el && el.checked;
+            });
+            const newState = !allChecked;
+            systems.forEach(s => {
+                const el = document.getElementById(`toggle-${s}`);
+                if (el) el.checked = newState;
+            });
+            updateBodyVisibility();
         }
 
         function togglePanel(panelId, hideClass, btn) { document.getElementById(panelId).classList.toggle(hideClass); btn.classList.toggle('collapsed'); }
@@ -1385,6 +1701,10 @@
             if (autoRotateCb) autoRotateCb.addEventListener('change', (e) => { setAutoRotate(e.target.checked); });
             const vPan = document.getElementById('vertical-pan');
             if (vPan) vPan.addEventListener('input', (e) => { if (!isAxialView) { controls.target.y = parseFloat(e.target.value); controls.update(); } });
+            
+            const bodyVPan = document.getElementById('body-vertical-pan');
+            if (bodyVPan) bodyVPan.addEventListener('input', (e) => { if (!isAxialView) { controls.target.y = parseFloat(e.target.value); controls.update(); } });
+            
             window.highlightRegion = highlightRegion;
         }
 
