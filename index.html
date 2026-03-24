@@ -41,6 +41,28 @@
             50% { transform: translateX(-15px); }
         }
 
+        /* Animación del salto mortal para la última foto (Adaptable a escritorio/móvil) */
+        @media (min-width: 768px) {
+            @keyframes saltoMortal {
+                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                15% { transform: translate(-300px, -350px) rotate(-180deg); } /* Sube y gira */
+                30% { transform: translate(-640px, 0) rotate(-360deg); } /* Aterriza en la 5 */
+                50% { transform: translate(-640px, 0) rotate(-360deg); } /* Pausa en el sitio */
+                65% { transform: translate(-300px, -350px) rotate(-180deg); } /* Salta hacia atrás */
+                80% { transform: translate(0, 0) rotate(0deg); } /* Aterriza en su sitio */
+            }
+        }
+        @media (max-width: 767px) {
+            @keyframes saltoMortal {
+                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                15% { transform: translate(-180px, -250px) rotate(-180deg); }
+                30% { transform: translate(-400px, 0) rotate(-360deg); }
+                50% { transform: translate(-400px, 0) rotate(-360deg); }
+                65% { transform: translate(-180px, -250px) rotate(-180deg); }
+                80% { transform: translate(0, 0) rotate(0deg); }
+            }
+        }
+
         /* Clases de utilidad para aplicar las animaciones */
         .animate-train {
             animation: trainMove 35s linear infinite;
@@ -65,6 +87,9 @@
         }
         .animate-bounce-left {
             animation: bounceLeft 1s infinite ease-in-out;
+        }
+        .animate-salto-mortal {
+            animation: saltoMortal 6s infinite ease-in-out;
         }
     </style>
 </head>
@@ -168,9 +193,14 @@
                 const delay = index * 0.2;
                 const legDelay = index * 0.2;
                 
+                // Si es la última foto, le ponemos la animación del salto mortal y la ponemos por encima (z-50)
+                const isLast = index === images.length - 1;
+                const zIndexClass = isLast ? "z-50" : "z-10";
+                const animClass = isLast ? "animate-salto-mortal" : "";
+                
                 // Usamos template literals para construir el HTML del personaje de forma limpia
                 const charHTML = `
-                <div class="relative flex-shrink-0 mx-10 flex flex-col items-center justify-center z-10 group">
+                <div class="relative flex-shrink-0 mx-10 flex flex-col items-center justify-center ${zIndexClass} group ${animClass}">
                   
                   <!-- Contenedor del Personaje -->
                   <div class="relative w-48 h-36 md:w-64 md:h-48 bg-white border-4 border-gray-800 rounded-2xl shadow-xl z-10 flex items-center justify-center animate-bounce-walk" style="animation-delay: ${delay}s;">
