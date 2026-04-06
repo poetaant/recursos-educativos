@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estrellas de la Música</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        
+        @keyframes hop {
+            0% { transform: translateY(0) scale(1); }
+            40% { transform: translateY(-25px) scale(1.15); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        .animate-hop { animation: hop 0.4s ease-in-out forwards; }
+        
+        @keyframes tumble {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(0.9); }
+            75% { transform: rotate(270deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .animate-tumble { animation: tumble 0.3s linear infinite; }
+
+        .sepia-filter { filter: sepia(0.3) contrast(1.2) brightness(0.9) saturate(1.5); }
+        @keyframes noise { 0% { background-position: 0 0; } 10% { background-position: -5% -10%; } 20% { background-position: -15% 5%; } 30% { background-position: 7% -25%; } 40% { background-position: 20% 25%; } 50% { background-position: -25% 10%; } 60% { background-position: 15% 5%; } 70% { background-position: 0% 15%; } 80% { background-position: 25% 35%; } 90% { background-position: -10% 10%; } 100% { background-position: 0 0; } }
+        .animate-noise { animation: noise 0.15s infinite; }
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+        .animate-scanline { animation: scanline 6s linear infinite; }
+        .text-shadow-cinematic { text-shadow: 3px 3px 6px rgba(0,0,0,0.9), -1px -1px 0 rgba(255,255,255,0.1); }
+        
+        .film-scratch { width: 1px; height: 100%; background: rgba(255,255,255,0.3); position: absolute; left: 50%; animation: scratch 3s infinite linear; }
+        @keyframes scratch {
+            0% { transform: translateX(0); opacity: 0; } 10% { transform: translateX(-20vw); opacity: 0.5; }
+            20% { transform: translateX(30vw); opacity: 0; } 30% { transform: translateX(-10vw); opacity: 0.8; }
+            40% { transform: translateX(15vw); opacity: 0; } 50% { transform: translateX(-25vw); opacity: 0.4; }
+            60% { transform: translateX(5vw); opacity: 0; } 100% { transform: translateX(0); opacity: 0; }
+        }
+        .vignette { background: radial-gradient(circle, rgba(0,0,0,0) 20%, rgba(0,0,0,0.95) 100%); }
+        .countdown-circle { border: 6px solid rgba(255,255,255,0.6); border-radius: 50%; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; font-size: 90px; font-weight: bold; position: relative; overflow: hidden; }
+        .countdown-line { position: absolute; width: 4px; height: 100%; background: rgba(255,255,255,0.6); animation: spin-fast 1s linear infinite; }
+        @keyframes spin-fast { 100% { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-fast 4s linear infinite; }
+    </style>
+</head>
+<body class="bg-indigo-50 text-slate-800 font-sans pb-12 min-h-screen">
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- MAPEO DE ICONOS MUSICALES ---
+        const FAIcon = ({ icon, className = "", size }) => (
+            <i className={`fa-solid ${icon} ${className}`} style={size ? { fontSize: `${size}px` } : {}}></i>
+        );
+        const Dices = (p) => <FAIcon icon="fa-dice" {...p} />;
+        const Dice1 = (p) => <FAIcon icon="fa-dice-one" {...p} />;
+        const Dice2 = (p) => <FAIcon icon="fa-dice-two" {...p} />;
+        const Dice3 = (p) => <FAIcon icon="fa-dice-three" {...p} />;
+        const Dice4 = (p) => <FAIcon icon="fa-dice-four" {...p} />;
+        const Dice5 = (p) => <FAIcon icon="fa-dice-five" {...p} />;
+        const Dice6 = (p) => <FAIcon icon="fa-dice-six" {...p} />;
+        
+        const CheckCircle2 = (p) => <FAIcon icon="fa-check-circle" {...p} />;
+        const ChevronRight = (p) => <FAIcon icon="fa-chevron-right" {...p} />;
+        const RotateCcw = (p) => <FAIcon icon="fa-rotate-left" {...p} />;
+        const MessageSquare = (p) => <FAIcon icon="fa-comment-dots" {...p} />;
+        const Languages = (p) => <FAIcon icon="fa-language" {...p} />;
+        const Send = (p) => <FAIcon icon="fa-paper-plane" {...p} />;
+        const HistoryIcon = (p) => <FAIcon icon="fa-clock-rotate-left" {...p} />;
+        const PlayCircle = (p) => <FAIcon icon="fa-circle-play" {...p} />;
+        const FastForward = (p) => <FAIcon icon="fa-forward" {...p} />;
+        const ChevronDown = (p) => <FAIcon icon="fa-chevron-down" {...p} />;
+        const ChevronUp = (p) => <FAIcon icon="fa-chevron-up" {...p} />;
+        const Clock = (p) => <FAIcon icon="fa-clock" {...p} />;
+        const Briefcase = (p) => <FAIcon icon="fa-briefcase" {...p} />;
+        const HelpCircle = (p) => <FAIcon icon="fa-circle-question" {...p} />;
+        const Key = (p) => <FAIcon icon="fa-key" {...p} />;
+        const Mic = (p) => <FAIcon icon="fa-microphone" {...p} />;
+        const MicOff = (p) => <FAIcon icon="fa-microphone-slash" {...p} />;
+        const Volume2 = (p) => <FAIcon icon="fa-volume-high" {...p} />;
+        const VolumeX = (p) => <FAIcon icon="fa-volume-xmark" {...p} />;
+        const Coins = (p) => <FAIcon icon="fa-coins" {...p} />;
+        const Crown = (p) => <FAIcon icon="fa-crown" {...p} />;
+        const Globe = (p) => <FAIcon icon="fa-globe" {...p} />;
+        const HeartPulse = (p) => <FAIcon icon="fa-heart-pulse" {...p} />;
+        
+        // Iconos específicos de Música y Cine
+        const Music = (p) => <FAIcon icon="fa-music" {...p} />;
+        const Guitar = (p) => <FAIcon icon="fa-guitar" {...p} />;
+        const Headphones = (p) => <FAIcon icon="fa-headphones" {...p} />;
+        const RecordVinyl = (p) => <FAIcon icon="fa-record-vinyl" {...p} />;
+        const Star = (p) => <FAIcon icon="fa-star" {...p} />;
+        const Trophy = (p) => <FAIcon icon="fa-trophy" {...p} />;
+        const User = (p) => <FAIcon icon="fa-user-astronaut" {...p} />; // Icono base peón
+        
+        const UserTie = (p) => <FAIcon icon="fa-user-tie" {...p} />;
+        const Film = (p) => <FAIcon icon="fa-film" {...p} />;
+        const Play = (p) => <FAIcon icon="fa-play" {...p} />;
+
+        // --- BASE DE DATOS: CANTANTES JÓVENES NACIDOS EN EL SIGLO XX ---
+        const FULL_CHARACTERS = [
+            { name: "Taylor Swift", sortYear: 1989, missingLetters: "T _ Y _ O _   S _ I _ T", es: { genre: "Pop y Country", country: "Estados Unidos", format: "Solista", awards: "14 premios Grammy", clue1: "la canción 'Shake It Off'", clue2: "Regrabé mis propios discos para recuperar sus derechos.", pasapalabra: "Empieza por T: Su gira mundial es 'The Eras Tour'.", bio: "Ícono global y una de las compositoras más exitosas de la historia." }, en: { genre: "Pop and Country", country: "United States", format: "Soloist", awards: "14 Grammy Awards", clue1: "the song 'Shake It Off'", clue2: "I re-recorded my own albums to reclaim their rights.", pasapalabra: "Starts with T: Her world tour is 'The Eras Tour'.", bio: "Global icon and one of the most successful songwriters in history." } },
+            { name: "Rosalia", sortYear: 1992, missingLetters: "R _ S _ L _ A", es: { genre: "Pop y Flamenco urbano", country: "España", format: "Solista", awards: "varios Latin Grammys", clue1: "el álbum 'Motomami'", clue2: "Popularicé el gesto de mascar chicle de forma exagerada.", pasapalabra: "Empieza por R: Cantante catalana muy internacional.", bio: "Ha revolucionado la música rompiendo barreras de género." }, en: { genre: "Pop and Urban Flamenco", country: "Spain", format: "Soloist", awards: "several Latin Grammys", clue1: "the album 'Motomami'", clue2: "I popularized the exaggerated chewing gum gesture.", pasapalabra: "Starts with R: Very international Catalan singer.", bio: "Has revolutionized music by breaking genre barriers." } },
+            { name: "Bad Bunny", sortYear: 1994, missingLetters: "B _ D   B _ N _ Y", es: { genre: "Reggaetón y Trap", country: "Puerto Rico", format: "Solista", awards: "premios Grammy y Billboard", clue1: "el disco 'Un Verano Sin Ti'", clue2: "Me llaman 'El Conejo Malo'.", pasapalabra: "Empieza por B: El artista más escuchado del reggaetón actual.", bio: "El artista más escuchado globalmente en plataformas digitales." }, en: { genre: "Reggaeton and Trap", country: "Puerto Rico", format: "Soloist", awards: "Grammy and Billboard awards", clue1: "the album 'Un Verano Sin Ti'", clue2: "They call me 'The Bad Rabbit'.", pasapalabra: "Starts with B: The most listened to artist in current reggaeton.", bio: "The most listened to artist globally on digital platforms." } },
+            { name: "Ed Sheeran", sortYear: 1991, missingLetters: "E _   S _ E _ R _ N", es: { genre: "Pop acústico", country: "Inglaterra", format: "Solista", awards: "varios Grammys y Brit Awards", clue1: "la canción 'Shape of You'", clue2: "Toco solo en el escenario usando un pedal de loop.", pasapalabra: "Empieza por E: Cantante británico pelirrojo.", bio: "Uno de los compositores de pop más exitosos del mundo." }, en: { genre: "Acoustic Pop", country: "England", format: "Soloist", awards: "several Grammys and Brit Awards", clue1: "the song 'Shape of You'", clue2: "I play alone on stage using a loop pedal.", pasapalabra: "Starts with E: Red-haired British singer.", bio: "One of the most successful pop songwriters in the world." } },
+            { name: "Dua Lipa", sortYear: 1995, missingLetters: "D _ A   L _ P _", es: { genre: "Pop y Disco", country: "Inglaterra", format: "Solista", awards: "premios Grammy", clue1: "la canción 'Levitating'", clue2: "Tengo raíces albanokosovares.", pasapalabra: "Empieza por D: Cantante de 'Houdini' y 'Dance The Night'.", bio: "Renovó el sonido disco para la nueva generación." }, en: { genre: "Pop and Disco", country: "England", format: "Soloist", awards: "Grammy awards", clue1: "the song 'Levitating'", clue2: "I have Albanian-Kosovar roots.", pasapalabra: "Starts with D: Singer of 'Houdini' and 'Dance The Night'.", bio: "Renewed the disco sound for the new generation." } },
+            { name: "Harry Styles", sortYear: 1994, missingLetters: "H _ R _ Y   S _ Y _ E _", es: { genre: "Pop y Soft Rock", country: "Inglaterra", format: "Solista (ex One Direction)", awards: "Grammy al Álbum del Año", clue1: "la canción 'As It Was'", clue2: "Actué en la película 'Dunkerque'.", pasapalabra: "Empieza por H: Cantante británico famoso por su estilo colorido.", bio: "Ídolo adolescente que maduró hasta ser una superestrella del pop-rock." }, en: { genre: "Pop and Soft Rock", country: "England", format: "Soloist (ex One Direction)", awards: "Grammy for Album of the Year", clue1: "the song 'As It Was'", clue2: "I acted in the movie 'Dunkirk'.", pasapalabra: "Starts with H: British singer famous for his colorful style.", bio: "Teen idol who matured into a pop-rock superstar." } },
+            { name: "The Weeknd", sortYear: 1990, missingLetters: "T _ E   W _ E _ N _", es: { genre: "R&B y Synth-Pop", country: "Canadá", format: "Solista", awards: "varios Grammys", clue1: "la canción 'Blinding Lights'", clue2: "Mi nombre artístico omite una letra 'e'.", pasapalabra: "Empieza por W: Actué en el medio tiempo de la Super Bowl 2021.", bio: "Redefinió el R&B moderno con su estética oscura y ochentera." }, en: { genre: "R&B and Synth-Pop", country: "Canada", format: "Soloist", awards: "several Grammys", clue1: "the song 'Blinding Lights'", clue2: "My stage name omits a letter 'e'.", pasapalabra: "Starts with W: I performed at the 2021 Super Bowl halftime show.", bio: "Redefined modern R&B with his dark, 80s aesthetic." } },
+            { name: "Ariana Grande", sortYear: 1993, missingLetters: "A _ I _ N _   G _ A _ D _", es: { genre: "Pop y R&B", country: "Estados Unidos", format: "Solista", awards: "dos premios Grammy", clue1: "la canción 'Thank U, Next'", clue2: "Comencé en la serie infantil 'Victorious'.", pasapalabra: "Empieza por A: Famosa por su coleta alta y gran rango vocal.", bio: "Voz prodigiosa que domina el pop actual." }, en: { genre: "Pop and R&B", country: "United States", format: "Soloist", awards: "two Grammy awards", clue1: "the song 'Thank U, Next'", clue2: "I started on the kids show 'Victorious'.", pasapalabra: "Starts with A: Famous for her high ponytail and huge vocal range.", bio: "Prodigious voice dominating current pop." } },
+            { name: "Justin Bieber", sortYear: 1994, missingLetters: "J _ S _ I _   B _ E _ E _", es: { genre: "Pop", country: "Canadá", format: "Solista", awards: "dos Grammys", clue1: "la canción 'Baby'", clue2: "Fui descubierto cantando en YouTube de adolescente.", pasapalabra: "Empieza por J: Ídolo adolescente con una enorme legión de fans.", bio: "Uno de los artistas musicales con más ventas del mundo." }, en: { genre: "Pop", country: "Canada", format: "Soloist", awards: "two Grammys", clue1: "the song 'Baby'", clue2: "I was discovered singing on YouTube as a teen.", pasapalabra: "Starts with J: Teen idol with a huge fanbase.", bio: "One of the world's best-selling music artists." } },
+            { name: "Miley Cyrus", sortYear: 1992, missingLetters: "M _ L _ Y   C _ R _ S", es: { genre: "Pop y Rock", country: "Estados Unidos", format: "Solista", awards: "dos Grammys", clue1: "la canción 'Flowers'", clue2: "Interpreté a Hannah Montana en Disney Channel.", pasapalabra: "Empieza por M: Cantante que compró flores para sí misma.", bio: "Artista versátil que rompió su imagen infantil con éxito." }, en: { genre: "Pop and Rock", country: "United States", format: "Soloist", awards: "two Grammys", clue1: "the song 'Flowers'", clue2: "I played Hannah Montana on Disney Channel.", pasapalabra: "Starts with M: Singer who bought flowers for herself.", bio: "Versatile artist who successfully broke her child star image." } },
+            { name: "Selena Gomez", sortYear: 1992, missingLetters: "S _ L _ N _   G _ M _ Z", es: { genre: "Pop", country: "Estados Unidos", format: "Solista", awards: "American Music Awards", clue1: "la canción 'Lose You To Love Me'", clue2: "Fundé la exitosa marca de maquillaje Rare Beauty.", pasapalabra: "Empieza por S: Protagonista de 'Solo asesinatos en el edificio'.", bio: "Cantante, actriz y empresaria de enorme éxito global." }, en: { genre: "Pop", country: "United States", format: "Soloist", awards: "American Music Awards", clue1: "the song 'Lose You To Love Me'", clue2: "I founded the successful makeup brand Rare Beauty.", pasapalabra: "Starts with S: Star of 'Only Murders in the Building'.", bio: "Hugely successful singer, actress, and entrepreneur." } },
+            { name: "Bruno Mars", sortYear: 1985, missingLetters: "B _ U _ O   M _ R _", es: { genre: "Pop, Funk y R&B", country: "Estados Unidos", format: "Solista", awards: "15 premios Grammy", clue1: "la canción 'Uptown Funk'", clue2: "Mis coreografías tienen un estilo retro impecable.", pasapalabra: "Empieza por B: Cantante hawaiano rey del Funk actual.", bio: "Un showman absoluto, comparado a menudo con Michael Jackson." }, en: { genre: "Pop, Funk and R&B", country: "United States", format: "Soloist", awards: "15 Grammy awards", clue1: "the song 'Uptown Funk'", clue2: "My choreography has an impeccable retro style.", pasapalabra: "Starts with B: Hawaiian singer, current king of Funk.", bio: "An absolute showman, often compared to Michael Jackson." } },
+            { name: "Rihanna", sortYear: 1988, missingLetters: "R _ H _ N _ A", es: { genre: "Pop y R&B", country: "Barbados", format: "Solista", awards: "9 premios Grammy", clue1: "la canción 'Umbrella'", clue2: "Soy la creadora de Fenty Beauty.", pasapalabra: "Empieza por R: Cantó en la Super Bowl estando embarazada.", bio: "Reina de las listas de éxitos y multimillonaria del maquillaje." }, en: { genre: "Pop and R&B", country: "Barbados", format: "Soloist", awards: "9 Grammy awards", clue1: "the song 'Umbrella'", clue2: "I am the creator of Fenty Beauty.", pasapalabra: "Starts with R: Sang at the Super Bowl while pregnant.", bio: "Chart-topping queen and makeup billionaire." } },
+            { name: "Adele", sortYear: 1988, missingLetters: "A _ E _ E", es: { genre: "Soul y Pop", country: "Inglaterra", format: "Solista", awards: "16 Grammys y un Oscar", clue1: "la canción 'Rolling in the Deep'", clue2: "Mis discos se llaman como la edad que tenía al hacerlos.", pasapalabra: "Empieza por A: Cantante británica con una voz inconfundible.", bio: "Su potente voz la ha hecho una de las artistas más vendedoras." }, en: { genre: "Soul and Pop", country: "England", format: "Soloist", awards: "16 Grammys and an Oscar", clue1: "the song 'Rolling in the Deep'", clue2: "My albums are named after my age when I made them.", pasapalabra: "Starts with A: British singer with an unmistakable voice.", bio: "Her powerful voice made her one of the best-selling artists." } },
+            { name: "Shawn Mendes", sortYear: 1998, missingLetters: "S _ A _ N   M _ N _ E _", es: { genre: "Pop", country: "Canadá", format: "Solista", awards: "varios MTV Awards", clue1: "la canción 'Señorita'", clue2: "Me hice famoso subiendo videos de 6 segundos a Vine.", pasapalabra: "Empieza por S: Cantante canadiense que toca la guitarra acústica.", bio: "Pasó de internet a llenar estadios en todo el mundo." }, en: { genre: "Pop", country: "Canada", format: "Soloist", awards: "several MTV Awards", clue1: "the song 'Señorita'", clue2: "I got famous uploading 6-second videos to Vine.", pasapalabra: "Starts with S: Canadian singer who plays acoustic guitar.", bio: "Went from the internet to selling out stadiums worldwide." } },
+            { name: "Camila Cabello", sortYear: 1997, missingLetters: "C _ M _ L _   C _ B _ L _ O", es: { genre: "Pop Latino", country: "Cuba / EE.UU.", format: "Solista (ex Fifth Harmony)", awards: "dos Latin Grammys", clue1: "la canción 'Havana'", clue2: "Nací en Cuba y me fui a Miami muy pequeña.", pasapalabra: "Empieza por C: Dejó su famoso grupo de chicas para triunfar sola.", bio: "Voz carismática que une la cultura latina y el pop anglosajón." }, en: { genre: "Latin Pop", country: "Cuba / USA", format: "Soloist (ex Fifth Harmony)", awards: "two Latin Grammys", clue1: "the song 'Havana'", clue2: "I was born in Cuba and moved to Miami very young.", pasapalabra: "Starts with C: Left her famous girl group to succeed alone.", bio: "Charismatic voice bridging Latin culture and English pop." } },
+            { name: "Zayn Malik", sortYear: 1993, missingLetters: "Z _ Y _   M _ L _ K", es: { genre: "R&B y Pop", country: "Inglaterra", format: "Solista (ex One Direction)", awards: "American Music Award", clue1: "la canción 'Pillowtalk'", clue2: "Fui el primero en abandonar la banda One Direction.", pasapalabra: "Empieza por Z: Cantante británico con raíces pakistaníes.", bio: "Exploró sonidos más maduros tras su paso por la boyband." }, en: { genre: "R&B and Pop", country: "England", format: "Soloist (ex One Direction)", awards: "American Music Award", clue1: "the song 'Pillowtalk'", clue2: "I was the first to leave the band One Direction.", pasapalabra: "Starts with Z: British singer with Pakistani roots.", bio: "Explored more mature sounds after his boyband era." } },
+            { name: "Post Malone", sortYear: 1995, missingLetters: "P _ S _   M _ L _ N _", es: { genre: "Hip hop y Pop rock", country: "Estados Unidos", format: "Solista", awards: "Billboard Music Awards", clue1: "la canción 'Sunflower'", clue2: "Tengo el rostro lleno de tatuajes.", pasapalabra: "Empieza por P: Colaboró en la banda sonora de Spider-Man.", bio: "Mezcla géneros creando un sonido único y muy popular." }, en: { genre: "Hip hop and Pop rock", country: "United States", format: "Soloist", awards: "Billboard Music Awards", clue1: "the song 'Sunflower'", clue2: "My face is covered in tattoos.", pasapalabra: "Starts with P: Collaborated on the Spider-Man soundtrack.", bio: "Mixes genres creating a unique and very popular sound." } },
+            { name: "Karol G", sortYear: 1991, missingLetters: "K _ R _ L   G", es: { genre: "Reggaetón y Pop", country: "Colombia", format: "Solista", awards: "varios Latin Grammys", clue1: "la canción 'Bichota' y 'Tusa'", clue2: "He llevado el pelo teñido de azul, rojo y rosa.", pasapalabra: "Empieza por K: Cantante apodada 'La Bichota'.", bio: "Una de las mayores representantes del reggaetón femenino." }, en: { genre: "Reggaeton and Pop", country: "Colombia", format: "Soloist", awards: "several Latin Grammys", clue1: "the song 'Bichota' and 'Tusa'", clue2: "I have dyed my hair blue, red, and pink.", pasapalabra: "Starts with K: Singer nicknamed 'La Bichota'.", bio: "One of the biggest representatives of female reggaeton." } },
+            { name: "J Balvin", sortYear: 1985, missingLetters: "J   B _ L _ I _", es: { genre: "Reggaetón", country: "Colombia", format: "Solista", awards: "seis Latin Grammys", clue1: "la canción 'Mi Gente'", clue2: "Me asociaron a la palabra 'Colores'.", pasapalabra: "Empieza por J: Cantante urbano que canta 'Mi Gente'.", bio: "Clave en la globalización de la música urbana latina." }, en: { genre: "Reggaeton", country: "Colombia", format: "Soloist", awards: "six Latin Grammys", clue1: "the song 'Mi Gente'", clue2: "I was associated with the word 'Colors'.", pasapalabra: "Starts with J: Urban singer who sings 'Mi Gente'.", bio: "Key to the globalization of Latin urban music." } },
+            { name: "Maluma", sortYear: 1994, missingLetters: "M _ L _ M _", es: { genre: "Reggaetón", country: "Colombia", format: "Solista", awards: "un Latin Grammy", clue1: "la canción 'Hawái'", clue2: "Me llaman 'Papi Juancho' o 'Pretty Boy'.", pasapalabra: "Empieza por M: Cantante urbano intérprete de 'Felices los 4'.", bio: "Estrella del pop latino con enorme presencia internacional." }, en: { genre: "Reggaeton", country: "Colombia", format: "Soloist", awards: "one Latin Grammy", clue1: "the song 'Hawái'", clue2: "They call me 'Papi Juancho' or 'Pretty Boy'.", pasapalabra: "Starts with M: Urban singer of 'Felices los 4'.", bio: "Latin pop star with a huge international presence." } },
+            { name: "Charlie Puth", sortYear: 1991, missingLetters: "C _ A _ L _ E   P _ T _", es: { genre: "Pop", country: "Estados Unidos", format: "Solista", awards: "Billboard Music Awards", clue1: "la canción 'See You Again'", clue2: "Tengo oído absoluto y reconozco cualquier nota.", pasapalabra: "Empieza por C: Cantante con una cicatriz en la ceja.", bio: "Talentoso productor y cantante con un oído privilegiado." }, en: { genre: "Pop", country: "United States", format: "Soloist", awards: "Billboard Music Awards", clue1: "the song 'See You Again'", clue2: "I have perfect pitch and recognize any note.", pasapalabra: "Starts with C: Singer with a scar on his eyebrow.", bio: "Talented producer and singer with privileged hearing." } },
+            { name: "Becky G", sortYear: 1997, missingLetters: "B _ C _ Y   G", es: { genre: "Pop y Reggaetón", country: "Estados Unidos", format: "Solista", awards: "American Music Awards", clue1: "la canción 'Sin Pijama'", clue2: "Empecé cantando rap en inglés.", pasapalabra: "Empieza por B: Cantó 'Mayores' con Bad Bunny.", bio: "Ha triunfado uniendo el mercado anglosajón y latino." }, en: { genre: "Pop and Reggaeton", country: "United States", format: "Soloist", awards: "American Music Awards", clue1: "the song 'Sin Pijama'", clue2: "I started singing rap in English.", pasapalabra: "Starts with B: Sang 'Mayores' with Bad Bunny.", bio: "Has triumphed uniting the Anglo and Latin markets." } },
+            { name: "Rauw Alejandro", sortYear: 1993, missingLetters: "R _ U _   A _ E _ A _ D _ O", es: { genre: "R&B Latino", country: "Puerto Rico", format: "Solista", awards: "Latin Grammys", clue1: "la canción 'Todo de Ti'", clue2: "Mis coreografías y bailes son espectaculares.", pasapalabra: "Empieza por R: Cantante urbano famoso por sus pasos de baile.", bio: "Renovó el reggaetón mezclándolo con influencias retro." }, en: { genre: "Latin R&B", country: "Puerto Rico", format: "Soloist", awards: "Latin Grammys", clue1: "the song 'Todo de Ti'", clue2: "My choreography and dancing are spectacular.", pasapalabra: "Starts with R: Urban singer famous for his dance moves.", bio: "Renewed reggaeton mixing it with retro influences." } },
+            { name: "Katy Perry", sortYear: 1984, missingLetters: "K _ T _   P _ R _ Y", es: { genre: "Pop", country: "Estados Unidos", format: "Solista", awards: "premios MTV y Billboard", clue1: "la canción 'Roar' y 'Firework'", clue2: "En mi Super Bowl bailó un tiburón muy famoso.", pasapalabra: "Empieza por K: Cantante que saltó a la fama con 'I Kissed a Girl'.", bio: "Sus vídeos musicales extravagantes definieron una era del pop." }, en: { genre: "Pop", country: "United States", format: "Soloist", awards: "MTV and Billboard awards", clue1: "the song 'Roar' and 'Firework'", clue2: "A very famous shark danced in my Super Bowl show.", pasapalabra: "Starts with K: Singer who rose to fame with 'I Kissed a Girl'.", bio: "Her extravagant music videos defined an era of pop." } }
+        ];
+
+        // --- BASE DE DATOS VIP (Leyendas/Estrellas Actuales) ---
+        const VIP_CHARACTERS = [
+            { name: "Beyonce", sortYear: 1981, missingLetters: "B _ Y _ N _ E", es: { genre: "R&B y Pop", country: "Estados Unidos", format: "Solista (ex Destiny's Child)", awards: "32 premios Grammy", clue1: "la canción 'Single Ladies' y 'Halo'", clue2: "Mis fans se hacen llamar la 'Beyhive'.", pasapalabra: "Empieza por B: Conocida cariñosamente como Queen B.", bio: "Una de las artistas más influyentes y premiadas de todos los tiempos." }, en: { genre: "R&B and Pop", country: "United States", format: "Soloist (ex Destiny's Child)", awards: "32 Grammy awards", clue1: "the song 'Single Ladies' and 'Halo'", clue2: "My fans call themselves the 'Beyhive'.", pasapalabra: "Starts with B: Affectionately known as Queen B.", bio: "One of the most influential and awarded artists of all time." } },
+            { name: "Lady Gaga", sortYear: 1986, missingLetters: "L _ D _   G _ G _", es: { genre: "Pop y Dance", country: "Estados Unidos", format: "Solista", awards: "13 Grammys y un Oscar", clue1: "la canción 'Bad Romance' y 'Shallow'", clue2: "Una vez llevé un vestido hecho de carne cruda.", pasapalabra: "Empieza por L: Mis fans son los 'Little Monsters'.", bio: "Famosa por su excentricidad visual y talento vocal extraordinario." }, en: { genre: "Pop and Dance", country: "United States", format: "Soloist", awards: "13 Grammys and an Oscar", clue1: "the song 'Bad Romance' and 'Shallow'", clue2: "I once wore a dress made of raw meat.", pasapalabra: "Starts with L: My fans are the 'Little Monsters'.", bio: "Famous for her visual eccentricity and extraordinary vocal talent." } },
+            { name: "Drake", sortYear: 1986, missingLetters: "D _ A _ E", es: { genre: "Hip hop y R&B", country: "Canadá", format: "Solista", awards: "5 premios Grammy", clue1: "la canción 'God's Plan' y 'Hotline Bling'", clue2: "Antes de cantar, actué en una serie adolescente llamada Degrassi.", pasapalabra: "Empieza por D: Rapero canadiense que dominó la última década.", bio: "Ha roto innumerables récords de streaming a nivel mundial." }, en: { genre: "Hip hop and R&B", country: "Canada", format: "Soloist", awards: "5 Grammy awards", clue1: "the song 'God's Plan' and 'Hotline Bling'", clue2: "Before singing, I acted in a teen series called Degrassi.", pasapalabra: "Starts with D: Canadian rapper who dominated the last decade.", bio: "Has broken countless streaming records worldwide." } },
+            { name: "Eminem", sortYear: 1972, missingLetters: "E _ I _ E _", es: { genre: "Rap y Hip hop", country: "Estados Unidos", format: "Solista", awards: "15 Grammys y un Oscar", clue1: "la canción 'Lose Yourself' y 'Without Me'", clue2: "Mi alter ego oscuro se llama Slim Shady.", pasapalabra: "Empieza por E: Rapero famoso de Detroit.", bio: "Considerado uno de los mejores raperos de la historia." }, en: { genre: "Rap and Hip hop", country: "United States", format: "Soloist", awards: "15 Grammys and an Oscar", clue1: "the song 'Lose Yourself' and 'Without Me'", clue2: "My dark alter ego is called Slim Shady.", pasapalabra: "Starts with E: Famous rapper from Detroit.", bio: "Considered one of the greatest rappers in history." } },
+            { name: "Nicki Minaj", sortYear: 1982, missingLetters: "N _ C _ I   M _ N _ J", es: { genre: "Rap y Pop", country: "Trinidad y Tobago / EE.UU.", format: "Solista", awards: "premios MTV y Billboard", clue1: "la canción 'Super Bass' y 'Anaconda'", clue2: "Mis fans se llaman 'Barbz'.", pasapalabra: "Empieza por N: Rapera famosa por sus pelucas coloridas.", bio: "La rapera femenina más exitosa de su generación." }, en: { genre: "Rap and Pop", country: "Trinidad and Tobago / USA", format: "Soloist", awards: "MTV and Billboard awards", clue1: "the song 'Super Bass' and 'Anaconda'", clue2: "My fans are called 'Barbz'.", pasapalabra: "Starts with N: Rapper famous for her colorful wigs.", bio: "The most successful female rapper of her generation." } },
+            { name: "Shakira", sortYear: 1977, missingLetters: "S _ A _ I _ A", es: { genre: "Pop Latino", country: "Colombia", format: "Solista", awards: "múltiples Latin Grammys", clue1: "la canción 'Waka Waka' y 'Hips Don't Lie'", clue2: "Hice una sesión muy famosa con Bizarrap.", pasapalabra: "Empieza por S: La loba cuyas caderas no mienten.", bio: "Reina indiscutible del pop latino a nivel global." }, en: { genre: "Latin Pop", country: "Colombia", format: "Soloist", awards: "multiple Latin Grammys", clue1: "the song 'Waka Waka' and 'Hips Don't Lie'", clue2: "I did a very famous session with Bizarrap.", pasapalabra: "Starts with S: The she-wolf whose hips don't lie.", bio: "Undisputed queen of Latin pop globally." } }
+        ];
+
+        // --- CONFIGURACIÓN DE PREGUNTAS (Adaptadas al mundo musical) ---
+        const GRAMMAR_QUESTIONS = [
+            { id: 'genre', icon: Music, label: { es: 'Género Musical', en: 'Music Genre' }, key: 'genre', cost: 10,
+                tenses: [
+                    { id: 'past', icon: HistoryIcon, es: '¿Qué cantabas?', en: 'What did you sing?' },
+                    { id: 'present', icon: PlayCircle, es: '¿Qué cantas?', en: 'What do you sing?' },
+                    { id: 'future', icon: FastForward, es: '¿Qué cantarás?', en: 'What will you sing?' }
+                ]
+            },
+            { id: 'format', icon: UserTie, label: { es: 'Banda o Solista', en: 'Group or Solo' }, key: 'format', cost: 10,
+                tenses: [
+                    { id: 'past', icon: HistoryIcon, es: '¿Cantabas solo o en grupo?', en: 'Did you sing solo or in a group?' },
+                    { id: 'present', icon: PlayCircle, es: '¿Cantas solo o en grupo?', en: 'Do you sing solo or in a group?' },
+                    { id: 'future', icon: FastForward, es: '¿Cantarás solo o en grupo?', en: 'Will you sing solo or in a group?' }
+                ]
+            },
+            { id: 'country', icon: Globe, label: { es: 'País de Origen', en: 'Country of Origin' }, key: 'country', cost: 10,
+                tenses: [
+                    { id: 'past', icon: HistoryIcon, es: '¿De dónde eras?', en: 'Where were you from?' },
+                    { id: 'present', icon: PlayCircle, es: '¿De dónde eres?', en: 'Where are you from?' },
+                    { id: 'future', icon: FastForward, es: '¿De dónde serás?', en: 'Where will you be from?' }
+                ]
+            },
+            { id: 'awards', icon: Trophy, label: { es: 'Premios', en: 'Awards' }, key: 'awards', cost: 10,
+                tenses: [
+                    { id: 'past', icon: HistoryIcon, es: '¿Qué premios ganaste?', en: 'What awards did you win?' },
+                    { id: 'present', icon: PlayCircle, es: '¿Qué premios ganas?', en: 'What awards do you win?' },
+                    { id: 'future', icon: FastForward, es: '¿Qué premios ganarás?', en: 'What awards will you win?' }
+                ]
+            },
+            { id: 'clue1', icon: Star, label: { es: 'Mayor Éxito', en: 'Biggest Hit' }, key: 'clue1', cost: 25,
+                tenses: [
+                    { id: 'past', icon: HistoryIcon, es: '¿Cuál fue tu éxito?', en: 'What was your hit?' },
+                    { id: 'present', icon: PlayCircle, es: '¿Cuál es tu éxito?', en: 'What is your hit?' },
+                    { id: 'future', icon: FastForward, es: '¿Cuál será tu éxito?', en: 'What will be your hit?' }
+                ]
+            },
+            { id: 'clue2', icon: HelpCircle, label: { es: 'Curiosidad', en: 'Trivia' }, key: 'clue2', cost: 25,
+                tenses: [
+                    { id: 'past', icon: HistoryIcon, es: '¿Qué curiosidad tuviste?', en: 'What trivia did you have?' },
+                    { id: 'present', icon: PlayCircle, es: '¿Qué curiosidad tienes?', en: 'What trivia do you have?' },
+                    { id: 'future', icon: FastForward, es: '¿Qué curiosidad tendrás?', en: 'What trivia will you have?' }
+                ]
+            }
+        ];
+
+        const EXTRA_QUESTIONS = [
+            { id: 'pasapalabra', icon: Key, label: { es: 'Pista de Pasapalabra', en: 'Pasapalabra Clue' }, key: 'pasapalabra', cost: 25 },
+            { id: 'missingLetters', icon: MessageSquare, label: { es: 'Mostrar letras ocultas', en: 'Show missing letters' }, key: 'missingLetters', cost: 50 }
+        ];
+
+        // --- AYUDANTES ---
+        const normalizeString = (str) => {
+            if (!str) return "";
+            return str.normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "")
+                      .replace(/[^a-zA-Z0-9\s]/g, "")
+                      .replace(/\s+/g, " ")
+                      .toLowerCase()
+                      .trim();
+        };
+
+        // --- COMPONENTES ---
+
+        const LevelSelector = ({ onSelect }) => {
+            const [name, setName] = useState("");
+            const [error, setError] = useState(false);
+
+            const handleSelect = (level) => {
+                if (!name.trim()) {
+                    setError(true);
+                    return;
+                }
+                onSelect(level, name.trim());
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+                    <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl text-center flex flex-col items-center">
+                        <div className="flex justify-center gap-4 mb-4">
+                            <Headphones className="text-indigo-500" size={48} />
+                            <Guitar className="text-yellow-500" size={48} />
+                        </div>
+                        <h1 className="text-4xl font-extrabold text-slate-800 mb-2">Estrellas de la Música</h1>
+                        <p className="text-slate-500 mb-6 text-lg">Adivina los cantantes del Siglo XX / Guess the 20th Century singers</p>
+                        
+                        <input 
+                            type="text" 
+                            placeholder="Tu nombre / Your name" 
+                            value={name} 
+                            onChange={(e) => { setName(e.target.value); setError(false); }}
+                            className={`mb-8 px-5 py-3 text-center text-xl font-bold rounded-xl outline-none border-4 transition-all w-full max-w-sm ${error ? 'border-red-500 animate-shake' : 'border-indigo-200 focus:border-indigo-500'}`}
+                            maxLength={12}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                            <button onClick={() => handleSelect('es')} className="p-6 rounded-2xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all">
+                            <span className="block text-3xl mb-2">🇪🇸</span>
+                            <h3 className="font-bold text-xl">Básico</h3>
+                            <p className="text-sm text-slate-500">Solo Español</p>
+                            </button>
+                            <button onClick={() => handleSelect('bilingual')} className="p-6 rounded-2xl border-2 border-green-300 hover:border-green-600 bg-green-50 hover:bg-green-100 transition-all transform scale-105 shadow-md">
+                            <span className="block text-3xl mb-2">🇪🇸🇬🇧</span>
+                            <h3 className="font-bold text-xl text-green-800">Intermedio</h3>
+                            <p className="text-sm text-green-600">Bilingüe (Dual)</p>
+                            </button>
+                            <button onClick={() => handleSelect('en')} className="p-6 rounded-2xl border-2 border-slate-200 hover:border-red-500 hover:bg-red-50 transition-all">
+                            <span className="block text-3xl mb-2">🇬🇧</span>
+                            <h3 className="font-bold text-xl">Avanzado</h3>
+                            <p className="text-sm text-slate-500">English Only</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const DiceRoller = ({ onRoll, disabled, uiText }) => {
+            const [rolling, setRolling] = useState(false);
+            const [val, setVal] = useState(1);
+            const icons = [<Dice1 size={36}/>, <Dice2 size={36}/>, <Dice3 size={36}/>, <Dice4 size={36}/>, <Dice5 size={36}/>, <Dice6 size={36}/>];
+
+            const roll = () => {
+                if (disabled || rolling) return;
+                setRolling(true);
+                let c = 0;
+                const int = setInterval(() => {
+                    setVal(Math.floor(Math.random() * 6));
+                    c++;
+                    if (c > 15) { 
+                        clearInterval(int);
+                        const final = Math.floor(Math.random() * 6) + 1;
+                        setVal(final - 1);
+                        setRolling(false);
+                        setTimeout(() => {
+                            onRoll(final);
+                        }, 1200);
+                    }
+                }, 60);
+            };
+
+            return (
+                <button onClick={roll} disabled={disabled || rolling} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg ${disabled || rolling ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-yellow-400 text-indigo-900 hover:bg-yellow-300 hover:scale-105'}`}>
+                    <div className={rolling ? 'animate-tumble' : ''}>{icons[val]}</div>
+                    {rolling ? uiText.rolling : uiText.roll}
+                </button>
+            );
+        };
+
+        // MODAL DE ENTREVISTA
+        const InterviewModal = ({ character, difficulty, onClose, onSuccess, alreadyGuessed, balance, setBalance, isVip, globalMicActive, setGlobalMicActive, globalVoices, selectedVoiceURI, setSelectedVoiceURI }) => {
+            const [chatLog, setChatLog] = useState([]);
+            const [attemptHistory, setAttemptHistory] = useState([]);
+            const [askedTopics, setAskedTopics] = useState(new Set());
+            const [expandedTopic, setExpandedTopic] = useState(null);
+            const [guess, setGuess] = useState('');
+            
+            const [isListening, setIsListening] = useState(false);
+            const [voiceEnabled, setVoiceEnabled] = useState(true);
+            const [errorShake, setErrorShake] = useState(false);
+            const scrollRef = useRef(null);
+            const recognitionRef = useRef(null);
+            const shouldListenRef = useRef(globalMicActive);
+            const isSpeakingRef = useRef(false);
+            const isRecoRunning = useRef(false);
+
+            const COST_PENALTY = 50;
+            const REWARD_NORMAL = 200;
+            const REWARD_VIP = 5000;
+
+            useEffect(() => {
+                if (alreadyGuessed) { onSuccess(); return; }
+                
+                let welcome = "";
+                if (isVip) {
+                welcome = difficulty === 'en' ? '🎙️ VIP SINGER GUEST! Ask wisely. If you guess right, you win 5000€!' : 
+                            '🎙️ ¡CANTANTE MISTERIOSO VIP! Pregunta con cuidado. ¡Si aciertas ganas 5000€!';
+                } else {
+                welcome = difficulty === 'en' ? 'Hello! Asking questions costs money (€). Guess to earn 200€!' : 
+                            difficulty === 'es' ? '¡Hola! Hacer preguntas cuesta dinero (€). ¡Adivina para ganar 200€!' : 
+                            '¡Hola! Las preguntas cuestan €. / Questions cost money (€).';
+                }
+                
+                setChatLog([{ type: 'system', text: welcome, isVipAlert: isVip }]);
+
+                if (globalMicActive) {
+                    startListening();
+                }
+
+                return () => {
+                    shouldListenRef.current = false;
+                    isSpeakingRef.current = false;
+                    isRecoRunning.current = false;
+                    if (window.speechSynthesis) window.speechSynthesis.cancel();
+                    if (recognitionRef.current) {
+                        recognitionRef.current.onend = null;
+                        try { recognitionRef.current.abort(); } catch(e){}
+                    }
+                };
+            }, [alreadyGuessed, onSuccess, difficulty, isVip]);
+
+            useEffect(() => {
+                if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }, [chatLog]);
+
+            const validVoices = globalVoices.filter(v => {
+                if (difficulty === 'es') return v.lang.startsWith('es');
+                if (difficulty === 'en') return v.lang.startsWith('en');
+                return v.lang.startsWith('es') || v.lang.startsWith('en');
+            });
+
+            const createUtteranceWithVoice = (text, langStr) => {
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = langStr;
+                const chosenVoice = globalVoices.find(v => v.voiceURI === selectedVoiceURI);
+                if (chosenVoice) {
+                    if (difficulty === 'bilingual') {
+                        if (chosenVoice.lang.startsWith(langStr.split('-')[0])) u.voice = chosenVoice;
+                    } else {
+                        u.voice = chosenVoice;
+                    }
+                }
+                return u;
+            };
+
+            const speak = (textEs, textEn) => {
+                if (!voiceEnabled || !window.speechSynthesis) return;
+                window.speechSynthesis.cancel();
+
+                isSpeakingRef.current = true;
+
+                const wasListening = shouldListenRef.current;
+                if (wasListening && recognitionRef.current) {
+                    recognitionRef.current.onend = null;
+                    try { recognitionRef.current.abort(); } catch(e){}
+                    isRecoRunning.current = false;
+                }
+
+                let fallbackTimer;
+                let isRestored = false;
+
+                const restoreListening = () => {
+                    if (isRestored) return;
+                    isRestored = true;
+                    clearTimeout(fallbackTimer);
+                    setTimeout(() => {
+                        isSpeakingRef.current = false;
+                        if (wasListening && shouldListenRef.current && !isRecoRunning.current) {
+                            startListening(); 
+                        }
+                    }, 500);
+                };
+
+                let utterances = [];
+                let totalTextLength = 0;
+
+                if (difficulty === 'es' && textEs) {
+                    utterances.push(createUtteranceWithVoice(textEs, 'es-ES'));
+                    totalTextLength += textEs.length;
+                } else if (difficulty === 'en' && textEn) {
+                    utterances.push(createUtteranceWithVoice(textEn, 'en-US'));
+                    totalTextLength += textEn.length;
+                } else if (difficulty === 'bilingual') {
+                    if (textEs) { utterances.push(createUtteranceWithVoice(textEs, 'es-ES')); totalTextLength += textEs.length; }
+                    if (textEn) { utterances.push(createUtteranceWithVoice(textEn, 'en-US')); totalTextLength += textEn.length; }
+                }
+
+                const estimatedMs = Math.max(3000, totalTextLength * 80); 
+                fallbackTimer = setTimeout(restoreListening, estimatedMs);
+
+                if (utterances.length > 0) {
+                    utterances[utterances.length - 1].onend = restoreListening;
+                    utterances[utterances.length - 1].onerror = restoreListening; 
+                    utterances.forEach(u => window.speechSynthesis.speak(u));
+                } else {
+                    restoreListening();
+                }
+            };
+
+            const deductMoney = (amount) => {
+                if (balance >= amount) {
+                setBalance(prev => prev - amount);
+                return true;
+                }
+                const errEs = 'No tienes suficiente dinero para esta pregunta.';
+                const errEn = 'Not enough money for this question.';
+                const err = difficulty === 'en' ? errEn : difficulty === 'es' ? errEs : `${errEs} / ${errEn}`;
+                setChatLog(prev => [...prev, { type: 'system', text: err, isError: true }]);
+                speak(errEs, errEn);
+                return false;
+            };
+
+            const getDynamicAnswer = (qKey, tense) => {
+                const baseEs = character.es[qKey]; const baseEn = character.en[qKey];
+                let resEs = baseEs; let resEn = baseEn;
+                
+                if (qKey === 'genre') {
+                    if (tense === 'past') { resEs = `Cantaba ${baseEs}.`; resEn = `I sang ${baseEn}.`; }
+                    else if (tense === 'present') { resEs = `Canto ${baseEs}.`; resEn = `I sing ${baseEn}.`; }
+                    else if (tense === 'future') { resEs = `Cantaré ${baseEs}.`; resEn = `I will sing ${baseEn}.`; }
+                } else if (qKey === 'format') {
+                    if (tense === 'past') { resEs = `Fui ${baseEs}.`; resEn = `I was a ${baseEn}.`; }
+                    else if (tense === 'present') { resEs = `Soy ${baseEs}.`; resEn = `I am a ${baseEn}.`; }
+                    else if (tense === 'future') { resEs = `Seré ${baseEs}.`; resEn = `I will be a ${baseEn}.`; }
+                } else if (qKey === 'country') {
+                    if (tense === 'past') { resEs = `Nací en ${baseEs}.`; resEn = `I was born in ${baseEn}.`; }
+                    else if (tense === 'present') { resEs = `Soy de ${baseEs}.`; resEn = `I am from ${baseEn}.`; }
+                    else if (tense === 'future') { resEs = `Seré recordado en ${baseEs}.`; resEn = `I will be remembered in ${baseEn}.`; }
+                } else if (qKey === 'awards') {
+                    if (tense === 'past') { resEs = `Gané ${baseEs}.`; resEn = `I won ${baseEn}.`; }
+                    else if (tense === 'present') { resEs = `Tengo ${baseEs}.`; resEn = `I have ${baseEn}.`; }
+                    else if (tense === 'future') { resEs = `Ganaré ${baseEs}.`; resEn = `I will win ${baseEn}.`; }
+                } else if (qKey === 'clue1') {
+                    if (tense === 'past') { resEs = `Mi éxito fue ${baseEs}`; resEn = `My hit was ${baseEn}`; }
+                    else if (tense === 'present') { resEs = `Mi éxito es ${baseEs}`; resEn = `My hit is ${baseEn}`; }
+                    else if (tense === 'future') { resEs = `Mi próximo éxito será como ${baseEs}`; resEn = `My next hit will be like ${baseEn}`; }
+                } else if (qKey === 'clue2') {
+                    if (tense === 'past') { resEs = `En el pasado: ${baseEs}`; resEn = `In the past: ${baseEn}`; }
+                    else if (tense === 'present') { resEs = `Actualmente: ${baseEs}`; resEn = `Currently: ${baseEn}`; }
+                    else if (tense === 'future') { resEs = `En el futuro: ${baseEs}`; resEn = `In the future: ${baseEn}`; }
+                }
+                return { es: resEs, en: resEn, text: difficulty === 'es' ? resEs : difficulty === 'en' ? resEn : `${resEs}\n[EN]: ${resEn}` };
+            };
+
+            const getLabel = (obj) => difficulty === 'en' ? obj.en : difficulty === 'es' ? obj.es : `${obj.es} / ${obj.en}`;
+
+            const processInput = (inputText, isVoice = false, voiceConfidence = null) => {
+                const normalizedInput = normalizeString(inputText);
+                const normalizedName = normalizeString(character.name);
+                
+                const accentScore = (isVoice && voiceConfidence !== null && difficulty !== 'es') 
+                    ? Math.max(1, Math.min(10, Math.round(voiceConfidence * 10))) 
+                    : null;
+                
+                const isMatch = (input, target) => {
+                    if (!target || !input) return false;
+                    if (input.includes(target) || target.includes(input)) return true;
+                    if (target.length > 6 && input.includes(target.substring(0, target.length - 2))) return true;
+                    
+                    const inputWords = input.split(' ').filter(w => w.length > 3);
+                    const targetWords = target.split(' ').filter(w => w.length > 3);
+                    if (targetWords.length > 0 && inputWords.length > 0) {
+                        const matches = targetWords.filter(tw => inputWords.some(iw => iw.includes(tw) || tw.includes(iw)));
+                        if (matches.length / targetWords.length >= 0.6) return true; 
+                    }
+                    return false;
+                };
+
+                if (
+                normalizedInput === normalizedName || 
+                (normalizedInput.length > 4 && normalizedName.includes(normalizedInput)) ||
+                (isVoice && isMatch(normalizedInput, normalizedName))
+                ) {
+                const successGuessText = difficulty === 'en' ? `Correct guess!: ${character.name}` : `¡Adivinado!: ${character.name}`;
+                setAttemptHistory(prev => [...prev, { text: successGuessText, correct: true }]);
+                isSpeakingRef.current = false; 
+                if (window.speechSynthesis) window.speechSynthesis.cancel();
+                const reward = isVip ? REWARD_VIP : REWARD_NORMAL;
+                setBalance(prev => prev + reward);
+                onSuccess(isVip);
+                return;
+                }
+
+                let matchedTopic = null;
+                let matchedTense = null;
+                let matchedExtra = null;
+
+                for (const topic of GRAMMAR_QUESTIONS) {
+                    const labelEs = normalizeString(topic.label.es);
+                    const labelEn = normalizeString(topic.label.en);
+                    
+                    if (isMatch(normalizedInput, labelEs) || isMatch(normalizedInput, labelEn)) {
+                        matchedTopic = topic;
+                        matchedTense = topic.tenses.find(t => t.id === (isVip ? 'present' : 'past'));
+                        break;
+                    }
+
+                    for (const tense of topic.tenses) {
+                        const qEs = normalizeString(tense.es);
+                        const qEn = normalizeString(tense.en);
+                        if (isMatch(normalizedInput, qEs) || isMatch(normalizedInput, qEn)) {
+                        matchedTopic = topic;
+                        matchedTense = tense;
+                        break;
+                        }
+                    }
+                    if (matchedTopic) break;
+                }
+
+                if (!matchedTopic) {
+                for (const q of EXTRA_QUESTIONS) {
+                    const qEs = normalizeString(q.label.es);
+                    const qEn = normalizeString(q.label.en);
+                    if (isMatch(normalizedInput, qEs) || isMatch(normalizedInput, qEn)) {
+                    matchedExtra = q;
+                    break;
+                    }
+                }
+                }
+
+                if (matchedTopic || matchedExtra) {
+                const cost = matchedTopic ? matchedTopic.cost : matchedExtra.cost;
+                if (!deductMoney(cost)) return;
+
+                if (matchedTopic) setAskedTopics(prev => new Set(prev).add(matchedTopic.id));
+                if (matchedExtra) setAskedTopics(prev => new Set(prev).add(matchedExtra.id));
+
+                let answerText = "";
+                let esToSpeak = "";
+                let enToSpeak = "";
+                
+                if (matchedTopic) {
+                    const answer = getDynamicAnswer(matchedTopic.key, matchedTense.id);
+                    answerText = answer.text;
+                    esToSpeak = answer.es;
+                    enToSpeak = answer.en;
+                } else {
+                    answerText = matchedExtra.key === 'missingLetters' ? character.missingLetters : (difficulty === 'es' ? character.es[matchedExtra.key] : difficulty === 'en' ? character.en[matchedExtra.key] : `${character.es[matchedExtra.key]}\n[EN]: ${character.en[matchedExtra.key]}`);
+                    esToSpeak = character.es[matchedExtra.key];
+                    enToSpeak = character.en[matchedExtra.key];
+                }
+
+                const qPrefix = difficulty === 'en' ? 'Q:' : 'P:';
+                const aPrefix = difficulty === 'en' ? 'A:' : 'R:';
+                const historyText = `${qPrefix} ${inputText}\n${aPrefix} ${answerText.split('\n')[0]}`;
+                setAttemptHistory(prev => [...prev, { text: historyText, correct: true }]);
+
+                const successMsgEs = "✅ ¡Correcto! Pregunta reconocida.";
+                const successMsgEn = "✅ Correct! Question recognized.";
+                const successText = difficulty === 'en' ? successMsgEn : difficulty === 'es' ? successMsgEs : `${successMsgEs} / ${successMsgEn}`;
+                
+                setChatLog(prev => [
+                    ...prev, 
+                    { type: 'user', text: inputText, icon: isVoice ? Mic : undefined, cost: cost, score: accentScore },
+                    { type: 'system', text: successText, isSuccess: true }
+                ]);
+
+                setTimeout(() => {
+                    setChatLog(prev => [...prev, { type: 'bot', text: answerText }]);
+                    if (!(matchedExtra && matchedExtra.key === 'missingLetters')) speak(esToSpeak, enToSpeak);
+                }, 600);
+
+                } else {
+                setErrorShake(true); setTimeout(() => setErrorShake(false), 500);
+                setBalance(prev => Math.max(0, prev - COST_PENALTY));
+                
+                const errHist = difficulty === 'en' ? `Unrecognized: "${inputText}"` : `No reconocido: "${inputText}"`;
+                setAttemptHistory(prev => [...prev, { text: errHist, correct: false }]);
+
+                const errEs = `❌ Error. Pregunta no reconocida o nombre incorrecto (-${COST_PENALTY}€).`;
+                const errEn = `❌ Error. Question not recognized or incorrect name (-${COST_PENALTY}€).`;
+                const errText = difficulty === 'en' ? errEn : difficulty === 'es' ? errEs : `${errEs} / ${errEn}`;
+                
+                setChatLog(prev => [
+                    ...prev, 
+                    { type: 'user', text: inputText, icon: isVoice ? Mic : undefined, score: accentScore },
+                    { type: 'system', text: errText, isError: true }
+                ]);
+                speak('Error', 'Error');
+                }
+
+                setGuess('');
+            };
+
+            const askGrammarQuestion = (topic, tenseConfig) => {
+                if (!deductMoney(topic.cost)) return;
+                setAskedTopics(prev => new Set(prev).add(topic.id));
+                setExpandedTopic(null);
+                const answer = getDynamicAnswer(topic.key, tenseConfig.id);
+
+                const qPrefix = difficulty === 'en' ? 'Q:' : 'P:';
+                const aPrefix = difficulty === 'en' ? 'A:' : 'R:';
+                const historyText = `${qPrefix} ${getLabel(tenseConfig)}\n${aPrefix} ${answer.text.split('\n')[0]}`;
+                setAttemptHistory(prev => [...prev, { text: historyText, correct: true }]);
+
+                const successMsgEs = "✅ ¡Correcto! Pregunta formulada.";
+                const successMsgEn = "✅ Correct! Question asked.";
+                const successText = difficulty === 'en' ? successMsgEn : difficulty === 'es' ? successMsgEs : `${successMsgEs} / ${successMsgEn}`;
+
+                setChatLog(prev => [
+                ...prev, 
+                { type: 'user', text: getLabel(tenseConfig), icon: tenseConfig.icon, cost: topic.cost },
+                { type: 'system', text: successText, isSuccess: true }
+                ]);
+                setTimeout(() => { setChatLog(prev => [...prev, { type: 'bot', text: answer.text }]); speak(answer.es, answer.en); }, 600);
+            };
+
+            const askExtraQuestion = (q) => {
+                if (!deductMoney(q.cost)) return;
+                setAskedTopics(prev => new Set(prev).add(q.id));
+                const answerText = q.key === 'missingLetters' ? character.missingLetters : (difficulty === 'es' ? character.es[q.key] : difficulty === 'en' ? character.en[q.key] : `${character.es[q.key]}\n[EN]: ${character.en[q.key]}`);
+                
+                const qPrefix = difficulty === 'en' ? 'Q:' : 'P:';
+                const aPrefix = difficulty === 'en' ? 'A:' : 'R:';
+                const historyText = `${qPrefix} ${getLabel(q.label)}\n${aPrefix} ${answerText.split('\n')[0]}`;
+                setAttemptHistory(prev => [...prev, { text: historyText, correct: true }]);
+
+                const successMsgEs = "✅ ¡Correcto! Pregunta formulada.";
+                const successMsgEn = "✅ Correct! Question asked.";
+                const successText = difficulty === 'en' ? successMsgEn : difficulty === 'es' ? successMsgEs : `${successMsgEs} / ${successMsgEn}`;
+
+                setChatLog(prev => [
+                ...prev, 
+                { type: 'user', text: getLabel(q.label), cost: q.cost },
+                { type: 'system', text: successText, isSuccess: true }
+                ]);
+                setTimeout(() => { setChatLog(prev => [...prev, { type: 'bot', text: answerText }]); if(q.key !== 'missingLetters') speak(character.es[q.key], character.en[q.key]); }, 600);
+            };
+
+            const handleGuessSubmit = (e) => {
+                e.preventDefault();
+                if(!guess) return;
+                processInput(guess, false);
+            };
+
+            const safeStart = (reco) => {
+                try {
+                    const p = reco.start();
+                    if (p && p.catch) p.catch(e => console.warn("Reco start rejected:", e));
+                } catch(e) { console.warn("Reco start error:", e); }
+            };
+
+            const startListening = () => {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) { alert('Tu navegador no soporta el reconocimiento de voz. / Browser not supported for voice.'); return; }
+
+                if (recognitionRef.current) {
+                    recognitionRef.current.onend = null;
+                    try { recognitionRef.current.abort(); } catch(e){}
+                }
+
+                const recognition = new SpeechRecognition();
+                recognition.lang = difficulty === 'en' ? 'en-US' : 'es-ES';
+                recognition.continuous = true;
+                recognition.interimResults = false; 
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = () => {
+                    isRecoRunning.current = true;
+                };
+                
+                recognition.onresult = (e) => { 
+                    if (isSpeakingRef.current) return;
+
+                    const lastResultIndex = e.results.length - 1;
+                    const transcript = e.results[lastResultIndex][0].transcript;
+                    const confidence = e.results[lastResultIndex][0].confidence;
+                    
+                    if (transcript.trim().length > 0) {
+                        processInput(transcript, true, confidence);
+                    }
+                };
+
+                recognition.onerror = (e) => {
+                    isRecoRunning.current = false;
+                    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                        shouldListenRef.current = false;
+                        setGlobalMicActive(false);
+                        setIsListening(false);
+                    }
+                };
+
+                recognition.onend = () => {
+                    isRecoRunning.current = false;
+                    if (shouldListenRef.current && !isSpeakingRef.current) {
+                        setTimeout(() => {
+                            if (shouldListenRef.current && !isRecoRunning.current && !isSpeakingRef.current) {
+                                startListening();
+                            }
+                        }, 300);
+                    }
+                };
+
+                recognitionRef.current = recognition;
+                safeStart(recognition);
+            };
+
+            const toggleListening = () => {
+                if (shouldListenRef.current) {
+                    shouldListenRef.current = false;
+                    setGlobalMicActive(false);
+                    setIsListening(false);
+                    if (recognitionRef.current) {
+                        recognitionRef.current.onend = null;
+                        try { recognitionRef.current.abort(); } catch(e){}
+                    }
+                    isRecoRunning.current = false;
+                } else {
+                    shouldListenRef.current = true;
+                    setGlobalMicActive(true);
+                    setIsListening(true);
+                    startListening();
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/90 flex items-center justify-center p-2 sm:p-4 z-50 backdrop-blur-md">
+                <div className={`rounded-3xl w-full max-w-7xl h-[95vh] sm:h-[90vh] overflow-hidden shadow-2xl flex flex-col lg:flex-row border-4 ${isVip ? 'border-fuchsia-400 bg-fuchsia-50' : 'border-white bg-white'}`}>
+                    
+                    {/* PANEL IZQUIERDO: Preguntas */}
+                    <div className={`w-full lg:w-[30%] border-r flex flex-col h-[45%] lg:h-full ${isVip ? 'bg-fuchsia-100/50 border-fuchsia-200' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`p-4 sm:p-5 flex justify-between items-center ${isVip ? 'bg-gradient-to-r from-fuchsia-600 to-purple-600' : 'bg-indigo-700'} text-white`}>
+                        <div>
+                        <h2 className="font-bold text-lg sm:text-xl flex items-center gap-2">
+                            {isVip ? <Star className="text-fuchsia-200"/> : <Languages />} 
+                            {isVip ? 'VIP Star Room' : 'Questions Menu'}
+                        </h2>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Coins className={`w-4 h-4 ${isVip ? 'text-fuchsia-200' : 'text-yellow-400'}`}/>
+                            <span className="font-bold text-lg">{balance} €</span>
+                        </div>
+                        </div>
+                    </div>
+                    
+                    <div className="p-3 sm:p-4 flex-1 overflow-y-auto space-y-3 custom-scrollbar">
+                        {GRAMMAR_QUESTIONS.map(topic => {
+                        const isAsked = askedTopics.has(topic.id);
+                        const isExpanded = expandedTopic === topic.id;
+                        const Icon = topic.icon;
+                        return (
+                            <div key={topic.id} className={`border rounded-xl overflow-hidden shadow-sm ${isVip ? 'bg-fuchsia-50/50 border-fuchsia-300' : 'bg-white border-slate-200'}`}>
+                            <button onClick={() => !isAsked && setExpandedTopic(isExpanded ? null : topic.id)} disabled={isAsked}
+                                className={`w-full p-3 sm:p-4 flex justify-between items-center transition-colors ${isAsked ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'hover:bg-indigo-50 text-slate-800'}`}>
+                                <div className="flex items-center gap-2 sm:gap-3 font-semibold text-sm sm:text-base">
+                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isAsked ? 'text-slate-400' : (isVip ? 'text-fuchsia-500' : 'text-indigo-500')}`} />
+                                {getLabel(topic.label)}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                {!isAsked && <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-1 rounded-full">-{topic.cost}€</span>}
+                                {!isAsked && (isExpanded ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>)}
+                                {isAsked && <CheckCircle2 className="w-5 h-5 text-green-500"/>}
+                                </div>
+                            </button>
+                            
+                            {isExpanded && !isAsked && (
+                                <div className="bg-slate-50 p-2 sm:p-3 grid grid-cols-1 gap-2 border-t">
+                                {topic.tenses.map(tense => (
+                                    <button key={tense.id} onClick={() => askGrammarQuestion(topic, tense)}
+                                    className="flex items-center gap-3 p-2 sm:p-3 rounded-lg border bg-white hover:border-indigo-400 transition-all text-left group">
+                                    <div className={`p-1 sm:p-2 rounded-md ${tense.id === 'past' ? 'bg-amber-100 text-amber-600' : tense.id === 'present' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                                        <tense.icon className="w-4 h-4"/>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">{tense.id}</div>
+                                        <div className="text-xs sm:text-sm font-medium text-slate-700">{getLabel(tense)}</div>
+                                    </div>
+                                    </button>
+                                ))}
+                                </div>
+                            )}
+                            </div>
+                        );
+                        })}
+
+                        {EXTRA_QUESTIONS.map(q => {
+                        const isAsked = askedTopics.has(q.id);
+                        return (
+                            <button key={q.id} onClick={() => askExtraQuestion(q)} disabled={isAsked}
+                            className={`w-full p-3 sm:p-4 rounded-xl flex justify-between items-center border transition-all font-semibold ${isAsked ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'}`}>
+                            <div className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base"><q.icon className="w-4 h-4 sm:w-5 sm:h-5" /> {getLabel(q.label)}</div>
+                            <div className="flex items-center gap-2">
+                                {!isAsked && <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-1 rounded-full">-{q.cost}€</span>}
+                            </div>
+                            </button>
+                        )
+                        })}
+                    </div>
+                    </div>
+
+                    {/* PANEL CENTRAL: Chat e Input */}
+                    <div className={`w-full lg:w-[50%] flex flex-col h-[55%] lg:h-full ${isVip ? 'bg-[url("https://www.transparenttextures.com/patterns/stardust.png")] bg-fuchsia-900/5' : 'bg-slate-100'}`}>
+                    <div className="bg-white/90 backdrop-blur border-b px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shadow-sm">
+                        <h2 className={`text-lg sm:text-xl font-bold flex items-center gap-2 ${isVip ? 'text-fuchsia-700' : 'text-slate-800'}`}>
+                        <Headphones className={isVip ? 'text-fuchsia-500' : 'text-indigo-500'}/> 
+                        {isVip ? 'Mystery Singer VIP' : (difficulty === 'en' ? 'Interview' : 'Entrevista')}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={selectedVoiceURI}
+                                onChange={(e) => setSelectedVoiceURI(e.target.value)}
+                                className="text-xs md:text-sm bg-slate-100 border border-slate-300 rounded px-2 py-1 max-w-[100px] md:max-w-[150px] truncate text-slate-700 outline-none cursor-pointer hover:border-indigo-400 focus:ring-2 focus:ring-indigo-200 transition-all"
+                                title={difficulty === 'en' ? 'Choose Voice' : 'Elegir Voz'}
+                            >
+                                <option value="">{difficulty === 'en' ? 'Default Voice' : 'Voz Automática'}</option>
+                                {validVoices.map(v => (
+                                    <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
+                                ))}
+                            </select>
+
+                            <button onClick={() => { setVoiceEnabled(!voiceEnabled); if(window.speechSynthesis) window.speechSynthesis.cancel(); }}
+                            className={`p-2 rounded-full transition-colors ${voiceEnabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-500'}`}>
+                            {voiceEnabled ? <Volume2 size={18}/> : <VolumeX size={18}/>}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scroll-smooth">
+                        {chatLog.map((msg, i) => (
+                        <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} fade-in`}>
+                            <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl p-3 sm:p-4 shadow-sm text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap
+                            ${msg.type === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 
+                                msg.type === 'system' ? (msg.isError ? 'bg-red-100 text-red-800 mx-auto text-sm font-medium text-center' : msg.isSuccess ? 'bg-green-100 text-green-800 mx-auto text-sm font-bold text-center border-2 border-green-300' : msg.isVipAlert ? 'bg-gradient-to-r from-fuchsia-500 to-purple-500 text-white font-bold mx-auto text-center border-2 border-fuchsia-300 shadow-lg scale-105' : 'bg-slate-200 text-slate-600 mx-auto text-sm italic text-center') : 
+                                `bg-white border text-slate-800 rounded-bl-none font-medium ${isVip ? 'border-fuchsia-400 shadow-[0_0_15px_rgba(232,121,249,0.3)]' : 'border-slate-200'}`}`}
+                            >
+                            {msg.type === 'bot' && <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Character</div>}
+                            {msg.type === 'user' && <div className="text-[10px] text-indigo-200 font-bold uppercase mb-1 flex justify-between items-center">
+                                <span className="flex items-center gap-1">{msg.icon && <msg.icon className="w-3 h-3"/>} You</span> 
+                                <div className="flex items-center gap-2">
+                                    {msg.cost && <span className="text-red-300">-{msg.cost}€</span>}
+                                </div>
+                            </div>}
+                            {msg.text}
+                            {msg.score && (
+                                <div className={`mt-3 p-2.5 rounded-lg text-xs font-bold border flex flex-col gap-1.5 ${msg.score >= 8 ? 'bg-green-500/20 border-green-400/50 text-green-100' : msg.score >= 5 ? 'bg-yellow-500/20 border-yellow-400/50 text-yellow-100' : 'bg-red-500/20 border-red-400/50 text-red-100'}`}>
+                                    <div className="flex justify-between items-center">
+                                        <span>{difficulty === 'en' ? 'Pronunciation Level' : 'Nivel de Pronunciación'}: {msg.score}/10</span>
+                                        <span>{msg.score >= 8 ? '🟢' : msg.score >= 5 ? '🟡' : '🔴'}</span>
+                                    </div>
+                                    <div className="w-full bg-black/20 rounded-full h-2 overflow-hidden mt-0.5">
+                                        <div className={`h-full ${msg.score >= 8 ? 'bg-green-400' : msg.score >= 5 ? 'bg-yellow-400' : 'bg-red-400'}`} style={{ width: `${(msg.score/10)*100}%` }}></div>
+                                    </div>
+                                </div>
+                            )}
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+
+                    <div className="p-3 sm:p-4 bg-white/90 backdrop-blur border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative mt-4">
+                        
+                        {isListening && (
+                            <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900 text-white px-5 py-2 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.6)] border-2 border-green-500 z-10 fade-in">
+                                <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_#4ade80]"></div>
+                                <span className="text-sm font-bold tracking-widest">{difficulty === 'en' ? 'LISTENING...' : 'ESCUCHANDO...'}</span>
+                            </div>
+                        )}
+
+                        <div 
+                            className="absolute -top-12 sm:-top-14 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900 px-5 py-2 sm:py-3 rounded-full shadow-2xl border-[3px] z-10 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                            onClick={toggleListening}
+                            style={{ borderColor: isListening ? '#22c55e' : '#ef4444' }}
+                            title={difficulty === 'en' ? 'Click to toggle microphone' : 'Clic para activar/desactivar micrófono'}
+                        >
+                            <div className="flex gap-2 sm:gap-3 bg-black/50 p-1.5 rounded-full border border-slate-700">
+                                <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full transition-all ${!isListening ? 'bg-red-500 shadow-[0_0_15px_#ef4444] scale-110' : 'bg-red-900/50'}`}></div>
+                                <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full transition-all ${isListening ? 'bg-green-500 shadow-[0_0_15px_#22c55e] scale-110 animate-pulse' : 'bg-green-900/50'}`}></div>
+                            </div>
+                            <span className={`text-xs sm:text-sm font-bold tracking-widest uppercase ${isListening ? 'text-green-400' : 'text-red-400'}`}>
+                                {isListening ? (difficulty === 'en' ? 'MIC ON (Listening)' : 'MICRO ON (Escuchando)') : (difficulty === 'en' ? 'MIC OFF (Click to start)' : 'MICRO APAGADO (Pulsar)')}
+                            </span>
+                        </div>
+
+                        <form onSubmit={handleGuessSubmit} className="flex gap-2">
+                        <button type="button" onClick={toggleListening}
+                            className={`p-3 sm:p-4 rounded-xl flex items-center justify-center transition-all ${isListening ? 'bg-green-500 text-white shadow-lg ring-4 ring-green-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                            {isListening ? <Mic size={20} /> : <MicOff size={20} />}
+                        </button>
+                        <input type="text" placeholder={difficulty === 'en' ? 'Type name or question...' : 'Escribe personaje o pregunta...'} 
+                            value={guess} onChange={(e) => setGuess(e.target.value)}
+                            className={`flex-1 px-3 sm:px-5 py-3 sm:py-4 border-2 rounded-xl outline-none transition-all text-sm sm:text-lg font-bold focus:border-indigo-500 ${errorShake ? 'border-red-500 animate-shake bg-red-50' : 'border-slate-300'}`} />
+                        <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-lg shadow-lg flex flex-col items-center justify-center leading-none transition-all hover:scale-105 active:scale-95">
+                            <span>{difficulty === 'en' ? 'Send' : 'Enviar'}</span>
+                            {guess && <span className="text-[10px] font-normal text-indigo-200 mt-1">(-50€)</span>}
+                        </button>
+                        </form>
+                    </div>
+                    </div>
+
+                    {/* PANEL DERECHO: Historial (Ventanita de aciertos/fallos y contestaciones) */}
+                    <div className={`hidden lg:flex w-[20%] border-l flex-col h-full ${isVip ? 'bg-fuchsia-100/30 border-fuchsia-200' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className={`p-4 border-b ${isVip ? 'border-fuchsia-200 bg-fuchsia-100/50' : 'border-slate-200 bg-white/50'} backdrop-blur flex justify-between items-center`}>
+                            <h3 className="font-bold text-sm text-slate-700 flex items-center gap-2">
+                                <HistoryIcon className="w-4 h-4 text-indigo-500" />
+                                {difficulty === 'en' ? 'History' : 'Historial'}
+                            </h3>
+                            <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-1 rounded-full">{attemptHistory.length}</span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                            {attemptHistory.map((item, i) => (
+                                <div key={i} className={`flex items-start gap-2 p-2 rounded-lg border text-xs font-medium fade-in ${item.correct ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                                    <span className="shrink-0 text-sm">{item.correct ? '✔️' : '❌'}</span>
+                                    <span className="break-words w-full mt-0.5 whitespace-pre-line leading-relaxed">{item.text}</span>
+                                </div>
+                            ))}
+                            {attemptHistory.length === 0 && (
+                                <div className="text-center text-slate-400 italic text-xs mt-6 px-2">
+                                    {difficulty === 'en' ? 'Your questions and answers will appear here.' : 'Tus preguntas y las contestaciones aparecerán aquí.'}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+                </div>
+            );
+        };
+
+        // --- SUBCOMPONENTE: EFECTO MÁQUINA DE ESCRIBIR ---
+        const TypewriterText = ({ text, speed = 30 }) => {
+            const [displayed, setDisplayed] = useState("");
+            
+            useEffect(() => {
+                let i = 0;
+                setDisplayed("");
+                const timer = setInterval(() => {
+                    setDisplayed(text.substring(0, i + 1));
+                    i++;
+                    if(i >= text.length) clearInterval(timer);
+                }, speed);
+                return () => clearInterval(timer);
+            }, [text, speed]);
+            
+            return <span>{displayed}</span>;
+        };
+
+        // --- COMPONENTE DE VÍDEO FICHA (VERSIÓN CINEMÁTICA MEJORADA) ---
+        const VideoFicha = ({ character, difficulty, onContinue }) => {
+            const [phase, setPhase] = useState('countdown-3');
+
+            useEffect(() => {
+                const t1 = setTimeout(() => setPhase('countdown-2'), 1000);
+                const t2 = setTimeout(() => setPhase('countdown-1'), 2000);
+                const t3 = setTimeout(() => setPhase('intro'), 3000);
+                const t4 = setTimeout(() => setPhase('bio'), 5500);
+                
+                return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+            }, []);
+
+            const getBioText = () => {
+                if (difficulty === 'es') return character.es.bio;
+                if (difficulty === 'en') return character.en.bio;
+                return `${character.es.bio}\n\n[EN]: ${character.en.bio}`;
+            };
+
+            const getOccText = () => {
+                if (difficulty === 'es') return `${character.es.genre} · ${character.es.format}`;
+                if (difficulty === 'en') return `${character.en.genre} · ${character.en.format}`;
+                return `${character.es.genre} / ${character.en.genre}`;
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black flex items-center justify-center p-0 sm:p-8 z-[60]">
+                    <div className="relative w-full h-full sm:h-auto sm:aspect-video sm:max-w-5xl bg-[#0a0a0a] sm:rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.9)] border border-neutral-800">
+                        
+                        <div className="absolute inset-0 sepia-filter opacity-80 pointer-events-none z-10">
+                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] opacity-50 mix-blend-overlay animate-noise"></div>
+                            <div className="film-scratch"></div>
+                            <div className="film-scratch" style={{left: '20%', animationDelay: '1.5s'}}></div>
+                            <div className="absolute top-0 bottom-0 left-0 right-0 w-full h-full bg-gradient-to-b from-transparent via-black/10 to-transparent animate-scanline"></div>
+                        </div>
+                        <div className="absolute inset-0 vignette pointer-events-none z-20"></div>
+
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-30 p-6 sm:p-12 text-center text-amber-50">
+                            
+                            {phase.startsWith('countdown') && (
+                                <div className="flex flex-col items-center justify-center h-full w-full opacity-80">
+                                    <div className="countdown-circle font-mono text-white/80">
+                                        <div className="countdown-line"></div>
+                                        <div className="countdown-line" style={{transform: 'rotate(90deg)'}}></div>
+                                        <span className="z-10 bg-[#0a0a0a] rounded-full w-32 h-32 flex items-center justify-center drop-shadow-lg">
+                                            {phase.split('-')[1]}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {phase === 'intro' && (
+                                <div className="fade-in flex flex-col items-center justify-center h-full w-full">
+                                    <h2 className="text-amber-500/80 text-sm md:text-2xl font-bold tracking-[0.5em] uppercase mb-6">
+                                        {difficulty === 'en' ? 'Music Archives' : 'Archivos Musicales'}
+                                    </h2>
+                                    <div className="w-1/2 h-[1px] bg-amber-500/50 mb-8"></div>
+                                    <RecordVinyl className="text-5xl text-amber-100/50 mb-4 animate-spin-slow" />
+                                    <p className="text-amber-100/40 tracking-widest text-xs mt-4">RECORDING...</p>
+                                </div>
+                            )}
+
+                            {phase === 'bio' && (
+                                <div className="w-full max-w-4xl flex flex-col h-full fade-in justify-center relative">
+                                    
+                                    <div className="flex flex-col md:flex-row items-center md:items-start gap-8 w-full text-left mt-8 md:mt-0">
+                                        <div className="w-32 h-32 md:w-48 md:h-48 shrink-0 rounded-sm border-2 border-amber-100/30 flex items-center justify-center bg-black/60 shadow-[0_0_40px_rgba(251,191,36,0.15)] relative overflow-hidden">
+                                            <div className="absolute inset-0 bg-amber-900/20 mix-blend-overlay"></div>
+                                            <UserTie className="text-6xl md:text-8xl text-amber-100/60 relative z-10" />
+                                        </div>
+                                        
+                                        <div className="flex-1 flex flex-col justify-center text-center md:text-left w-full">
+                                            <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold tracking-widest uppercase mb-1 text-shadow-cinematic text-amber-50">
+                                                {character.name}
+                                            </h1>
+                                            <p className="text-base md:text-2xl font-serif italic text-amber-400/90 mb-6 border-b border-amber-500/30 pb-4 inline-block md:inline">
+                                                {getOccText()}
+                                            </p>
+                                            
+                                            <div className="bg-black/50 p-5 md:p-8 rounded-lg border-l-4 border-amber-600 shadow-2xl relative">
+                                                <FAIcon icon="fa-quote-left" className="absolute top-4 left-4 text-amber-500/20 text-3xl" />
+                                                <p className="text-sm md:text-xl leading-relaxed md:leading-loose text-amber-100/95 font-medium whitespace-pre-wrap font-serif z-10 relative">
+                                                    <TypewriterText text={getBioText()} speed={35} />
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="absolute bottom-4 right-4 md:bottom-0 md:right-0 fade-in" style={{animationDelay: '4s', animationFillMode: 'both'}}>
+                                        <button 
+                                            onClick={onContinue}
+                                            className="flex items-center gap-3 bg-black/60 border border-amber-500/50 text-amber-400 hover:bg-amber-500 hover:text-black px-6 py-3 rounded-md font-bold text-sm md:text-lg transition-all uppercase tracking-widest"
+                                        >
+                                            <Play /> {difficulty === 'en' ? 'Continue' : 'Continuar'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="absolute top-4 right-6 z-40 flex items-center gap-2">
+                            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
+                            <span className="font-mono text-red-500 font-bold tracking-wider text-xs md:text-sm">REC</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE DE LA LÍNEA DEL TIEMPO ---
+        const Timeline = ({ guessedCharacters, allCharacters, difficulty }) => {
+            const guessedList = Array.from(guessedCharacters).map(idx => allCharacters[idx]);
+            const uniqueGuessed = Array.from(new Set(guessedList.map(c => c.name)))
+                .map(name => guessedList.find(c => c.name === name));
+
+            const sorted = uniqueGuessed.sort((a, b) => a.sortYear - b.sortYear);
+
+            if (sorted.length === 0) return null;
+
+            return (
+                <div className="w-full bg-white/80 backdrop-blur shadow-xl border border-slate-200 overflow-x-auto custom-scrollbar mb-8 py-10 px-8 rounded-[2rem]">
+                <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 text-center">
+                    {difficulty === 'en' ? 'Timeline (Birth Year)' : 'Línea del Tiempo (Año de Nacimiento)'}
+                </div>
+                <div className="relative flex items-center min-w-max mx-auto gap-24 h-12 px-10">
+                    <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-300 -translate-y-1/2 z-0 rounded-full"></div>
+                    
+                    {sorted.map((char) => (
+                        <div key={char.name} className="relative z-10 flex flex-col items-center group">
+                        <div className="absolute -top-8 text-[10px] md:text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100 whitespace-nowrap group-hover:-translate-y-1 transition-transform">
+                            {char.sortYear}
+                        </div>
+                        
+                        <div className="w-4 h-4 md:w-5 md:h-5 bg-indigo-600 rounded-full border-4 border-white shadow-md ring-2 ring-indigo-200 group-hover:scale-125 transition-transform"></div>
+                        
+                        <div className="absolute top-8 text-xs md:text-sm font-bold text-indigo-900 bg-indigo-50 px-3 py-1.5 rounded-lg shadow-sm border border-indigo-100 whitespace-nowrap group-hover:translate-y-1 transition-transform">
+                            {char.name}
+                        </div>
+                        </div>
+                    ))}
+                </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE PRINCIPAL APP ---
+        function App() {
+            const [difficulty, setDifficulty] = useState(null);
+            const [playerName, setPlayerName] = useState("");
+            const [playerPosition, setPlayerPosition] = useState(-1);
+            const [guessedCharacters, setGuessedCharacters] = useState(new Set());
+            const [activeSquare, setActiveSquare] = useState(null);
+            const [showFicha, setShowFicha] = useState(false);
+            
+            const [balance, setBalance] = useState(500);
+            const [isVipModeActive, setIsVipModeActive] = useState(false);
+            const [vipCharacter, setVipCharacter] = useState(null);
+            const [vipWon, setVipWon] = useState(false);
+            const [globalMicActive, setGlobalMicActive] = useState(false);
+
+            // GESTIÓN DE VOCES GLOBALES
+            const [globalVoices, setGlobalVoices] = useState([]);
+            const [selectedVoiceURI, setSelectedVoiceURI] = useState("");
+            
+            // Estado de movimiento
+            const [isMoving, setIsMoving] = useState(false);
+            const [hopTrigger, setHopTrigger] = useState(0);
+
+            useEffect(() => {
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    setGlobalVoices(voices);
+                };
+                
+                loadVoices();
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
+            }, []);
+
+            const VIP_COST = 500;
+            const VIP_THRESHOLD = 1500;
+
+            const handleStart = (level, name) => {
+                setDifficulty(level);
+                setPlayerName(name);
+            };
+
+            const handleRoll = (diceValue) => {
+                const finalPos = Math.min(playerPosition + diceValue, FULL_CHARACTERS.length - 1);
+                setIsMoving(true);
+                
+                let currentPos = playerPosition;
+                const delay = 400; // ms per hop
+
+                const step = () => {
+                    if (currentPos < finalPos) {
+                        currentPos++;
+                        setPlayerPosition(currentPos);
+                        setHopTrigger(prev => prev + 1);
+                        setTimeout(step, delay);
+                    } else {
+                        setIsMoving(false);
+                        setActiveSquare(currentPos);
+                    }
+                };
+
+                step();
+            };
+
+            const triggerVipEncounter = () => {
+                if (balance < VIP_COST) return;
+                setBalance(prev => prev - VIP_COST);
+                
+                const randomChar = VIP_CHARACTERS[Math.floor(Math.random() * VIP_CHARACTERS.length)];
+                setVipCharacter(randomChar);
+                setIsVipModeActive(true);
+            };
+
+            const handleVipSuccess = () => {
+                setIsVipModeActive(false);
+                setVipWon(true);
+            };
+
+            if (!difficulty) return <LevelSelector onSelect={handleStart} />;
+
+            if (vipWon) {
+                return (
+                <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
+                    <div className="bg-gradient-to-b from-fuchsia-400 to-purple-600 p-12 rounded-full shadow-[0_0_100px_rgba(232,121,249,0.5)] mb-8 animate-bounce">
+                    <Music className="text-white" size={100} />
+                    </div>
+                    <h1 className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 to-purple-600 mb-6">¡GRAN BOTE VIP SINGER!</h1>
+                    <p className="text-2xl text-fuchsia-100 mb-2">Adivinaste a: <strong>{vipCharacter.name}</strong></p>
+                    <p className="text-xl text-slate-300 mb-12">Tu balance final es: <span className="text-green-400 font-bold text-3xl">{balance} €</span></p>
+                    <button onClick={() => window.location.reload()} className="bg-white text-slate-900 px-8 py-4 rounded-full font-bold text-xl hover:scale-105 transition-all">Jugar de Nuevo</button>
+                </div>
+                );
+            }
+
+            return (
+                <div>
+                <header className="bg-indigo-900 text-white px-4 md:px-6 py-4 shadow-lg sticky top-0 z-40">
+                    <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                        <div className="flex items-center gap-3">
+                        <div className="bg-indigo-800 p-2 md:p-3 rounded-2xl"><Dices className="text-yellow-400" size={24} /></div>
+                        <div>
+                            <h1 className="text-xl md:text-2xl font-extrabold">Estrellas de la Música</h1>
+                            <div className="text-[10px] md:text-xs font-bold text-indigo-300 uppercase tracking-wider">{difficulty} Mode - {guessedCharacters.size}/25</div>
+                        </div>
+                        </div>
+                        
+                        <div className="md:hidden flex flex-col items-end">
+                        <div className="flex items-center gap-1 bg-green-600/30 px-3 py-1 rounded-lg border border-green-500/50">
+                            <Coins className="text-yellow-400" size={14} />
+                            <span className="font-bold text-green-300">{balance}€</span>
+                        </div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
+                        <div className="hidden md:flex items-center gap-2 bg-slate-900/50 px-5 py-2.5 rounded-xl border border-indigo-700">
+                        <Coins className="text-yellow-400" size={20} />
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase leading-none">Banco</span>
+                            <span className={`font-bold text-xl leading-none ${balance < 100 ? 'text-red-400' : 'text-green-400'}`}>{balance} €</span>
+                        </div>
+                        </div>
+                        
+                        {balance >= VIP_THRESHOLD && (
+                        <button onClick={triggerVipEncounter} className="relative overflow-hidden bg-gradient-to-r from-fuchsia-600 to-purple-500 text-white px-4 md:px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(232,121,249,0.5)] hover:scale-105 transition-transform">
+                            <div className="absolute inset-0 shimmer"></div>
+                            <Music className="relative z-10" />
+                            <span className="relative z-10 hidden sm:inline">Invocar VIP Singer (-500€)</span>
+                            <span className="relative z-10 sm:hidden">VIP Singer (-500€)</span>
+                        </button>
+                        )}
+
+                        <DiceRoller onRoll={handleRoll} disabled={activeSquare !== null || isMoving || showFicha} uiText={{roll: difficulty === 'en' ? 'Roll' : 'Tirar', rolling: difficulty === 'en' ? 'Rolling...' : 'Tirando...'}} />
+                    </div>
+                    </div>
+                </header>
+
+                <main className="max-w-7xl mx-auto p-4 md:p-8">
+                    
+                    <Timeline 
+                    guessedCharacters={guessedCharacters} 
+                    allCharacters={FULL_CHARACTERS} 
+                    difficulty={difficulty} 
+                    />
+
+                    <div className="bg-white p-4 md:p-8 rounded-[2rem] shadow-xl overflow-x-auto border">
+                    {/* Tablero reducido a 25 casillas (5x5 Grid) */}
+                    <div className="grid grid-cols-5 gap-2 md:gap-4 min-w-[300px] md:min-w-[500px] max-w-[800px] mx-auto">
+                        {FULL_CHARACTERS.map((char, i) => {
+                        const row = Math.floor(i / 5);
+                        const col = (row % 2 === 0) ? (i % 5) : (4 - (i % 5));
+                        const isCurrent = i === playerPosition;
+                        const isGuessed = guessedCharacters.has(i);
+
+                        return (
+                            <div key={i} style={{ gridRow: row + 1, gridColumn: col + 1 }}
+                            className={`relative aspect-square rounded-xl md:rounded-2xl border-4 flex flex-col items-center justify-center p-1 transition-all
+                                ${isCurrent && !isMoving ? 'ring-4 ring-yellow-400 ring-offset-2 scale-110 z-10 bg-indigo-50 border-indigo-400 shadow-xl' : 'bg-white border-slate-200'}
+                                ${isGuessed ? 'bg-green-50 border-green-400' : ''}`}
+                            >
+                            <span className="absolute top-1 left-2 text-[10px] font-bold text-slate-400">{i + 1}</span>
+                            {isGuessed ? (
+                                <><CheckCircle2 className="text-green-500 mb-1" size={24} /><span className="text-[9px] md:text-[11px] font-bold text-center leading-tight line-clamp-2 text-green-900 px-1">{char.name}</span></>
+                            ) : <User className="text-slate-200" size={24} />}
+                            {isCurrent && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                                    <div key={hopTrigger} className={`relative flex flex-col items-center justify-center w-full h-full ${isMoving ? 'animate-hop' : 'animate-bounce'}`}>
+                                        <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-full border-4 border-white shadow-[0_5px_15px_rgba(0,0,0,0.3)] flex items-center justify-center z-10">
+                                            <User className="text-white" size={16}/>
+                                        </div>
+                                        <div className="absolute top-10 md:top-12 mt-1 bg-slate-900 text-white text-[10px] md:text-xs font-bold px-2.5 py-0.5 rounded-full shadow-lg z-20 whitespace-nowrap border border-slate-700">
+                                            {playerName}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            </div>
+                        );
+                        })}
+                    </div>
+                    </div>
+                </main>
+
+                {activeSquare !== null && !isVipModeActive && !showFicha && (
+                    <InterviewModal 
+                    character={FULL_CHARACTERS[activeSquare]} 
+                    difficulty={difficulty}
+                    balance={balance} setBalance={setBalance}
+                    globalMicActive={globalMicActive} setGlobalMicActive={setGlobalMicActive}
+                    globalVoices={globalVoices} selectedVoiceURI={selectedVoiceURI} setSelectedVoiceURI={setSelectedVoiceURI}
+                    onClose={() => setActiveSquare(null)}
+                    onSuccess={() => { 
+                        setGuessedCharacters(prev => new Set(prev).add(activeSquare)); 
+                        setShowFicha(true); 
+                    }}
+                    alreadyGuessed={guessedCharacters.has(activeSquare)}
+                    />
+                )}
+
+                {showFicha && activeSquare !== null && (
+                    <VideoFicha 
+                    character={FULL_CHARACTERS[activeSquare]} 
+                    difficulty={difficulty}
+                    onContinue={() => {
+                        setShowFicha(false);
+                        setActiveSquare(null);
+                    }}
+                    />
+                )}
+
+                {isVipModeActive && vipCharacter && (
+                    <InterviewModal 
+                    character={vipCharacter} 
+                    difficulty={difficulty}
+                    balance={balance} setBalance={setBalance}
+                    globalMicActive={globalMicActive} setGlobalMicActive={setGlobalMicActive}
+                    globalVoices={globalVoices} selectedVoiceURI={selectedVoiceURI} setSelectedVoiceURI={setSelectedVoiceURI}
+                    isVip={true}
+                    onClose={() => setIsVipModeActive(false)}
+                    onSuccess={handleVipSuccess}
+                    alreadyGuessed={false}
+                    />
+                )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
