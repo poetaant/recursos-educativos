@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictation Generator / Generador de Dictados</title>
+    <!-- Tailwind CSS para los estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons para los iconos -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Previene scroll no deseado al arrastrar en táctil */
+        body { overscroll-behavior: none; } 
+
+        .pill-active { background-color: #e0e7ff; color: #3730a3; border-color: #a5b4fc; font-weight: 600; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .pill-inactive { background-color: #f8fafc; color: #64748b; border-color: #e2e8f0; }
+        .fallo-active { background-color: #fce7f3; color: #be185d; border-color: #fbcfe8; font-weight: 600; }
+        
+        .highlight-grammar {
+            background-color: #fef08a; 
+            color: #854d0e;
+            font-weight: 800;
+            border-bottom: 3px solid #eab308;
+            border-radius: 4px;
+            padding: 0 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease-in-out;
+        }
+        .highlight-grammar:hover { transform: scale(1.05); }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .mic-listening {
+            animation: pulse-ring 2s infinite;
+            background-color: #fee2e2 !important;
+            color: #dc2626 !important;
+            border-color: #fca5a5 !important;
+        }
+
+        /* Estilos específicos para el juego Lluvia de Palabras */
+        .falling-word {
+            position: absolute;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 1.25rem;
+            cursor: grab;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 2px solid transparent;
+            user-select: none;
+            touch-action: none;
+            z-index: 50;
+        }
+        .falling-word:active { cursor: grabbing; }
+        
+        /* Semáforo de pases */
+        .word-green { background: linear-gradient(135deg, #22c55e, #16a34a); border-color: #4ade80; color: white; }
+        .word-amber { background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #fbbf24; color: white; }
+        .word-red { background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #f87171; color: white; }
+
+        /* Efecto de Error */
+        @keyframes shake-error {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+        }
+        .shake-error {
+            animation: shake-error 0.4s ease-in-out;
+            background: linear-gradient(135deg, #991b1b, #7f1d1d) !important;
+            color: white !important;
+            border-color: #ef4444 !important;
+        }
+
+        /* Animación Avión Derribado */
+        .word-crashing {
+            transition: transform 1.5s cubic-bezier(0.5, 0, 1, 1), top 1.5s cubic-bezier(0.5, 0, 1, 1) !important;
+            transform: rotate(1080deg) scale(0.3) !important;
+        }
+
+        /* Cementerio de palabras al fondo */
+        .crashed-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 2px dashed #334155;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-end;
+            padding: 4px;
+            gap: 4px;
+            z-index: 10;
+        }
+        .word-crashed {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 1px solid #f87171;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            transform: rotate(-10deg);
+            font-weight: bold;
+        }
+        
+        /* Guaridas Laterales */
+        .guarida-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(30, 58, 138, 0.8);
+            border: 2px dashed rgba(96, 165, 250, 0.5);
+            color: #bfdbfe;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .guarida-btn:hover, .guarida-btn.drag-over { 
+            background: rgba(37, 99, 235, 0.9); 
+            color: white; 
+            border-color: #fcd34d;
+            transform: scale(1.05);
+        }
+        .guarida-badge {
+            background: #f59e0b;
+            color: #713f12;
+            border-radius: 9999px;
+            font-weight: 900;
+        }
+        
+        /* Animaciones para el ranking */
+        .ranking-row { animation: slideIn 0.3s ease-out forwards; opacity: 0; transform: translateX(-20px); }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+
+    <!-- Notificaciones UI Global (Toast) -->
+    <div id="toast-notificacion" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl z-[500] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] font-bold text-center flex items-center gap-3">
+        <span id="toast-mensaje"></span>
+    </div>
+
+    <div class="max-w-6xl mx-auto space-y-6 mt-2" id="app-principal">
+        <!-- Cabecera -->
+        <header class="bg-white rounded-2xl p-6 shadow-sm border-2 border-blue-200 flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-start">
+                <button onclick="toggleLanguage()" class="bg-indigo-600 hover:bg-indigo-700 transition-colors p-3 rounded-xl shadow-md flex items-center justify-center cursor-pointer group" title="Switch Language / Cambiar Idioma">
+                    <i data-lucide="languages" class="text-white w-6 h-6 mr-2"></i>
+                    <span id="lang-ind" class="text-white font-black text-xl">EN</span>
+                </button>
+                <div>
+                    <h1 id="ui-title" class="text-2xl font-extrabold text-slate-800 tracking-tight">Dictation Generator</h1>
+                    <p id="ui-subtitle" class="text-slate-500 text-sm font-medium">Bilingual Tool (English/Spanish)</p>
+                </div>
+            </div>
+
+            <!-- Selectores de Nivel, Manual, IA y Juego -->
+            <div class="flex flex-wrap justify-center bg-blue-50 p-1 rounded-lg border border-blue-100 gap-1 w-full lg:w-auto">
+                <button id="btn-ciclo-1" onclick="generarDictado(1)" class="px-4 py-2 rounded-md font-bold text-sm transition-all text-slate-600 hover:text-slate-900 hover:bg-blue-100"><span data-i18n="lvl1">Level 1</span></button>
+                <button id="btn-ciclo-2" onclick="generarDictado(2)" class="px-4 py-2 rounded-md font-bold text-sm transition-all text-slate-600 hover:text-slate-900 hover:bg-blue-100"><span data-i18n="lvl2">Level 2</span></button>
+                <button id="btn-ciclo-3" onclick="generarDictado(3)" class="px-4 py-2 rounded-md font-bold text-sm transition-all text-slate-600 hover:text-slate-900 hover:bg-blue-100"><span data-i18n="lvl3">Level 3</span></button>
+                <div class="w-px h-8 bg-blue-200 mx-1 self-center"></div>
+                <button id="btn-ciclo-manual" onclick="abrirModalManual()" class="flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all text-indigo-600 hover:text-indigo-900 hover:bg-indigo-100">
+                    <i data-lucide="pen-tool" class="w-4 h-4"></i> <span data-i18n="manual">Manual</span>
+                </button>
+                <div class="w-px h-8 bg-blue-200 mx-1 self-center"></div>
+                <button id="btn-modo-juego" onclick="iniciarJuego()" class="flex items-center gap-2 px-4 py-2 rounded-md font-extrabold text-sm transition-all bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md hover:scale-105 active:scale-95">
+                    <i data-lucide="rocket" class="w-4 h-4"></i> <span data-i18n="game">Game</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Panel Lateral: Controles -->
+            <div class="lg:col-span-1 space-y-4" id="panel-controles">
+                
+                <!-- Acordeón: Tipos de Palabras -->
+                <div class="bg-white rounded-2xl shadow-sm border-2 border-blue-200 overflow-hidden">
+                    <button onclick="togglePanel('panel-palabras')" class="w-full p-4 flex justify-between items-center bg-blue-50 hover:bg-blue-100 transition-colors">
+                        <span class="font-bold text-blue-800 flex items-center gap-2">
+                            <i data-lucide="layers" class="w-5 h-5 text-blue-500"></i> <span data-i18n="wordClasses">Word Classes</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-blue-400"></i>
+                    </button>
+                    <div id="panel-palabras" class="hidden p-4 border-t border-blue-100">
+                        <p id="ui-desc-cat" class="text-xs text-slate-500 mb-3">Highlight to analyze in text:</p>
+                        <div class="flex flex-wrap gap-2" id="contenedor-categorias"></div>
+                    </div>
+                </div>
+
+                <!-- Acordeón: Fallos Habituales -->
+                <div class="bg-white rounded-2xl shadow-sm border-2 border-pink-200 overflow-hidden">
+                    <button onclick="togglePanel('panel-fallos')" class="w-full p-4 flex justify-between items-center bg-pink-50 hover:bg-pink-100 transition-colors">
+                        <span class="font-bold text-pink-800 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-pink-500"></i> <span data-i18n="spellRules">Spelling Rules</span>
+                        </span>
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-pink-400"></i>
+                    </button>
+                    <div id="panel-fallos" class="hidden p-4 border-t border-pink-100">
+                        <p id="ui-desc-spell" class="text-xs text-slate-500 mb-3">Add sentences targeting these rules:</p>
+                        <div class="flex flex-wrap gap-2" id="contenedor-fallos"></div>
+                    </div>
+                </div>
+
+                <!-- Modos de Interacción -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border-2 border-green-200">
+                    <h2 class="text-xs font-bold text-green-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-green-500"></i> <span data-i18n="onClick">On Click...</span>
+                    </h2>
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-modo-marcar" onclick="setModo('marcar')" class="flex items-center gap-3 p-3 rounded-xl border-2 transition-all border-amber-400 bg-amber-50 text-amber-800">
+                            <i data-lucide="highlighter" class="w-5 h-5"></i>
+                            <span class="text-sm font-bold" data-i18n="highlightBtn">Highlight word</span>
+                        </button>
+                        <button id="btn-modo-diccionario" onclick="setModo('diccionario')" class="flex items-center gap-3 p-3 rounded-xl border-2 transition-all border-green-100 bg-green-50 text-green-700 hover:border-green-200">
+                            <i data-lucide="book" class="w-5 h-5"></i>
+                            <span class="text-sm font-bold" data-i18n="dictBtn">Translate (ES/EN)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button onclick="clickGenerarDictadoLateral()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 border-2 border-blue-700">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i> <span data-i18n="genBtn">Generate Text</span>
+                    </button>
+                    <button onclick="abrirModalIA()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 border-2 border-purple-700">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i> <span data-i18n="magicBtn">Magic Dictation (AI)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área Principal: Pizarra/Cuaderno -->
+            <div class="lg:col-span-3 relative">
+                
+                <div id="vista-cuaderno" class="bg-white rounded-2xl shadow-md border-2 border-blue-200 overflow-hidden min-h-[500px] flex flex-col h-full">
+                    
+                    <!-- Barra de Audio -->
+                    <div class="bg-blue-50/50 border-b border-blue-100 p-4 flex flex-col z-20 gap-3">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button id="btn-dictar" onclick="toggleDictadoVoz()" class="flex items-center justify-center bg-blue-100 text-blue-700 hover:bg-blue-200 w-11 h-11 rounded-lg font-bold transition-all shadow-sm border border-blue-200" title="Reproducir/Detener Dictado">
+                                    <i id="icono-dictar" data-lucide="volume-2" class="w-6 h-6"></i>
+                                </button>
+                                <button id="btn-pausa" onclick="togglePausaVoz()" class="hidden flex items-center justify-center bg-amber-100 text-amber-700 hover:bg-amber-200 w-11 h-11 rounded-lg font-bold transition-all shadow-sm border border-amber-200" title="Pausar/Reanudar">
+                                    <i id="icono-pausa" data-lucide="pause" class="w-6 h-6"></i>
+                                </button>
+                                <button id="btn-microfono" onclick="toggleComandosVoz()" class="flex items-center justify-center bg-white text-slate-600 hover:bg-slate-100 w-11 h-11 rounded-full font-bold transition-all shadow-sm border-2 border-slate-200" title="Activar/Desactivar control por voz">
+                                    <i id="icono-microfono" data-lucide="mic-off" class="w-5 h-5"></i>
+                                </button>
+                                <div class="flex items-center gap-2 text-sm font-bold text-blue-800 bg-white px-3 py-2 rounded-lg border border-blue-200 shadow-sm ml-2">
+                                    <i data-lucide="gauge" class="w-4 h-4 text-blue-400"></i>
+                                    <input type="range" id="velocidad-dictado" min="0.1" max="1" step="0.05" value="0.8" class="w-24 accent-blue-500 cursor-pointer" oninput="actualizarVelocidadUI()">
+                                    <span id="velocidad-valor" class="w-12 text-right text-blue-600 font-extrabold">0.8x</span>
+                                </div>
+                            </div>
+                            <div id="indicador-leyendo" class="hidden flex items-center gap-2 text-blue-600 font-bold text-sm bg-blue-100 px-4 py-2 rounded-full border border-blue-200 animate-pulse">
+                                <span id="texto-indicador" data-i18n="dictating">Dictating...</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-blue-800 bg-white p-2.5 rounded-lg border border-blue-200 shadow-sm w-full">
+                            <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
+                            <span class="font-bold mr-1" data-i18n="voiceInfo">Voice commands (EN):</span>
+                            <span class="bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100 text-blue-700" data-i18n="cmdPause">"Pause" / "Stop"</span>
+                            <span class="bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100 text-blue-700" data-i18n="cmdPlay">"Continue" / "Play"</span>
+                            <span class="bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100 text-blue-700" data-i18n="cmdRep">"Repeat"</span>
+                        </div>
+                    </div>
+
+                    <!-- Cuaderno -->
+                    <div class="relative flex-1">
+                        <div class="absolute inset-0 pointer-events-none" style="background-image: linear-gradient(transparent 95%, #e0e7ff 95%); background-size: 100% 48px; background-position-y: 12px;"></div>
+                        <div class="absolute left-12 top-0 bottom-0 w-px bg-pink-300 pointer-events-none opacity-60 border-l-2 border-pink-200"></div>
+                        <div id="cuaderno" class="relative z-10 p-10 pt-12 pl-20 text-[26px] leading-[48px] font-medium text-slate-700 tracking-wide pb-12 min-h-[400px]"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA COMPLETA: MODO JUEGO -->
+    <div id="vista-juego" class="hidden fixed inset-0 z-[200] bg-slate-900 flex flex-row overflow-hidden w-screen h-screen">
+        <!-- Lateral Izquierdo -->
+        <div class="w-32 sm:w-48 bg-indigo-950 border-r-2 border-indigo-800 flex flex-col items-stretch justify-start p-1 sm:p-2 gap-1 sm:gap-2 overflow-y-auto z-20 shadow-xl" id="guaridas-left">
+            <!-- Inyectadas por JS -->
+        </div>
+
+        <!-- Centro: Lienzo de Juego -->
+        <div class="flex-1 flex flex-col relative z-10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <!-- Header Juego -->
+            <div class="bg-indigo-900/90 p-3 sm:p-4 flex flex-wrap justify-between items-center border-b-2 border-indigo-700 z-20 backdrop-blur-sm gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="bg-amber-500 p-2 rounded-lg hidden sm:block"><i data-lucide="rocket" class="text-white w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="font-extrabold text-white text-base sm:text-xl leading-none shadow-sm" data-i18n="gameTitle">Word Rain</h3>
+                        <p class="text-indigo-200 text-xs sm:text-sm font-medium" data-i18n="gameDesc">Drag the word and drop it in its cave!</p>
+                    </div>
+                    <!-- Puntuación actual y botón del ranking -->
+                    <div class="ml-2 sm:ml-4 flex items-center gap-2">
+                        <div class="bg-slate-800/50 border border-slate-600 px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl flex items-center gap-2">
+                            <i data-lucide="star" class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400"></i>
+                            <span id="puntuacion-display" class="text-yellow-400 font-black text-lg sm:text-xl transition-all duration-300">0</span>
+                        </div>
+                        <button onclick="abrirRanking()" class="bg-yellow-500 hover:bg-yellow-400 text-yellow-900 px-3 py-1 sm:py-1.5 rounded-xl flex items-center gap-1 font-bold shadow-md transition-colors border border-yellow-300">
+                            <i data-lucide="trophy" class="w-4 h-4 sm:w-5 sm:h-5"></i> <span class="hidden sm:inline">Top 25</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <button onclick="pausarReanudarJuego()" id="btn-pausa-juego" class="bg-indigo-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded font-bold hover:bg-indigo-600 text-xs sm:text-sm shadow-md border border-indigo-50 transition-colors" data-i18n="gamePause">Pause</button>
+                    <button onclick="salirJuego()" class="bg-rose-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded font-bold hover:bg-rose-500 text-xs sm:text-sm shadow-md border border-rose-500 transition-colors" data-i18n="gameExit">Exit</button>
+                </div>
+            </div>
+
+            <!-- Canvas de Caída -->
+            <div id="game-canvas" class="flex-1 relative bg-slate-800 overflow-hidden" style="background-image: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);">
+                <div id="juego-notificacion" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-indigo-950 font-black px-6 py-3 rounded-2xl shadow-2xl z-50 transition-opacity duration-500 opacity-0 pointer-events-none text-xl sm:text-2xl text-center"></div>
+                <!-- Zona inferior de choque -->
+                <div id="crashed-area" class="crashed-container"></div>
+            </div>
+        </div>
+
+        <!-- Lateral Derecho -->
+        <div class="w-32 sm:w-48 bg-indigo-950 border-l-2 border-indigo-800 flex flex-col items-stretch justify-start p-1 sm:p-2 gap-1 sm:gap-2 overflow-y-auto z-20 shadow-xl" id="guaridas-right">
+            <!-- Inyectadas por JS -->
+        </div>
+    </div>
+
+    <!-- MODALES DE LA INTERFAZ PRINCIPAL -->
+
+    <!-- Modal Dictado Manual -->
+    <div id="modal-manual" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden transform transition-all border-4 border-blue-200">
+            <div class="bg-blue-50 p-6 border-b border-blue-100 flex justify-between items-start">
+                <div>
+                    <p class="text-blue-600 font-bold text-xs uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <i data-lucide="pen-tool" class="w-4 h-4"></i> <span data-i18n="modManTag">Own Text</span>
+                    </p>
+                    <h3 class="text-2xl font-extrabold text-blue-900" data-i18n="modManTitle">Manual Dictation</h3>
+                </div>
+                <button onclick="cerrarModalManual()" class="p-2 bg-white rounded-full text-blue-400 hover:text-blue-800 hover:bg-blue-100 transition-colors shadow-sm">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <textarea id="texto-manual-input" rows="7" class="w-full p-4 border-2 border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none resize-none text-lg text-slate-700 font-medium leading-relaxed" placeholder="Write your custom text here..."></textarea>
+            </div>
+            <div class="bg-blue-50/50 p-4 border-t border-blue-100 flex justify-end gap-3">
+                <button onclick="cerrarModalManual()" class="text-slate-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition-colors" data-i18n="cancelBtn">Cancel</button>
+                <button onclick="aplicarDictadoManual()" class="bg-blue-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-sm" data-i18n="applyBtn">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Generador IA -->
+    <div id="modal-ia" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white rounded-3xl max-w-3xl w-full shadow-2xl overflow-hidden transform transition-all border-4 border-purple-200">
+            <div class="bg-purple-50 p-6 border-b border-purple-100 flex justify-between items-start">
+                <div>
+                    <p class="text-purple-600 font-bold text-xs uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i> Artificial Intelligence
+                    </p>
+                    <h3 class="text-2xl font-extrabold text-purple-900" data-i18n="modIaTitle">Magic Dictation</h3>
+                </div>
+                <button onclick="cerrarModalIA()" class="p-2 bg-white rounded-full text-purple-400 hover:text-purple-800 hover:bg-purple-100 transition-colors shadow-sm">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1" data-i18n="iaTopic">1. Main Topic</label>
+                    <input type="text" id="ia-tema" class="w-full p-3 border-2 border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none font-medium text-slate-700 bg-slate-50" placeholder="Space, Animals, Magic...">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1" data-i18n="iaDiff">2. Difficulty</label>
+                    <select id="ia-dificultad" class="w-full p-3 border-2 border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none font-medium text-slate-700 bg-slate-50">
+                        <option value="Beginner / A1">Beginner</option>
+                        <option value="Intermediate / A2-B1">Intermediate</option>
+                        <option value="Advanced / B2">Advanced</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1" data-i18n="iaLength">3. Length</label>
+                    <select id="ia-longitud" class="w-full p-3 border-2 border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none font-medium text-slate-700 bg-slate-50">
+                        <option value="Short (~30 words)">Short (~30 words)</option>
+                        <option value="Medium (~60 words)">Medium (~60 words)</option>
+                        <option value="Long (~90 words)">Long (~90 words)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1" data-i18n="iaFocus">4. Spelling Focus</label>
+                    <input type="text" id="ia-foco" class="w-full p-3 border-2 border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none font-medium text-slate-700 bg-slate-50" placeholder="e.g., words with 'th', silent 'e'...">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1" data-i18n="iaChars">5. Characters</label>
+                    <input type="text" id="ia-protagonistas" class="w-full p-3 border-2 border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none font-medium text-slate-700 bg-slate-50" placeholder="Leo, Mia...">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1" data-i18n="iaPlaces">6. Places</label>
+                    <input type="text" id="ia-lugares" class="w-full p-3 border-2 border-purple-100 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none font-medium text-slate-700 bg-slate-50" placeholder="Castle, Forest...">
+                </div>
+            </div>
+            <div class="bg-purple-50/50 p-4 border-t border-purple-100 flex justify-end gap-3">
+                <button onclick="cerrarModalIA()" class="text-slate-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition-colors" data-i18n="cancelBtn2">Cancel</button>
+                <button id="btn-generar-ia" onclick="generarDictadoIA()" class="bg-purple-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-sm flex items-center gap-2">
+                    <i id="icono-generar-ia" data-lucide="sparkles" class="w-5 h-5"></i> <span data-i18n="modIaGenBtn">Generate Text</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Diccionario -->
+    <div id="modal-diccionario" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden transform transition-all border-4 border-pink-200">
+            <div class="bg-pink-50 p-6 border-b border-pink-100 flex justify-between items-start">
+                <div>
+                    <p class="text-pink-600 font-bold text-xs uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <i data-lucide="book-check" class="w-4 h-4"></i> Dictionary / Diccionario
+                    </p>
+                    <h3 id="modal-word" class="text-3xl font-extrabold text-pink-900">PALABRA</h3>
+                </div>
+                <button onclick="cerrarModalDiccionario()" class="p-2 bg-white rounded-full text-pink-400 hover:text-pink-800 hover:bg-pink-100 transition-colors shadow-sm">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6"><div id="modal-def" class="text-lg text-slate-700 leading-relaxed font-medium"></div></div>
+            <div class="bg-pink-50/50 p-4 border-t border-pink-100 flex justify-end">
+                <button onclick="cerrarModalDiccionario()" class="bg-pink-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-pink-600 transition-colors shadow-sm" data-i18n="closeBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Interior Guarida (Sobre el Juego) -->
+    <div id="modal-guarida" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[300]">
+        <div class="bg-slate-100 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-indigo-800 p-6 flex justify-between items-center text-white shrink-0 border-b-4 border-indigo-600">
+                <div>
+                    <p class="font-bold text-indigo-300 text-xs uppercase tracking-widest mb-1" data-i18n="caveTitle">Inside the Cave</p>
+                    <h3 id="titulo-guarida" class="text-3xl font-extrabold capitalize">Category</h3>
+                </div>
+                <button onclick="cerrarModalGuarida()" class="p-2 bg-indigo-700 rounded-full text-white hover:bg-indigo-600 transition-colors shadow-sm">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1" id="contenido-guarida">
+                <!-- Tarjetas de palabras inyectadas por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Guardar Puntuación -->
+    <div id="modal-guardar-puntuacion" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[400]">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden transform transition-all border-4 border-yellow-400">
+            <div class="bg-yellow-50 p-6 border-b border-yellow-200 text-center">
+                <i data-lucide="medal" class="w-12 h-12 text-yellow-500 mx-auto mb-2"></i>
+                <h3 class="text-2xl font-extrabold text-yellow-900" data-i18n="gameOver">Game Over!</h3>
+                <p class="text-yellow-700 font-bold mt-1"><span data-i18n="scoreText">You scored</span> <span id="puntos-finales" class="text-3xl">0</span> <span data-i18n="pointsText">points</span></p>
+            </div>
+            <div class="p-6 text-center">
+                <label class="block text-sm font-bold text-slate-600 mb-2" data-i18n="enterName">Enter your name for the Top 25:</label>
+                <input type="text" id="nombre-jugador" maxlength="15" class="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none font-bold text-center text-xl uppercase tracking-wider bg-slate-50" placeholder="NAME">
+            </div>
+            <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end gap-3">
+                <button onclick="cerrarJuegoPorCompleto()" class="text-slate-500 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-colors" data-i18n="exitNoSave">Exit without saving</button>
+                <button onclick="guardarMiPuntuacion()" id="btn-guardar-score" class="bg-yellow-500 text-yellow-950 px-6 py-2 rounded-xl font-extrabold hover:bg-yellow-400 transition-colors shadow-md flex items-center gap-2">
+                    <i data-lucide="save" class="w-5 h-5"></i> <span data-i18n="saveBtn">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ranking Top 25 -->
+    <div id="modal-ranking" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 z-[500]">
+        <div class="bg-slate-900 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border-2 border-yellow-500">
+            <div class="bg-gradient-to-b from-yellow-600 to-yellow-500 p-6 flex justify-between items-center text-white shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="bg-yellow-800/50 p-2 rounded-lg"><i data-lucide="trophy" class="w-6 h-6 text-yellow-100"></i></div>
+                    <div>
+                        <h3 class="text-2xl font-extrabold text-yellow-50 shadow-sm leading-tight">TOP 25</h3>
+                        <p class="text-yellow-200 text-xs font-bold uppercase tracking-widest" data-i18n="highScores">High Scores</p>
+                    </div>
+                </div>
+                <button onclick="cerrarRanking()" class="p-2 bg-yellow-700 rounded-full text-white hover:bg-yellow-800 transition-colors shadow-sm">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-0 overflow-y-auto flex-1 bg-slate-800" id="contenido-ranking">
+                <div id="ranking-loading" class="flex flex-col items-center justify-center py-12 text-yellow-500">
+                    <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3"></i>
+                    <p class="font-bold" data-i18n="loadingChamps">Loading champions...</p>
+                </div>
+                <div id="ranking-lista" class="hidden divide-y divide-slate-700/50">
+                    <!-- Filas inyectadas por JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // DUAL LANGUAGE DATA (ES / EN)
+        // ==========================================
+        let currentLang = 'EN';
+
+        const appData = {
+            EN: {
+                diccionario: {
+                    "fox": "n. zorro.", "lazy": "adj. perezoso, vago.", "boat": "n. barco, bote.", "pier": "n. muelle.",
+                    "lighthouse": "n. faro.", "hide": "v. esconder.", "seek": "v. buscar.", "heritage": "n. patrimonio, herencia.",
+                    "path": "n. camino, sendero.", "joy": "n. alegría, gozo."
+                },
+                textos: {
+                    1: [
+                        "The quick brown fox jumps over the lazy dog. My friend has a big blue boat. The happy cat drinks cold milk in the morning.",
+                        "Our school is very big and bright. Yesterday, we played outside with the small ball. Oh! We won three fast races.",
+                        "The fast tiger drinks clean water near the tall tree. My best friend has a new towel and a yellow umbrella. The quiet cow eats green grass in the valley." 
+                    ],
+                    2: [
+                        "Yesterday, Sarah and John prepared their backpacks with great joy. They study at the local school. First, they walked by the beautiful pier and saw the tall lighthouse. Later, they played hide and seek near the green park.",
+                        "During a sunny morning, the class collected various items in the public spaces of the town. Some children shared their board games with all the classmates. It was wonderful!",
+                        "Yesterday we went up in the elevator with a very kind neighbor. He wore a blue suit and had a toy drum. During the taxi trip, we saw a strong storm from the window. My aunt bought scissors and a beautiful chess board." 
+                    ],
+                    3: [
+                        "During a sunny morning, the students decided to organize a very special excursion. They visited the old library and read an interesting text about the cultural heritage. Then, they walked along the coastal path towards the impressive lighthouse, discussing various current topics. The wonderful views from the beach left everyone impressed. Finally, the mayor opened a great exhibition at the museum, and the students shared their tasty sandwiches in a square near the church.",
+                        "Last Friday, several students debated intensely about plant care and energy saving. Our partner William proposed donating the books we do not use to the local library. Meanwhile, some students prepared an excellent literary portrait. To end that educational journey, everyone visited the historic sports pier, admiring the large fishing boats moored next to the fish market.",
+                        "The city lawyer analyzed the agreement on urban transport. The temperature of the atmosphere changed quickly because of the terrible storm. During the last quarter, tourism increased thanks to the new main avenue. The customs agent reviewed the old file with great attention and extreme care." 
+                    ]
+                },
+                oracionesFallos: {
+                    "ea/ee": " I feel great when I eat sweet ice cream near the deep sea.",
+                    "ie/ei": " I believe the foreign chief will receive a piece of pie.",
+                    "double consonants": " The little rabbit hopped across the muddy puddle suddenly.",
+                    "tion/sion": " The television station broadcasted the conclusion of the space mission.",
+                    "silent e": " Please make sure to bake the cake before you leave the house."
+                },
+                listadoFallos: ["ea/ee", "ie/ei", "double consonants", "tion/sion", "silent e"],
+                baseCategorias: ["adjectives", "nouns", "proper nouns", "verbs"],
+                ciclo2Extra: ["articles", "demonstratives", "prepositions", "pronouns"],
+                ciclo3Extra: ["adverbs", "conjunctions"],
+                categoriasGramaticales: {
+                    "adjectives": ['quick', 'brown', 'lazy', 'big', 'blue', 'happy', 'cold', 'bright', 'small', 'fast', 'clean', 'tall', 'best', 'new', 'yellow', 'quiet', 'green', 'great', 'local', 'beautiful', 'various', 'public', 'wonderful', 'kind', 'strong', 'sunny', 'special', 'old', 'interesting', 'cultural', 'coastal', 'impressive', 'current', 'educational', 'historic', 'large', 'fishing', 'urban', 'terrible', 'last', 'main', 'extreme', 'sweet', 'deep', 'foreign', 'little', 'muddy', 'tasty', 'excellent', 'literary'],
+                    "adverbs": ['very', 'outside', 'first', 'later', 'yesterday', 'intensely', 'quickly', 'suddenly'],
+                    "articles": ['the', 'a', 'an'],
+                    "conjunctions": ['and', 'because', 'or', 'but'],
+                    "demonstratives": ['this', 'that', 'these', 'those'],
+                    "nouns": ['fox', 'dog', 'friend', 'boat', 'cat', 'milk', 'morning', 'school', 'ball', 'races', 'tiger', 'water', 'tree', 'towel', 'umbrella', 'cow', 'grass', 'valley', 'backpacks', 'joy', 'pier', 'lighthouse', 'hide', 'seek', 'park', 'class', 'items', 'spaces', 'town', 'children', 'board', 'games', 'classmates', 'elevator', 'neighbor', 'suit', 'toy', 'drum', 'trip', 'storm', 'window', 'aunt', 'scissors', 'chess', 'students', 'excursion', 'library', 'text', 'heritage', 'path', 'topics', 'views', 'beach', 'everyone', 'mayor', 'exhibition', 'museum', 'sandwiches', 'square', 'church', 'care', 'energy', 'saving', 'partner', 'books', 'portrait', 'journey', 'boats', 'market', 'lawyer', 'city', 'agreement', 'transport', 'temperature', 'atmosphere', 'quarter', 'tourism', 'avenue', 'agent', 'file', 'attention', 'ice', 'cream', 'sea', 'chief', 'piece', 'pie', 'rabbit', 'puddle', 'television', 'station', 'conclusion', 'space', 'mission', 'cake', 'house'],
+                    "proper nouns": ['sarah', 'john', 'william'],
+                    "prepositions": ['over', 'in', 'with', 'at', 'by', 'near', 'during', 'of', 'from', 'about', 'along', 'towards', 'on', 'thanks', 'across', 'before'],
+                    "pronouns": ['my', 'we', 'our', 'their', 'they', 'some', 'it', 'he', 'i', 'you'],
+                    "verbs": ['jumps', 'has', 'drinks', 'is', 'played', 'won', 'eats', 'prepared', 'study', 'walked', 'saw', 'collected', 'shared', 'was', 'went', 'wore', 'had', 'bought', 'decided', 'organize', 'visited', 'read', 'discussing', 'left', 'impressed', 'opened', 'debated', 'proposed', 'donating', 'do', 'not', 'use', 'end', 'admiring', 'moored', 'analyzed', 'changed', 'increased', 'reviewed', 'feel', 'eat', 'believe', 'receive', 'hopped', 'broadcasted', 'make', 'sure', 'bake', 'leave']
+                }
+            },
+            ES: {
+                diccionario: {
+                    "acordanza": "f. 1. desus. memoria. || 2. desus. Opinión acorde.",
+                    "acotación": "f. Apunte en el margen de algún escrito.",
+                    "paseo": "m. Acción de pasear o pasearse.",
+                    "muelle": "m. Obra de piedra construida en la orilla del mar.",
+                    "playa": "f. Ribera del mar formada de arenales.",
+                    "parque": "m. Terreno destinado a árboles y prados para recreo.",
+                    "colegio": "m. Establecimiento de enseñanza.",
+                    "faro": "m. Torre alta en las costas con luz.",
+                    "excursión": "f. Viaje corto por recreo o estudio.",
+                    "rula": "f. (Asturias). Lonja donde se subasta pescado."
+                },
+                textos: {
+                    1: [
+                        "El alumno Yago y la niña Lia dan un paseo corto por el muelle. Ellos comen un helado muy rico en la playa de Candás. ¡Guau! Este parque es genial para jugar.",
+                        "Los alumnos de nuestra clase organizan su material escolar. Aquella tarde, nosotros fuimos al Parque de les Conserveres. ¡Ah! Ganamos tres carreras preciosas.",
+                        "El tigre veloz bebe agua limpia cerca del árbol grande. Mi mejor amigo tiene un barco azul y una toalla nueva. La vaca tranquila come uva y tomate en el valle." 
+                    ],
+                    2: [
+                        "Este fin de semana, Khadija y Yoel prepararon su mochila con mucha alegría. Esos dos amigos estudian en el Colegio Poeta Antón. Primero, dieron un paseo por aquel muelle hermoso y vieron el faro a lo lejos. Después, jugaron al escondite cerca del parque.",
+                        "Durante una mañana soleada, la clase recogió varios residuos en los espacios públicos de Luanco. Algunos niños compartieron sus juegos de mesa con todos los compañeros. ¡Qué maravilla!",
+                        "Ayer subimos en el ascensor con un vecino muy amable. Él llevaba un traje azul y un tambor de juguete. Durante el viaje en taxi, vimos una tormenta fuerte desde la ventana. Mi tía compró unas tijeras y un tablero de ajedrez precioso." 
+                    ],
+                    3: [
+                        "Durante la mañana soleada, los alumnos de sexto, Kairo y Noa, decidieron organizar una excursión muy especial para su clase. Visitaron la Biblioteca de Candás y leyeron un texto interesante sobre el patrimonio cultural asturiano. Luego, pasearon por la senda costera hacia aquel faro imponente, debatiendo varios temas de actualidad. Esas maravillosas vistas desde la Playa de Rebolleres dejaron a todos impresionados. Finalmente, el alcalde inauguró unas exposiciones estupendas en el Museo Antón, y los estudiantes compartieron sus sabrosos bocadillos en una plaza cercana a la iglesia.",
+                        "El viernes pasado, varios estudiantes debatieron intensamente sobre el cuidado de las plantas y el ahorro de energía. Nuestro compañero Beltrán propuso donar los libros que no usamos a la Biblioteca de Candás. Mientras tanto, algunas alumnas prepararon un autorretrato literario excelente. Para terminar aquella jornada educativa, todos visitaron el histórico muelle deportivo, admirando los grandes barcos pesqueros amarrados junto a la Rula asturiana.",
+                        "El abogado del ayuntamiento analizó el acuerdo sobre el transporte urbano. La temperatura de la atmósfera cambió rápido por la tremenda tempestad. Durante el último trimestre, el turismo aumentó gracias a la nueva avenida principal. El agente de la aduana revisó el archivo antiguo con mucha atención y cuidado extremo." 
+                    ]
+                },
+                oracionesFallos: {
+                    "b/v": " El abuelo de Víctor llevaba un bocadillo de verduras en su bolsa nueva.",
+                    "c/z": " Celia cruzó la plaza con zapatos azules y compró cerezas dulces.",
+                    "g/j": " Jorge y la genial Ángela recogieron hojas secas en el jardín del colegio.",
+                    "gue/gui": " Guillermo siguió a su amigo tocando la guitarra cerca de la higuera.",
+                    "güe/güi": " El simpático pingüino saludó a la cigüeña sin ninguna vergüenza.",
+                    "bla/ble/bli/blo/blu": " Pablo llevaba una blusa blanca y habló sobre aquel pueblo nublado.",
+                    "bra/bre/bri/bro/bru": " Braulio hizo una broma amable mientras abría el sobre con brío.",
+                    "y/ll": " Ayer llovió mucho, así que el chiquillo desayunó un yogur con galletas.",
+                    "h/": " Hoy, Héctor y su hermana hicieron un hermoso huerto con higueras y hortalizas."
+                },
+                listadoFallos: ["b/v", "c/z", "g/j", "gue/gui", "güe/güi", "bla/ble/bli/blo/blu", "bra/bre/bri/bro/bru", "y/ll", "h/"],
+                baseCategorias: ["adjetivos", "s. comunes", "s. propios", "verbos"],
+                ciclo2Extra: ["artículos", "demostrativos", "indefinidos", "numerales", "posesivos", "preposiciones"],
+                ciclo3Extra: ["adverbios", "conjunciones", "interjecciones", "pronombres"],
+                categoriasGramaticales: {
+                    "adjetivos": ['corto', 'rico', 'genial', 'hermoso', 'especial', 'interesante', 'asturiano', 'imponente', 'maravillosas', 'impresionados', 'estupendas', 'sabrosos', 'cercana', 'nueva', 'azules', 'dulces', 'secas', 'blanca', 'amable', 'amarillo', 'simpático', 'histórico', 'pesqueros', 'amarrados', 'educativa', 'grandes', 'excelente', 'preciosas', 'nublado', 'veloz', 'limpia', 'mejor', 'tranquila', 'fuerte', 'precioso', 'urbano', 'tremenda', 'último', 'antiguo', 'extremo'],
+                    "adverbios": ['muy', 'primero', 'después', 'luego', 'finalmente', 'mucho', 'ayer', 'cerca', 'lejos', 'no', 'sí', 'así', 'también', 'intensamente', 'tanto', 'rápido', 'hoy'],
+                    "artículos": ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'al', 'del'],
+                    "conjunciones": ['y', 'o', 'pero', 'porque', 'aunque', 'mientras', 'que'],
+                    "demostrativos": ['este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'aquellos', 'aquellas'],
+                    "indefinidos": ['algún', 'algunos', 'algunas', 'pocos', 'varios', 'todos', 'mucha', 'mucho', 'ninguna'],
+                    "interjecciones": ['guau', 'oh', 'ah', 'uy'],
+                    "numerales": ['uno', 'dos', 'tres', 'sexto', 'primero'],
+                    "posesivos": ['mi', 'tu', 'su', 'mis', 'tus', 'sus', 'nuestro', 'nuestra', 'nuestros', 'nuestras'],
+                    "preposiciones": ['a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'en', 'entre', 'hacia', 'hasta', 'para', 'por', 'según', 'sin', 'sobre', 'tras'],
+                    "pronombres": ['ellos', 'le', 'se', 'me', 'te', 'nos', 'lo', 'la', 'él', 'nosotros'],
+                    "s. comunes": ['alumno', 'alumnos', 'alumnas', 'niña', 'niños', 'paseo', 'muelle', 'helado', 'playa', 'parque', 'fin', 'semana', 'mochila', 'alegría', 'amigos', 'compañeros', 'colegio', 'faro', 'escondite', 'mañana', 'excursión', 'clase', 'biblioteca', 'texto', 'patrimonio', 'senda', 'vistas', 'alcalde', 'exposiciones', 'estudiantes', 'bocadillos', 'bocadillo', 'plaza', 'iglesia', 'bolsa', 'verduras', 'zapatos', 'cerezas', 'hojas', 'jardín', 'amigo', 'guitarra', 'higuera', 'pingüino', 'cigüeña', 'vergüenza', 'pueblo', 'broma', 'chiquillo', 'yogur', 'abuelo', 'galletas', 'material', 'carreras', 'residuos', 'espacios', 'juegos', 'mesa', 'maravilla', 'viernes', 'cuidado', 'plantas', 'ahorro', 'energía', 'compañero', 'libros', 'autorretrato', 'jornada', 'barcos', 'blusa', 'sobre', 'brío', 'tigre', 'agua', 'árbol', 'barco', 'toalla', 'vaca', 'uva', 'tomate', 'valle', 'ascensor', 'vecino', 'traje', 'tambor', 'juguete', 'viaje', 'taxi', 'tormenta', 'ventana', 'tía', 'tijeras', 'tablero', 'ajedrez', 'abogado', 'ayuntamiento', 'acuerdo', 'transporte', 'temperatura', 'atmósfera', 'tempestad', 'trimestre', 'turismo', 'avenida', 'agente', 'aduana', 'archivo', 'atención', 'hermana', 'huerto', 'higueras', 'hortalizas'],
+                    "s. propios": ['yago', 'lia', 'candás', 'khadija', 'yoel', 'poeta', 'antón', 'santarúa', 'kairo', 'noa', 'rebolleres', 'museo', 'víctor', 'celia', 'zacarías', 'jorge', 'ángela', 'guillermo', 'braulio', 'luanco', 'beltrán', 'rula', 'conserveres', 'pablo', 'héctor'],
+                    "verbos": ['dan', 'comen', 'es', 'jugar', 'prepararon', 'estudian', 'dieron', 'vieron', 'jugaron', 'decidieron', 'organizar', 'visitaron', 'leyeron', 'pasearon', 'debatiendo', 'dejaron', 'inauguró', 'compartieron', 'llevaba', 'cruzó', 'compró', 'recogieron', 'siguió', 'tocando', 'asustó', 'dio', 'habló', 'llovió', 'desayunó', 'saludó', 'haciendo', 'comió', 'organizan', 'fuimos', 'ganamos', 'recogió', 'debatieron', 'propuso', 'donar', 'usamos', 'terminar', 'admirando', 'hizo', 'abría', 'bebe', 'tiene', 'come', 'subimos', 'vimos', 'analizó', 'cambió', 'aumentó', 'revisó', 'hicieron']
+                }
+            }
+        };
+
+        const translations = {
+            EN: {
+                title: "Dictation Generator", subtitle: "Bilingual Tool (English/Spanish)",
+                lvl1: "Level 1", lvl2: "Level 2", lvl3: "Level 3", manual: "Manual", game: "Game",
+                wordClasses: "Word Classes", descCat: "Highlight to analyze in text:",
+                spellRules: "Spelling Rules", descSpell: "Add sentences targeting these rules:",
+                onClick: "On Click...", highlightBtn: "Highlight word", dictBtn: "Translate (ES/EN)",
+                genBtn: "Generate Text", magicBtn: "Magic Dictation (AI)", dictating: "Dictating...",
+                voiceInfo: "Voice commands (EN):", cmdPause: "\"Pause\" / \"Stop\"", cmdPlay: "\"Continue\" / \"Play\"", cmdRep: "\"Repeat\"",
+                modManTag: "Own Text", modManTitle: "Manual Dictation", cancelBtn: "Cancel", applyBtn: "Apply",
+                modIaTitle: "Magic English Text", iaTopic: "1. Main Topic", iaDiff: "2. Difficulty", iaLength: "3. Length",
+                iaFocus: "4. Spelling Focus", iaChars: "5. Characters", iaPlaces: "6. Places", cancelBtn2: "Cancel", modIaGenBtn: "Generate Text",
+                closeBtn: "Close", caveTitle: "Inside the Cave",
+                gameTitle: "Word Rain", gameDesc: "Drag the word and drop it in its cave!", gamePause: "Pause", gameExit: "Exit",
+                gameOver: "Game Over!", scoreText: "You scored", pointsText: "points", enterName: "Enter your name for the Top 25:",
+                exitNoSave: "Exit without saving", saveBtn: "Save", highScores: "High Scores", loadingChamps: "Loading champions..."
+            },
+            ES: {
+                title: "Generador de Dictados", subtitle: "Herramienta Bilingüe (Inglés/Español)",
+                lvl1: "Ciclo 1", lvl2: "Ciclo 2", lvl3: "Ciclo 3", manual: "Manual", game: "Juego",
+                wordClasses: "Tipos de Palabras", descCat: "Marca para darles protagonismo:",
+                spellRules: "Fallos Habituales", descSpell: "Inyectar oraciones con estas reglas:",
+                onClick: "Al hacer clic...", highlightBtn: "Marcar / Subrayar", dictBtn: "Diccionario Oficial",
+                genBtn: "Generar Dictado", magicBtn: "Dictado Mágico (IA)", dictating: "Dictando...",
+                voiceInfo: "Comandos de voz (ES):", cmdPause: "\"Pausa\" / \"Para\"", cmdPlay: "\"Continúa\" / \"Sigue\"", cmdRep: "\"Repite\"",
+                modManTag: "Texto Propio", modManTitle: "Dictado Manual", cancelBtn: "Cancelar", applyBtn: "Aplicar",
+                modIaTitle: "Dictado Mágico", iaTopic: "1. Tema Principal", iaDiff: "2. Dificultad", iaLength: "3. Longitud",
+                iaFocus: "4. Foco Ortográfico", iaChars: "5. Protagonistas", iaPlaces: "6. Lugares", cancelBtn2: "Cancelar", modIaGenBtn: "Generar Texto",
+                closeBtn: "Cerrar", caveTitle: "Interior de la Guarida",
+                gameTitle: "Lluvia de Palabras", gameDesc: "¡Arrastra la palabra a su guarida!", gamePause: "Pausar", gameExit: "Terminar",
+                gameOver: "¡Partida Terminada!", scoreText: "Has conseguido", pointsText: "puntos", enterName: "Ingresa tu nombre para el Top 25:",
+                exitNoSave: "Salir sin guardar", saveBtn: "Guardar", highScores: "Mejores Puntuaciones", loadingChamps: "Cargando campeones..."
+            }
+        };
+
+        let categoriasPorCiclo = {};
+
+        // ==========================================
+        // ESTADO GLOBAL
+        // ==========================================
+        let ciclo = null; 
+        let dictadoBase = ""; 
+        let dictadoFinal = ""; 
+        
+        let categoriasActivas = new Set();
+        let fallosActivos = new Set();
+        let modoInteraccion = 'marcar'; 
+        let palabrasMarcadas = new Set();
+
+        const cuadernoDOM = document.getElementById('cuaderno');
+
+        // Audio y Micro
+        let synth = window.speechSynthesis;
+        let leyendoAudio = false;
+        let pausadoAudio = false;
+        let indiceLetraActual = 0; 
+        let utteranceActual = null;
+        let textoRestante = ""; 
+        let recognition = null;
+        let escuchandoComandos = false;
+
+        // Juego 
+        let modoJuegoActivo = false;
+        let isGamePaused = false;
+        let gameLoopFrame;
+        let spawnIntervalId;
+        let palabrasPendientesJuego = [];
+        let palabrasSubiendo = []; 
+        let guaridas = {};
+        let puntuacionJuego = 0;
+        
+        let draggedWord = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // ==========================================
+        // INICIALIZACIÓN Y BILINGÜISMO
+        // ==========================================
+        function toggleLanguage() {
+            currentLang = currentLang === 'EN' ? 'ES' : 'EN';
+            document.getElementById('lang-ind').textContent = currentLang;
+            
+            // Actualizar interfaz
+            document.getElementById('ui-title').textContent = translations[currentLang].title;
+            document.getElementById('ui-subtitle').textContent = translations[currentLang].subtitle;
+            document.getElementById('ui-desc-cat').textContent = translations[currentLang].descCat;
+            document.getElementById('ui-desc-spell').textContent = translations[currentLang].descSpell;
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if(translations[currentLang][key]) el.textContent = translations[currentLang][key];
+            });
+
+            // Actualizar opciones IA Selects (sólo repoblarlos rápidamente según el idioma)
+            const diffSelect = document.getElementById('ia-dificultad');
+            diffSelect.innerHTML = currentLang === 'EN' 
+                ? '<option value="Beginner / A1">Beginner</option><option value="Intermediate / A2-B1">Intermediate</option><option value="Advanced / B2">Advanced</option>'
+                : '<option value="1º y 2º (Sencillas)">Básico (1º-2º)</option><option value="3º y 4º (Medio)">Medio (3º-4º)</option><option value="5º y 6º (Avanzado)">Avanzado (5º-6º)</option>';
+            
+            const iaFocus = document.getElementById('ia-foco');
+            iaFocus.placeholder = currentLang === 'EN' ? "e.g., words with 'th', silent 'e'..." : "Ej: palabras con B y V, con H...";
+
+            loadDataByLanguage();
+            
+            // Resetear app
+            ciclo = null;
+            dictadoFinal = "";
+            categoriasActivas.clear();
+            fallosActivos.clear();
+            palabrasMarcadas.clear();
+            detenerDictadoVoz();
+            if(modoJuegoActivo) cerrarJuegoPorCompleto();
+
+            renderBotonesCategorias(); 
+            renderBotonesFallos();
+            actualizarBotonesCiclo();
+            renderCuaderno();
+
+            document.getElementById('btn-dictar').classList.add('opacity-50', 'cursor-not-allowed');
+            document.getElementById('btn-microfono').classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        function loadDataByLanguage() {
+            const d = appData[currentLang];
+            categoriasPorCiclo = {
+                1: [...d.baseCategorias].sort((a,b) => a.localeCompare(b)),
+                2: [...d.baseCategorias, ...d.ciclo2Extra].sort((a,b) => a.localeCompare(b)),
+                3: [...d.baseCategorias, ...d.ciclo2Extra, ...d.ciclo3Extra].sort((a,b) => a.localeCompare(b)),
+                'manual': [...d.baseCategorias, ...d.ciclo2Extra, ...d.ciclo3Extra].sort((a,b) => a.localeCompare(b)),
+                'ia': [...d.baseCategorias, ...d.ciclo2Extra, ...d.ciclo3Extra].sort((a,b) => a.localeCompare(b))
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDataByLanguage();
+            lucide.createIcons();
+            renderBotonesCategorias(); 
+            renderBotonesFallos();
+            actualizarBotonesCiclo();
+            renderCuaderno(); 
+            
+            if(!dictadoFinal) {
+                document.getElementById('btn-dictar').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('btn-microfono').classList.add('opacity-50', 'cursor-not-allowed');
+            }
+
+            document.addEventListener('mousemove', moveDrag, {passive: false});
+            document.addEventListener('touchmove', moveDrag, {passive: false});
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        });
+
+        // ==========================================
+        // LÓGICA CORE: DICTADOS
+        // ==========================================
+        function clickGenerarDictadoLateral() {
+            if (!ciclo) {
+                if(!modoJuegoActivo) cuadernoDOM.innerHTML = currentLang === 'EN' 
+                    ? '<span class="text-blue-500/80 italic text-[22px] font-medium flex items-center gap-2 mt-4"><i data-lucide="alert-circle" class="w-6 h-6"></i> Please, select a Level, Manual or AI above.</span>'
+                    : '<span class="text-blue-500/80 italic text-[22px] font-medium flex items-center gap-2 mt-4"><i data-lucide="alert-circle" class="w-6 h-6"></i> Por favor, selecciona un Ciclo, Manual o IA arriba.</span>';
+                lucide.createIcons(); return;
+            }
+            if (ciclo === 'manual') abrirModalManual(); 
+            else if (ciclo === 'ia') generarDictadoIA(); 
+            else generarDictado(ciclo);
+        }
+
+        function generarDictado(nivel) {
+            ciclo = nivel;
+            actualizarBotonesCiclo();
+            renderBotonesCategorias(); 
+            componerDictado(false); 
+        }
+
+        function componerDictado(mantenerBase = false) {
+            if (!ciclo) return;
+
+            if (ciclo !== 'manual' && ciclo !== 'ia' && (!mantenerBase || !dictadoBase)) {
+                const opciones = appData[currentLang].textos[ciclo];
+                dictadoBase = opciones[Math.floor(Math.random() * opciones.length)];
+                palabrasMarcadas.clear();
+            }
+
+            dictadoFinal = dictadoBase;
+            fallosActivos.forEach(fallo => {
+                if(appData[currentLang].oracionesFallos[fallo]) dictadoFinal += appData[currentLang].oracionesFallos[fallo];
+            });
+
+            detenerDictadoVoz();
+            document.getElementById('btn-dictar').classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('btn-microfono').classList.remove('opacity-50', 'cursor-not-allowed');
+
+            if(modoJuegoActivo) iniciarJuego(true); 
+            else renderCuaderno();
+        }
+
+        function abrirModalManual() {
+            document.getElementById('modal-manual').classList.remove('hidden');
+            setTimeout(() => document.getElementById('texto-manual-input').focus(), 100);
+        }
+
+        function cerrarModalManual() { document.getElementById('modal-manual').classList.add('hidden'); }
+
+        function aplicarDictadoManual() {
+            const texto = document.getElementById('texto-manual-input').value.trim();
+            if (!texto) { mostrarToast(currentLang === 'EN' ? "Please input some text." : "Introduce texto para el dictado.", true); return; }
+            ciclo = 'manual';
+            dictadoBase = texto;
+            cerrarModalManual();
+            actualizarBotonesCiclo();
+            renderBotonesCategorias(); 
+            componerDictado(true); 
+        }
+
+        // ==========================================
+        // LÓGICA GENERADOR MÁGICO (IA) CON BACKEND
+        // ==========================================
+        function abrirModalIA() { document.getElementById('modal-ia').classList.remove('hidden'); }
+        function cerrarModalIA() { document.getElementById('modal-ia').classList.add('hidden'); }
+
+        async function fetchWithBackoff(url, payload, retries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' }, 
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error?.message || `Código ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (i === retries - 1) throw error;
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        async function generarDictadoIA() {
+            const tema = document.getElementById('ia-tema').value;
+            const dificultad = document.getElementById('ia-dificultad').value;
+            const longitud = document.getElementById('ia-longitud').value;
+            const foco = document.getElementById('ia-foco').value;
+            const protagonistas = document.getElementById('ia-protagonistas').value.trim();
+            const lugares = document.getElementById('ia-lugares').value.trim();
+
+            const btnGenerar = document.getElementById('btn-generar-ia');
+            const iconoBtn = document.getElementById('icono-generar-ia');
+            
+            btnGenerar.disabled = true;
+            btnGenerar.classList.add('opacity-70', 'cursor-not-allowed');
+            iconoBtn.setAttribute('data-lucide', 'loader-2');
+            iconoBtn.classList.add('animate-spin');
+            lucide.createIcons();
+
+            let langName = currentLang === 'EN' ? 'INGLÉS' : 'ESPAÑOL';
+            
+            let prompt = `Escribe un texto original en ${langName} para un dictado escolar. 
+            Parámetros:
+            - Tema: ${tema}
+            - Nivel de dificultad: ${dificultad}
+            - Longitud aproximada: ${longitud}
+            - Foco ortográfico principal: ${foco}.`;
+
+            if (protagonistas) prompt += `\n- Protagonistas: ${protagonistas}.`;
+            else prompt += `\n- Protagonistas: Inventa protagonistas automáticamente.`;
+
+            if (lugares) prompt += `\n- Lugares: ${lugares}.`;
+            else prompt += `\n- Lugares: Inventa lugares automáticamente.`;
+
+            let jsonStruct = currentLang === 'EN' ? 
+            `{
+              "texto": "Here goes the full english dictation text...",
+              "categorias": {
+                "adjectives": ["list", "of", "words"],
+                "nouns": ["list", "of", "nouns"],
+                "proper nouns": [], "verbs": [], "articles": [], "demonstratives": [],
+                "prepositions": [], "adverbs": [], "conjunctions": [], "pronouns": []
+              }
+            }` : 
+            `{
+              "texto": "Aquí va el texto completo del dictado en español...",
+              "categorias": {
+                "adjetivos": ["lista"], "s. comunes": ["lista"], "s. propios": [], "verbos": [],
+                "artículos": [], "demostrativos": [], "indefinidos": [], "numerales": [],
+                "posesivos": [], "preposiciones": [], "adverbios": [], "conjunciones": [],
+                "interjecciones": [], "pronombres": []
+              }
+            }`;
+
+            prompt += `\n\nMUY IMPORTANTE: Para analizar el texto, devuelve ÚNICAMENTE un objeto JSON válido. Usa esta estructura exacta:\n${jsonStruct}`;
+
+            const promptCompleto = "Eres un profesor bilingüe experto en crear dictados escolares y un lingüista analítico.\n\n" + prompt;
+
+            try {
+                const result = await fetchWithBackoff(`https://www.poetaanton.educastu.com/api.php`, { prompt: promptCompleto });
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                    try {
+                        const jsonStr = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+                        const data = JSON.parse(jsonStr);
+
+                        if (data.texto && data.categorias) {
+                            Object.keys(data.categorias).forEach(cat => {
+                                if (!appData[currentLang].categoriasGramaticales[cat]) appData[currentLang].categoriasGramaticales[cat] = [];
+                                data.categorias[cat].forEach(word => {
+                                    const wLower = word.toLowerCase().replace(/^[.,¡!¿?]+|[.,¡!¿?]+$/g, '');
+                                    if (wLower && !appData[currentLang].categoriasGramaticales[cat].includes(wLower)) {
+                                        appData[currentLang].categoriasGramaticales[cat].push(wLower);
+                                    }
+                                });
+                            });
+
+                            ciclo = 'ia';
+                            dictadoBase = data.texto.trim();
+                            cerrarModalIA();
+                            actualizarBotonesCiclo();
+                            renderBotonesCategorias();
+                            componerDictado(true);
+                            mostrarToast(currentLang === 'EN' ? "Magic AI text generated!" : "¡Dictado Mágico generado!");
+                        } else {
+                            throw new Error("Invalid JSON structure.");
+                        }
+                    } catch (e) {
+                        mostrarToast(currentLang === 'EN' ? "Error parsing AI JSON." : "Error procesando el JSON de IA.", true);
+                    }
+                } else {
+                    mostrarToast(currentLang === 'EN' ? "Error generating text." : "Error al generar texto.", true);
+                }
+            } catch (error) {
+                mostrarToast(currentLang === 'EN' ? "API connection error." : "Error conectando con la API.", true);
+            } finally {
+                btnGenerar.disabled = false;
+                btnGenerar.classList.remove('opacity-70', 'cursor-not-allowed');
+                iconoBtn.setAttribute('data-lucide', 'sparkles');
+                iconoBtn.classList.remove('animate-spin');
+                lucide.createIcons();
+            }
+        }
+
+        function mostrarToast(mensaje, error = false) {
+            const toast = document.getElementById('toast-notificacion');
+            const msg = document.getElementById('toast-mensaje');
+            msg.textContent = mensaje;
+            if (error) toast.classList.replace('bg-slate-800', 'bg-red-600');
+            else toast.classList.replace('bg-red-600', 'bg-slate-800');
+
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            }, 3000);
+        }
+
+        // ==========================================
+        // LÓGICA DEL JUEGO: DICTADOS ENDLESS Y DRAG&DROP
+        // ==========================================
+        function generarErrorOrtografico(palabra) {
+            if (palabra.length <= 2) return palabra;
+            let p = palabra.toLowerCase();
+            let error = p;
+            
+            if (currentLang === 'EN') {
+                if (p.includes('ea')) error = p.replace('ea', 'ee');
+                else if (p.includes('ee')) error = p.replace('ee', 'ea');
+                else if (p.includes('ie')) error = p.replace('ie', 'ei');
+                else if (p.includes('ei')) error = p.replace('ei', 'ie');
+                else if (p.includes('ll')) error = p.replace('ll', 'l');
+                else if (p.includes('l') && p.length > 4 && !p.includes('ll')) error = p.replace('l', 'll');
+                else if (p.includes('ss')) error = p.replace('ss', 's');
+                else if (p.includes('ph')) error = p.replace('ph', 'f');
+                else if (p.includes('ou')) error = p.replace('ou', 'ow');
+                else if (p.includes('ow')) error = p.replace('ow', 'ou');
+                else if (p.includes('tion')) error = p.replace('tion', 'sion');
+                else if (p.includes('sion')) error = p.replace('sion', 'tion');
+                else if (p.endsWith('e')) error = p.slice(0, -1);
+                else if (!p.endsWith('e') && !p.endsWith('s')) error = p + 'e';
+            } else {
+                if (p.includes('b')) error = p.replace('b', 'v');
+                else if (p.includes('v')) error = p.replace('v', 'b');
+                else if (p.includes('ge') || p.includes('gi')) error = p.replace(/g([ei])/g, 'j$1');
+                else if (p.includes('je') || p.includes('ji')) error = p.replace(/j([ei])/g, 'g$1');
+                else if (p.includes('ll')) error = p.replace('ll', 'y');
+                else if (p.includes('y') && p.length > 1) error = p.replace('y', 'll');
+                else if (p.startsWith('h')) error = p.substring(1);
+                else if (/^[aeiou]/.test(p)) error = 'h' + p;
+                else if (p.includes('ce') || p.includes('ci')) error = p.replace(/c([ei])/g, 'z$1');
+                else if (p.includes('za') || p.includes('zo') || p.includes('zu')) error = p.replace(/z([aou])/g, 'c$1');
+            }
+            
+            if (palabra[0] === palabra[0].toUpperCase()) error = error.charAt(0).toUpperCase() + error.slice(1);
+            return error; 
+        }
+
+        function playCrashSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (!ctx) return;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 1.5); 
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+                osc.start(); osc.stop(ctx.currentTime + 1.5);
+            } catch(e) {}
+        }
+
+        function mostrarNotificacionJuego(mensaje) {
+            const notif = document.getElementById('juego-notificacion');
+            notif.textContent = mensaje;
+            notif.classList.remove('opacity-0');
+            setTimeout(() => notif.classList.add('opacity-0'), 2000);
+        }
+
+        function cargarSiguienteDictadoJuego() {
+            if (ciclo !== 'manual' && ciclo !== 'ia') {
+                const opciones = appData[currentLang].textos[ciclo];
+                let nuevoDictado = dictadoBase;
+                if (opciones.length > 1) {
+                    while(nuevoDictado === dictadoBase) { nuevoDictado = opciones[Math.floor(Math.random() * opciones.length)]; }
+                }
+                dictadoBase = nuevoDictado;
+            }
+            
+            dictadoFinal = dictadoBase;
+            fallosActivos.forEach(fallo => {
+                if(appData[currentLang].oracionesFallos[fallo]) dictadoFinal += appData[currentLang].oracionesFallos[fallo];
+            });
+
+            const catGramaticales = appData[currentLang].categoriasGramaticales;
+            const regex = /([\wáéíóúÁÉÍÓÚñÑüÜ]+)/g;
+            const todasLasPalabras = dictadoFinal.match(regex) || [];
+            
+            const palabrasValidasParaNivel = todasLasPalabras.filter(word => {
+                const wLower = word.toLowerCase();
+                return categoriasPorCiclo[ciclo || 3].some(cat => catGramaticales[cat] && catGramaticales[cat].includes(wLower));
+            });
+
+            if (palabrasValidasParaNivel.length === 0) {
+                mostrarNotificacionJuego(currentLang === 'EN' ? "No valid words left." : "Sin palabras válidas.");
+                return;
+            }
+            
+            palabrasPendientesJuego = palabrasValidasParaNivel.map(p => ({
+                original: p,
+                conError: Math.random() < 0.85 ? generarErrorOrtografico(p) : p
+            })).sort(() => Math.random() - 0.5);
+
+            mostrarNotificacionJuego(currentLang === 'EN' ? "SPELL CHECK!" : "¡A CORREGIR!");
+        }
+
+        function cambiarNivelJuego(nuevoNivel) {
+            if (nuevoNivel === 'manual') {
+                const textoManual = document.getElementById('texto-manual-input').value.trim();
+                if (!textoManual) {
+                    mostrarToast(currentLang === 'EN' ? "You haven't written manual text yet." : "Aún no has escrito texto manual.", true);
+                    document.getElementById('juego-ciclo').value = ciclo || 3;
+                    return;
+                }
+                ciclo = 'manual';
+                dictadoBase = textoManual;
+            } else if (nuevoNivel === 'ia') {
+                if (ciclo !== 'ia' || !dictadoBase) {
+                    mostrarToast(currentLang === 'EN' ? "Generate Magic AI text first." : "Genera un dictado Mágico primero.", true);
+                    document.getElementById('juego-ciclo').value = ciclo || 3;
+                    return;
+                }
+            } else {
+                ciclo = parseInt(nuevoNivel);
+                const opciones = appData[currentLang].textos[ciclo];
+                dictadoBase = opciones[Math.floor(Math.random() * opciones.length)];
+            }
+
+            actualizarBotonesCiclo();
+            renderBotonesCategorias();
+
+            dictadoFinal = dictadoBase;
+            fallosActivos.forEach(fallo => {
+                if(appData[currentLang].oracionesFallos[fallo]) dictadoFinal += appData[currentLang].oracionesFallos[fallo];
+            });
+
+            iniciarJuego(true);
+        }
+
+        function iniciarJuego(reiniciar = false) {
+            if (!dictadoFinal) { alert(currentLang === 'EN' ? "Generate text first." : "Genera un texto primero."); return; }
+            
+            modoJuegoActivo = true;
+            document.getElementById('app-principal').classList.add('hidden'); 
+            document.getElementById('vista-juego').classList.remove('hidden');
+
+            detenerDictadoVoz();
+
+            const selectCiclo = document.getElementById('juego-ciclo');
+            if (selectCiclo) selectCiclo.value = ciclo || 3;
+            
+            if(draggedWord) { draggedWord.el.remove(); draggedWord = null; }
+
+            puntuacionJuego = 0;
+            const displayPuntuacion = document.getElementById('puntuacion-display');
+            if (displayPuntuacion) displayPuntuacion.textContent = '0';
+
+            guaridas = {};
+            categoriasPorCiclo[ciclo || 3].forEach(cat => guaridas[cat] = []);
+            renderBotonesGuaridasJuego(categoriasPorCiclo[ciclo || 3]);
+
+            const canvas = document.getElementById('game-canvas');
+            canvas.innerHTML = '<div id="juego-notificacion" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-indigo-950 font-black px-6 py-3 rounded-2xl shadow-2xl z-50 transition-opacity duration-500 opacity-0 pointer-events-none text-xl sm:text-2xl text-center"></div><div id="crashed-area" class="crashed-container"></div>'; 
+
+            cargarSiguienteDictadoJuego();
+
+            if (palabrasPendientesJuego.length === 0) {
+                alert(currentLang === 'EN' ? "No classifiable words in text." : "El dictado no contiene palabras clasificables.");
+                cerrarJuegoPorCompleto();
+                return;
+            }
+            
+            palabrasSubiendo = [];
+            isGamePaused = false;
+            document.getElementById('btn-pausa-juego').textContent = translations[currentLang].gamePause;
+
+            if(spawnIntervalId) clearInterval(spawnIntervalId);
+            if(gameLoopFrame) cancelAnimationFrame(gameLoopFrame);
+
+            spawnIntervalId = setInterval(() => {
+                if(isGamePaused) return;
+                
+                if(palabrasPendientesJuego.length === 0) {
+                    if (palabrasSubiendo.filter(w => w.state === 'rising').length === 0) cargarSiguienteDictadoJuego();
+                    return; 
+                }
+                spawnWord(palabrasPendientesJuego.pop(), canvas);
+            }, 2200);
+
+            gameLoopFrame = requestAnimationFrame(gameLoop);
+        }
+
+        function spawnWord(wordData, canvas) {
+            const el = document.createElement('div');
+            el.className = 'falling-word word-green'; 
+            el.textContent = wordData.conError;
+            
+            const wWidth = canvas.clientWidth;
+            const x = Math.random() * (wWidth > 150 ? wWidth - 150 : 50);
+            const h = canvas.clientHeight;
+            const y = h + 10; 
+            const baseSpeed = 0.6 + Math.random() * 1.0; 
+            
+            el.style.transform = `translate(${x}px, ${y}px)`;
+            canvas.appendChild(el);
+
+            const obj = { ...wordData, el, x, y, baseSpeed, pass: 1, state: 'rising' };
+            el.addEventListener('mousedown', (e) => startDrag(e, obj));
+            el.addEventListener('touchstart', (e) => startDrag(e, obj), {passive: false});
+            palabrasSubiendo.push(obj);
+        }
+
+        function gameLoop() {
+            if (!isGamePaused) {
+                const canvas = document.getElementById('game-canvas');
+                const h = canvas.clientHeight;
+                const speedMultiplier = parseFloat(document.getElementById('juego-velocidad').value);
+                
+                palabrasSubiendo.forEach((w, index) => {
+                    if (w.state === 'rising') {
+                        w.y -= (w.baseSpeed * speedMultiplier); 
+                        if (w.y < -50) {
+                            w.pass++;
+                            if (w.pass === 2) { w.el.className = 'falling-word word-amber'; w.y = h + 10; }
+                            else if (w.pass === 3) { w.el.className = 'falling-word word-red'; w.y = h + 10; }
+                            else if (w.pass === 4) {
+                                if (w.conError !== w.original) {
+                                    w.state = 'crashing'; w.y = h - 40; 
+                                    w.el.className = 'falling-word word-crashing word-red';
+                                    w.el.style.transform = `translate(${w.x}px, ${w.y}px)`;
+                                    playCrashSound();
+                                    actualizarPuntuacion(-50);
+                                    setTimeout(() => {
+                                        if(w.el && w.el.parentNode) {
+                                            w.state = 'crashed';
+                                            const restos = document.createElement('span');
+                                            restos.className = 'word-crashed'; restos.textContent = w.conError;
+                                            document.getElementById('crashed-area').appendChild(restos);
+                                            w.el.remove();
+                                        }
+                                    }, 1500);
+                                } else {
+                                    w.el.remove();
+                                    palabrasSubiendo.splice(index, 1);
+                                }
+                            }
+                        } else {
+                            w.el.style.transform = `translate(${w.x}px, ${w.y}px)`;
+                        }
+                    }
+                });
+            }
+            if (modoJuegoActivo) gameLoopFrame = requestAnimationFrame(gameLoop);
+        }
+
+        function pausarReanudarJuego() {
+            isGamePaused = !isGamePaused;
+            document.getElementById('btn-pausa-juego').textContent = isGamePaused 
+                ? (currentLang === 'EN' ? "Resume" : "Reanudar") 
+                : translations[currentLang].gamePause;
+        }
+
+        function salirJuego() {
+            isGamePaused = true;
+            clearInterval(spawnIntervalId);
+            cancelAnimationFrame(gameLoopFrame);
+            if(draggedWord) { draggedWord.el.remove(); draggedWord = null; }
+
+            if (puntuacionJuego > 0) {
+                document.getElementById('puntos-finales').textContent = puntuacionJuego;
+                document.getElementById('modal-guardar-puntuacion').classList.remove('hidden');
+            } else {
+                cerrarJuegoPorCompleto();
+            }
+        }
+
+        function cerrarJuegoPorCompleto() {
+            modoJuegoActivo = false;
+            document.getElementById('modal-guardar-puntuacion').classList.add('hidden');
+            document.getElementById('vista-juego').classList.add('hidden');
+            document.getElementById('app-principal').classList.remove('hidden'); 
+            renderCuaderno();
+        }
+
+        // ==========================================
+        // DRAG AND DROP LÓGICA
+        // ==========================================
+        function startDrag(e, wordObj) {
+            if (isGamePaused || wordObj.state !== 'rising') return;
+            e.preventDefault(); 
+            draggedWord = wordObj; wordObj.state = 'dragged';
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const rect = wordObj.el.getBoundingClientRect();
+            dragOffsetX = clientX - rect.left; dragOffsetY = clientY - rect.top;
+            wordObj.el.style.position = 'fixed'; wordObj.el.style.left = rect.left + 'px';
+            wordObj.el.style.top = rect.top + 'px'; wordObj.el.style.transform = 'none';
+            wordObj.el.style.zIndex = '9999';
+            document.body.appendChild(wordObj.el); 
+        }
+
+        function moveDrag(e) {
+            if (!draggedWord) return;
+            e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            draggedWord.el.style.left = (clientX - dragOffsetX) + 'px';
+            draggedWord.el.style.top = (clientY - dragOffsetY) + 'px';
+        }
+
+        function endDrag(e) {
+            if (!draggedWord) return;
+            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            let dropped = false, rejected = false;
+            const guaridasBtns = document.querySelectorAll('.guarida-btn');
+            
+            for (let btn of guaridasBtns) {
+                const rect = btn.getBoundingClientRect();
+                if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+                    const cat = btn.getAttribute('data-cat');
+                    const palabraLimpia = draggedWord.original.toLowerCase();
+                    const catGramaticales = appData[currentLang].categoriasGramaticales;
+
+                    if (catGramaticales[cat] && catGramaticales[cat].includes(palabraLimpia)) {
+                        enviarAGuaridaDrag(draggedWord, cat);
+                        dropped = true;
+                    } else {
+                        actualizarPuntuacion(-100); rejected = true;
+                        const bgOriginal = btn.style.background;
+                        btn.style.background = 'rgba(220, 38, 38, 0.9)'; btn.style.borderColor = '#f87171';
+                        setTimeout(() => { btn.style.background = bgOriginal; btn.style.borderColor = 'rgba(96, 165, 250, 0.5)'; }, 500);
+                    }
+                    break;
+                }
+            }
+            
+            if (!dropped) {
+                const canvas = document.getElementById('game-canvas');
+                canvas.appendChild(draggedWord.el);
+                const canvasRect = canvas.getBoundingClientRect();
+                draggedWord.el.style.position = 'absolute';
+                draggedWord.x = clientX - dragOffsetX - canvasRect.left;
+                draggedWord.y = clientY - dragOffsetY - canvasRect.top;
+                
+                if(draggedWord.x < 0) draggedWord.x = 0;
+                if(draggedWord.x > canvasRect.width - 100) draggedWord.x = canvasRect.width - 100;
+
+                draggedWord.el.style.left = '0px'; draggedWord.el.style.top = '0px';
+
+                if (rejected) {
+                    draggedWord.y += 60; draggedWord.el.classList.add('shake-error');
+                    setTimeout(() => { if (draggedWord && draggedWord.el) draggedWord.el.classList.remove('shake-error'); }, 500);
+                }
+
+                draggedWord.el.style.transform = `translate(${draggedWord.x}px, ${draggedWord.y}px)`;
+                draggedWord.el.style.zIndex = '50'; draggedWord.state = 'rising'; 
+            }
+            draggedWord = null;
+        }
+
+        function enviarAGuaridaDrag(wordObj, categoria) {
+            wordObj.el.remove();
+            palabrasSubiendo = palabrasSubiendo.filter(w => w !== wordObj);
+            guaridas[categoria].push({
+                original: wordObj.original, conError: wordObj.conError, intento: "",
+                analisis: { forma: "", tiempo: "", numero: "", genero: "", persona: "", conjugacion: "" },
+                correcta: false
+            });
+            renderBotonesGuaridasJuego(categoriasPorCiclo[ciclo || 3]);
+        }
+
+        function renderBotonesGuaridasJuego(categorias) {
+            const leftContainer = document.getElementById('guaridas-left');
+            const rightContainer = document.getElementById('guaridas-right');
+            leftContainer.innerHTML = ''; rightContainer.innerHTML = '';
+            const half = Math.ceil(categorias.length / 2);
+            
+            let btnClassDynamic = "py-2 px-1 sm:py-3 sm:px-1 text-[11px] sm:text-sm min-h-[45px] flex-1 overflow-hidden";
+            let badgeClassDynamic = "px-2 py-0 text-[10px] sm:text-xs mt-1";
+
+            if (ciclo === 1) {
+                btnClassDynamic = "py-6 px-1 sm:py-10 sm:px-2 text-xl sm:text-2xl min-h-[120px] flex-1 overflow-hidden";
+                badgeClassDynamic = "px-4 py-1 text-base sm:text-lg mt-3";
+            } else if (ciclo === 2) {
+                btnClassDynamic = "py-3 px-1 sm:py-5 sm:px-2 text-[13px] sm:text-base min-h-[70px] flex-1 overflow-hidden";
+                badgeClassDynamic = "px-3 py-0.5 text-[10px] sm:text-sm mt-2";
+            }
+            
+            categorias.forEach((cat, idx) => {
+                const cuenta = guaridas[cat].length;
+                const btn = document.createElement('button');
+                btn.className = `guarida-btn ${btnClassDynamic}`;
+                btn.setAttribute('data-cat', cat);
+                btn.onclick = () => abrirModalGuarida(cat);
+                btn.innerHTML = `<span class="capitalize whitespace-nowrap tracking-tighter w-full text-center">${cat}</span> <span class="guarida-badge ${badgeClassDynamic}">${cuenta}</span>`;
+                if (idx < half) leftContainer.appendChild(btn); else rightContainer.appendChild(btn);
+            });
+        }
+
+        // ==========================================
+        // LÓGICA DE GUARIDA - BILINGÜE
+        // ==========================================
+        let guaridaAbiertaActual = null;
+
+        function abrirModalGuarida(categoria) {
+            isGamePaused = true;
+            guaridaAbiertaActual = categoria;
+            document.getElementById('titulo-guarida').textContent = categoria;
+            renderInteriorGuarida();
+            document.getElementById('modal-guarida').classList.remove('hidden');
+        }
+
+        function cerrarModalGuarida() {
+            document.getElementById('modal-guarida').classList.add('hidden');
+            guaridaAbiertaActual = null;
+            if(modoJuegoActivo && document.getElementById('btn-pausa-juego').textContent === translations[currentLang].gamePause) {
+                isGamePaused = false;
+            }
+        }
+
+        function renderInteriorGuarida() {
+            const content = document.getElementById('contenido-guarida');
+            content.innerHTML = '';
+            
+            const palabras = guaridas[guaridaAbiertaActual];
+            if (palabras.length === 0) {
+                content.innerHTML = `<p class="text-center text-slate-400 font-bold text-lg py-10">${currentLang === 'EN' ? 'This cave is empty for now.' : 'Esta guarida está vacía por ahora.'}</p>`;
+                return;
+            }
+
+            const catLower = guaridaAbiertaActual.toLowerCase();
+            const isEnglish = currentLang === 'EN';
+
+            const esInvariable = isEnglish 
+                ? ["adverbs", "conjunctions", "prepositions", "adjectives", "proper nouns", "pronouns", "articles", "demonstratives"].includes(catLower)
+                : ["adverbios", "conjunciones", "interjecciones", "preposiciones"].includes(catLower);
+            const esVerbo = isEnglish ? catLower === "verbs" : catLower === "verbos";
+            const esSustantivo = isEnglish ? catLower === "nouns" : false; // Spanish logic handle nouns differently later
+
+            palabras.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = `bg-white p-6 rounded-2xl shadow-md border-l-4 mb-5 ${item.correcta ? 'border-emerald-500 bg-emerald-50/30' : 'border-indigo-500'}`;
+                
+                const head = document.createElement('div');
+                head.className = 'flex justify-between items-center mb-4';
+                head.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="bg-indigo-100 text-indigo-900 font-black px-4 py-2 rounded-xl text-2xl shadow-sm tracking-wide">${item.conError}</span>
+                        ${item.conError !== item.original ? `<span class="text-xs font-bold text-rose-600 bg-rose-100 px-3 py-1 rounded-full shadow-sm">${isEnglish ? 'Check Spelling!' : '¡Revisa la ortografía!'}</span>` : ''}
+                    </div>
+                    ${item.correcta ? '<i data-lucide="check-circle" class="text-emerald-500 w-8 h-8 drop-shadow-md"></i>' : ''}
+                `;
+                card.appendChild(head);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-6';
+
+                const col1 = document.createElement('div');
+                col1.innerHTML = `<label class="text-sm font-bold text-slate-600 uppercase tracking-wider block mb-2"><i data-lucide="pencil" class="inline w-4 h-4 mr-1 text-slate-400"></i> ${isEnglish ? 'Correct word' : 'Palabra correcta'}</label>`;
+                const inputCort = document.createElement('input');
+                inputCort.type = 'text';
+                inputCort.value = item.correcta ? item.original : (item.intento || item.conError);
+                inputCort.className = 'w-full p-3 border-2 border-slate-200 rounded-xl bg-slate-50 font-bold text-xl text-slate-800 focus:border-indigo-500 focus:bg-white outline-none disabled:bg-transparent disabled:border-transparent disabled:text-emerald-700 disabled:p-0 transition-all';
+                inputCort.disabled = item.correcta;
+                inputCort.onchange = (e) => item.intento = e.target.value;
+                col1.appendChild(inputCort);
+
+                const col2 = document.createElement('div');
+                col2.innerHTML = `<label class="text-sm font-bold text-slate-600 uppercase tracking-wider block mb-2"><i data-lucide="microscope" class="inline w-4 h-4 mr-1 text-slate-400"></i> ${isEnglish ? 'Grammar Analysis' : 'Análisis Morfológico'}</label>`;
+                const boxAna = document.createElement('div');
+                boxAna.className = 'flex flex-col gap-2';
+                let selects = [];
+
+                const createSel = (defaultText, optionsHtml, fieldName, colSpan = false) => {
+                    const sel = document.createElement('select');
+                    sel.className = `select-analisis w-full p-2 border-2 border-slate-200 rounded-xl bg-slate-50 font-medium text-[13px] sm:text-sm text-slate-700 focus:border-indigo-500 outline-none disabled:opacity-70 disabled:bg-transparent disabled:border-transparent ${colSpan ? 'col-span-2' : ''}`;
+                    sel.disabled = item.correcta;
+                    sel.innerHTML = `<option value="">${defaultText}</option>${optionsHtml}`;
+                    sel.value = item.analisis[fieldName] || "";
+                    sel.onchange = e => item.analisis[fieldName] = e.target.value;
+                    selects.push(sel); boxAna.appendChild(sel);
+                };
+
+                if (esInvariable) {
+                    boxAna.innerHTML = isEnglish
+                        ? `<div class="p-4 bg-slate-100 rounded-xl text-slate-500 font-bold text-center border-2 border-slate-200">Invariable Word<br><span class="text-xs font-normal">No tense or number changes (usually)</span></div>`
+                        : `<div class="p-4 bg-slate-100 rounded-xl text-slate-500 font-bold text-center border-2 border-slate-200">Palabra Invariable<br><span class="text-xs font-normal">No tiene género ni número</span></div>`;
+                } else if (esVerbo) {
+                    boxAna.className = (ciclo === 1 || isEnglish) ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-2 gap-2'; 
+                    if (isEnglish) {
+                        if (ciclo === 1) createSel('Tense...', '<option value="present">Present</option><option value="past">Past</option><option value="future">Future</option><option value="none">Does not apply</option>', 'tiempo');
+                        else createSel('Verb Form / Tense...', '<option value="present">Present Base/Simple</option><option value="past">Past Simple</option><option value="participle">Past Participle</option><option value="gerund">Gerund (-ing)</option><option value="infinitive">Infinitive (to...)</option>', 'tiempo');
+                    } else { // Spanish Verbs
+                        if (ciclo === 1) {
+                            createSel('Tiempo...', '<option value="presente">Presente</option><option value="pasado">Pasado</option><option value="futuro">Futuro</option><option value="condicional">Condicional</option><option value="none">No aplica</option>', 'tiempo');
+                        } else if (ciclo === 2) {
+                            createSel('Forma...', '<option value="personal">Forma Personal</option><option value="infinitivo">Infinitivo</option><option value="gerundio">Gerundio</option><option value="participio">Participio</option>', 'forma', true);
+                            createSel('Tiempo...', '<option value="presente">Presente</option><option value="pasado">Pasado</option><option value="futuro">Futuro</option><option value="condicional">Condicional</option><option value="none">No aplica</option>', 'tiempo');
+                            createSel('Persona...', '<option value="1">1ª Persona</option><option value="2">2ª Persona</option><option value="3">3ª Persona</option><option value="none">No aplica</option>', 'persona');
+                            createSel('Número...', '<option value="singular">Singular</option><option value="plural">Plural</option><option value="none">No aplica</option>', 'numero', true);
+                        } else {
+                            createSel('Forma...', '<option value="personal">Forma Personal</option><option value="infinitivo">Infinitivo</option><option value="gerundio">Gerundio</option><option value="participio">Participio</option>', 'forma', true);
+                            createSel('Tiempo...', '<option value="presente">Presente</option><option value="pasado">Pasado</option><option value="futuro">Futuro</option><option value="condicional">Condicional</option><option value="none">No aplica</option>', 'tiempo');
+                            createSel('Persona...', '<option value="1">1ª Persona</option><option value="2">2ª Persona</option><option value="3">3ª Persona</option><option value="none">No aplica</option>', 'persona');
+                            createSel('Número...', '<option value="singular">Singular</option><option value="plural">Plural</option><option value="none">No aplica</option>', 'numero');
+                            createSel('Conjugación...', '<option value="1">1ª Conjugación (-ar)</option><option value="2">2ª Conjugación (-er)</option><option value="3">3ª Conjugación (-ir)</option>', 'conjugacion');
+                        }
+                    }
+                } else { 
+                    // English nouns or Spanish nouns/adjectives/articles
+                    if (isEnglish) { // Nouns EN
+                        createSel('Number...', '<option value="singular">Singular</option><option value="plural">Plural</option>', 'numero');
+                    } else { // Spanish Variables
+                        createSel('Género...', '<option value="masculino">Masculino</option><option value="femenino">Femenino</option><option value="neutro">Común/Neutro</option>', 'genero');
+                        createSel('Número...', '<option value="singular">Singular</option><option value="plural">Plural</option>', 'numero');
+                    }
+                }
+                
+                col2.appendChild(boxAna); grid.appendChild(col1); grid.appendChild(col2); card.appendChild(grid);
+
+                if (!item.correcta) {
+                    const foot = document.createElement('div');
+                    foot.className = 'mt-6 flex justify-center border-t border-slate-100 pt-5';
+                    const btnCheck = document.createElement('button');
+                    btnCheck.className = 'flex items-center justify-center gap-2 px-8 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white font-bold text-xl rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 w-full sm:w-auto';
+                    btnCheck.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> ${isEnglish ? 'Check Answer' : 'Confirmar Análisis'}`;
+                    
+                    btnCheck.onclick = () => {
+                        const val = inputCort.value.trim().toLowerCase();
+                        let faltaAnalisis = false;
+                        if (!esInvariable) {
+                            if (esVerbo) {
+                                if (isEnglish) {
+                                    if (!item.analisis.tiempo) faltaAnalisis = true;
+                                } else {
+                                    if (ciclo === 1 && !item.analisis.tiempo) faltaAnalisis = true;
+                                    else if (ciclo === 2 && (!item.analisis.forma || !item.analisis.tiempo || !item.analisis.persona || !item.analisis.numero)) faltaAnalisis = true;
+                                    else if (ciclo > 2 && (!item.analisis.forma || !item.analisis.tiempo || !item.analisis.persona || !item.analisis.numero || !item.analisis.conjugacion)) faltaAnalisis = true;
+                                }
+                            } else { // Nouns EN or Variable ES
+                                if (isEnglish && !item.analisis.numero) faltaAnalisis = true;
+                                else if (!isEnglish && (!item.analisis.genero || !item.analisis.numero)) faltaAnalisis = true;
+                            }
+                        }
+
+                        if (val === item.original.toLowerCase() && !faltaAnalisis) {
+                            item.correcta = true; actualizarPuntuacion(100); renderInteriorGuarida(); 
+                        } else {
+                            actualizarPuntuacion(-50);
+                            if (val !== item.original.toLowerCase()) {
+                                inputCort.classList.add('border-rose-500', 'bg-rose-100', 'text-rose-700');
+                                setTimeout(() => inputCort.classList.remove('border-rose-500', 'bg-rose-100', 'text-rose-700'), 1000);
+                            }
+                            if (faltaAnalisis) {
+                                selects.forEach(sel => {
+                                    if (!sel.value) {
+                                        sel.classList.add('border-rose-500', 'bg-rose-100');
+                                        setTimeout(() => sel.classList.remove('border-rose-500', 'bg-rose-100'), 1000);
+                                    }
+                                });
+                            }
+                        }
+                    };
+                    foot.appendChild(btnCheck); card.appendChild(foot);
+                }
+                content.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function actualizarPuntuacion(puntos) {
+            puntuacionJuego += puntos;
+            const display = document.getElementById('puntuacion-display');
+            if(display) {
+                display.textContent = puntuacionJuego;
+                display.classList.remove('text-yellow-400', 'text-green-400', 'text-red-400');
+                if (puntos > 0) display.classList.add('text-green-400', 'scale-125');
+                else display.classList.add('text-red-400', 'scale-125');
+                setTimeout(() => {
+                    display.classList.remove('scale-125', 'text-green-400', 'text-red-400');
+                    display.classList.add('text-yellow-400');
+                }, 300);
+            }
+        }
+
+        // ==========================================
+        // LÓGICA DE AUDIO Y MICRÓFONO (BILINGÜE)
+        // ==========================================
+        function actualizarVelocidadUI() {
+            document.getElementById('velocidad-valor').textContent = document.getElementById('velocidad-dictado').value + 'x';
+        }
+
+        function toggleDictadoVoz() {
+            if (!dictadoFinal) return;
+            if (leyendoAudio) detenerDictadoVoz(); else iniciarDictadoDesdeCero();
+        }
+
+        function iniciarDictadoDesdeCero() {
+            textoRestante = dictadoFinal; indiceLetraActual = 0; leerSiguienteChunk();
+        }
+
+        function obtenerSiguienteChunk(texto) {
+            if (!texto) return "";
+            const regex = /[,.;:!?]+/;
+            const match = texto.match(regex);
+            if (match) return texto.substring(0, match.index + match[0].length);
+            else return texto;
+        }
+
+        function leerSiguienteChunk() {
+            if (!textoRestante.trim()) { detenerDictadoVoz(); return; }
+            const chunk = obtenerSiguienteChunk(textoRestante);
+            if (utteranceActual) { utteranceActual.onend = null; utteranceActual.onerror = null; }
+            if (synth.speaking) synth.cancel();
+
+            const esFinal = textoRestante.substring(chunk.length).trim().length === 0;
+            let chunkParaLeer = chunk;
+
+            if (currentLang === 'EN') {
+                chunkParaLeer = chunkParaLeer.replace(/,/g, ' comma, ').replace(/;/g, ' semicolon, ').replace(/:/g, ' colon, ');
+                if (esFinal) chunkParaLeer = chunkParaLeer.replace(/\./g, ' period. ');
+                else chunkParaLeer = chunkParaLeer.replace(/\./g, ' period, ');
+            } else {
+                chunkParaLeer = chunkParaLeer.replace(/,/g, ' coma, ').replace(/;/g, ' punto y coma, ').replace(/:/g, ' dos puntos, ');
+                if (esFinal) chunkParaLeer = chunkParaLeer.replace(/\./g, ' punto y final. ');
+                else chunkParaLeer = chunkParaLeer.replace(/\./g, ' punto y seguido, ');
+            }
+
+            utteranceActual = new SpeechSynthesisUtterance(chunkParaLeer);
+            utteranceActual.lang = currentLang === 'EN' ? 'en-US' : 'es-ES'; 
+            utteranceActual.rate = parseFloat(document.getElementById('velocidad-dictado').value);
+            
+            utteranceActual.onboundary = (e) => { 
+                if (e.name === 'word') {
+                    let idxSeguro = e.charIndex >= chunk.length ? chunk.length - 1 : e.charIndex;
+                    if (idxSeguro < 0) idxSeguro = 0;
+                    indiceLetraActual = (dictadoFinal.length - textoRestante.length) + idxSeguro; 
+                }
+            };
+
+            utteranceActual.onend = () => {
+                textoRestante = textoRestante.substring(chunk.length);
+                if (!textoRestante.trim()) detenerDictadoVoz(); else { pausadoAudio = true; actualizarUI_Pausado(); }
+            };
+
+            utteranceActual.onerror = (e) => { if(e.error !== 'canceled') detenerDictadoVoz(); };
+            leyendoAudio = true; pausadoAudio = false; actualizarUI_Reproduciendo();
+            synth.speak(utteranceActual);
+        }
+
+        function togglePausaVoz() {
+            if (!leyendoAudio) return;
+            if (pausadoAudio) {
+                if (synth.paused) { synth.resume(); pausadoAudio = false; actualizarUI_Reproduciendo(); } 
+                else leerSiguienteChunk();
+            } else {
+                if (synth.speaking) { synth.pause(); pausadoAudio = true; actualizarUI_Pausado(); }
+            }
+        }
+
+        function detenerDictadoVoz() {
+            if (utteranceActual) { utteranceActual.onend = null; utteranceActual.onerror = null; }
+            synth.cancel(); leyendoAudio = false; pausadoAudio = false; indiceLetraActual = 0; textoRestante = "";
+            actualizarUI_Detenido();
+        }
+
+        function actualizarUI_Reproduciendo() {
+            document.getElementById('btn-dictar').className = 'flex items-center justify-center bg-rose-100 text-rose-700 hover:bg-rose-200 w-11 h-11 rounded-lg font-bold transition-all shadow-sm border border-rose-200';
+            document.getElementById('icono-dictar').setAttribute('data-lucide', 'square');
+            document.getElementById('btn-pausa').classList.remove('hidden');
+            document.getElementById('btn-pausa').className = 'flex items-center justify-center bg-amber-100 text-amber-700 hover:bg-amber-200 w-11 h-11 rounded-lg font-bold transition-all shadow-sm border border-amber-200';
+            document.getElementById('icono-pausa').setAttribute('data-lucide', 'pause');
+            document.getElementById('indicador-leyendo').classList.remove('hidden');
+            document.getElementById('texto-indicador').textContent = translations[currentLang].dictating;
+            document.getElementById('indicador-leyendo').classList.add('animate-pulse');
+            lucide.createIcons();
+        }
+
+        function actualizarUI_Pausado() {
+            document.getElementById('btn-pausa').className = 'flex items-center justify-center bg-emerald-100 text-emerald-700 hover:bg-emerald-200 w-11 h-11 rounded-lg font-bold transition-all shadow-sm border border-emerald-200';
+            document.getElementById('icono-pausa').setAttribute('data-lucide', 'play');
+            document.getElementById('texto-indicador').textContent = currentLang === 'EN' ? "Pause (Say 'Continue')" : "Pausa (Diga 'Continúa')";
+            document.getElementById('indicador-leyendo').classList.remove('animate-pulse');
+            lucide.createIcons();
+        }
+
+        function actualizarUI_Detenido() {
+            if (document.getElementById('btn-dictar')) {
+                document.getElementById('btn-dictar').className = 'flex items-center justify-center bg-blue-100 text-blue-700 hover:bg-blue-200 w-11 h-11 rounded-lg font-bold transition-all shadow-sm border border-blue-200';
+                document.getElementById('icono-dictar').setAttribute('data-lucide', 'volume-2');
+            }
+            if (document.getElementById('btn-pausa')) document.getElementById('btn-pausa').classList.add('hidden');
+            if (document.getElementById('indicador-leyendo')) document.getElementById('indicador-leyendo').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function inicializarReconocimientoVoz() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) { alert("Browser not supported for voice commands."); return false; }
+            recognition = new SpeechRecognition();
+            recognition.lang = currentLang === 'EN' ? 'en-US' : 'es-ES'; 
+            recognition.continuous = true; recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const cmd = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+                const isPause = currentLang === 'EN' ? (cmd.includes("pause") || cmd.includes("stop")) : (cmd.includes("pausa") || cmd.includes("para"));
+                const isPlay = currentLang === 'EN' ? (cmd.includes("continue") || cmd.includes("play")) : (cmd.includes("continúa") || cmd.includes("sigue") || cmd.includes("continua"));
+                const isRepeat = currentLang === 'EN' ? (cmd.includes("repeat") || cmd.includes("rewind")) : (cmd.includes("repite") || cmd.includes("repitelo"));
+
+                if (isPause) { if (leyendoAudio && !pausadoAudio) togglePausaVoz(); } 
+                else if (isRepeat) { repetirUltimas8Palabras(); } 
+                else if (isPlay) { if (leyendoAudio && pausadoAudio) togglePausaVoz(); }
+            };
+            recognition.onend = () => { if (escuchandoComandos) try { recognition.start(); } catch(e){} };
+            recognition.onerror = (event) => { if (event.error === 'not-allowed') toggleComandosVoz(true); }
+            return true;
+        }
+
+        function toggleComandosVoz(forzarApagado = false) {
+            if (!dictadoFinal) return;
+            if (!recognition) { if (!inicializarReconocimientoVoz()) return; }
+            
+            // Forzar actualización de idioma en recognition al activar
+            recognition.lang = currentLang === 'EN' ? 'en-US' : 'es-ES'; 
+
+            const btnMic = document.getElementById('btn-microfono');
+            if (escuchandoComandos || forzarApagado) {
+                escuchandoComandos = false; recognition.stop();
+                btnMic.classList.remove('mic-listening');
+                btnMic.className = 'flex items-center justify-center bg-white text-slate-600 hover:bg-slate-100 w-11 h-11 rounded-full font-bold transition-all shadow-sm border-2 border-slate-200';
+                document.getElementById('icono-microfono').setAttribute('data-lucide', 'mic-off');
+            } else {
+                escuchandoComandos = true; try { recognition.start(); } catch(e){}
+                btnMic.className = 'flex items-center justify-center mic-listening w-11 h-11 rounded-full font-bold transition-all shadow-sm';
+                document.getElementById('icono-microfono').setAttribute('data-lucide', 'mic');
+            }
+            lucide.createIcons();
+        }
+
+        function repetirUltimas8Palabras() {
+            if (!leyendoAudio) return;
+            if (utteranceActual) { utteranceActual.onend = null; utteranceActual.onerror = null; }
+            synth.cancel(); 
+            
+            let palabrasVistas = 0, nuevoIndice = indiceLetraActual;
+            while(nuevoIndice > 0 && dictadoFinal[nuevoIndice-1].match(/\s/)) nuevoIndice--;
+            while (nuevoIndice > 0 && palabrasVistas < 8) {
+                nuevoIndice--;
+                if (dictadoFinal[nuevoIndice].match(/\s/) && !dictadoFinal[nuevoIndice+1].match(/\s/)) palabrasVistas++;
+            }
+            if (nuevoIndice > 0 && dictadoFinal[nuevoIndice].match(/\s/)) nuevoIndice++;
+
+            textoRestante = dictadoFinal.substring(nuevoIndice);
+            indiceLetraActual = nuevoIndice;
+            leerSiguienteChunk();
+        }
+
+        // ==========================================
+        // PANELES Y RENDER DEL CUADERNO
+        // ==========================================
+        function togglePanel(id) { document.getElementById(id).classList.toggle('hidden'); }
+
+        function renderBotonesCategorias() {
+            const contenedor = document.getElementById('contenedor-categorias');
+            contenedor.innerHTML = '';
+            categoriasPorCiclo[ciclo || 3].forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+                btn.className = `px-4 py-2 rounded-full text-sm border transition-colors ${categoriasActivas.has(cat) ? 'pill-active' : 'pill-inactive hover:bg-slate-200'}`;
+                btn.onclick = () => { categoriasActivas.has(cat) ? categoriasActivas.delete(cat) : categoriasActivas.add(cat); renderBotonesCategorias(); renderCuaderno(); };
+                contenedor.appendChild(btn);
+            });
+        }
+
+        function renderBotonesFallos() {
+            const contenedor = document.getElementById('contenedor-fallos');
+            contenedor.innerHTML = '';
+            appData[currentLang].listadoFallos.forEach(fallo => {
+                const btn = document.createElement('button');
+                btn.textContent = fallo;
+                btn.className = `px-4 py-2 rounded-full text-sm border transition-colors ${fallosActivos.has(fallo) ? 'fallo-active' : 'pill-inactive hover:bg-slate-200'}`;
+                btn.onclick = () => { fallosActivos.has(fallo) ? fallosActivos.delete(fallo) : fallosActivos.add(fallo); renderBotonesFallos(); componerDictado(true); };
+                contenedor.appendChild(btn);
+            });
+        }
+
+        function setModo(modo) {
+            modoInteraccion = modo;
+            const btnMarcar = document.getElementById('btn-modo-marcar');
+            const btnDiccionario = document.getElementById('btn-modo-diccionario');
+            if (modo === 'marcar') {
+                btnMarcar.className = 'flex items-center gap-3 p-3 rounded-xl border-2 transition-all border-amber-400 bg-amber-50 text-amber-800';
+                btnDiccionario.className = 'flex items-center gap-3 p-3 rounded-xl border-2 transition-all border-green-100 bg-green-50 text-green-700 hover:border-green-200';
+            } else {
+                btnDiccionario.className = 'flex items-center gap-3 p-3 rounded-xl border-2 transition-all border-rose-400 bg-rose-50 text-rose-800';
+                btnMarcar.className = 'flex items-center gap-3 p-3 rounded-xl border-2 transition-all border-amber-100 bg-amber-50 text-amber-700 hover:border-amber-200';
+            }
+        }
+
+        function handleWordClick(wordRaw, index) {
+            const wordClean = wordRaw.replace(/^[.,¡!¿?]+|[.,¡!¿?]+$/g, '').toLowerCase();
+            if (modoInteraccion === 'marcar') {
+                palabrasMarcadas.has(index) ? palabrasMarcadas.delete(index) : palabrasMarcadas.add(index);
+                renderCuaderno();
+            } else {
+                abrirDiccionario(wordClean);
+            }
+        }
+
+        function renderCuaderno() {
+            if(modoJuegoActivo) return; 
+            cuadernoDOM.innerHTML = '';
+            if (!dictadoFinal) {
+                cuadernoDOM.innerHTML = currentLang === 'EN' 
+                    ? '<span class="text-blue-400/70 italic text-[24px] font-light flex items-center gap-3 mt-4"><i data-lucide="hand-pointing-left" class="w-8 h-8"></i> Select a level or generate a magic text.</span>'
+                    : '<span class="text-blue-400/70 italic text-[24px] font-light flex items-center gap-3 mt-4"><i data-lucide="hand-pointing-left" class="w-8 h-8"></i> Selecciona un ciclo o genera un texto mágico.</span>';
+                lucide.createIcons(); return;
+            }
+
+            const tokens = dictadoFinal.match(/([\wáéíóúÁÉÍÓÚñÑüÜ]+|[^\wáéíóúÁÉÍÓÚñÑüÜ\s]+|\s+)/g) || [];
+            tokens.forEach((token, index) => {
+                if (!/^[\wáéíóúÁÉÍÓÚñÑüÜ]+$/.test(token)) { cuadernoDOM.appendChild(document.createTextNode(token)); return; }
+
+                const span = document.createElement('span');
+                span.textContent = token;
+                
+                let isGrammarMatch = Array.from(categoriasActivas).some(cat => appData[currentLang].categoriasGramaticales[cat]?.includes(token.toLowerCase()));
+                let clasesBase = 'transition-all cursor-pointer rounded px-[2px] hover:bg-slate-200 inline-block ';
+                
+                if (palabrasMarcadas.has(index)) clasesBase += 'bg-amber-400 font-extrabold border-b-4 border-amber-600 shadow-sm transform scale-105';
+                else if (isGrammarMatch) clasesBase += 'highlight-grammar';
+
+                span.className = clasesBase;
+                span.title = modoInteraccion === 'diccionario' ? (currentLang === 'EN' ? "Translate ES/EN" : "Consultar RAE") : (currentLang === 'EN' ? "Highlight word" : "Marcar palabra");
+                span.onclick = () => handleWordClick(token, index);
+                cuadernoDOM.appendChild(span);
+            });
+        }
+
+        function abrirDiccionario(wordClean) {
+            document.getElementById('modal-word').textContent = wordClean.toUpperCase();
+            const modalDefDOM = document.getElementById('modal-def');
+            const definicionLocal = appData[currentLang].diccionario[wordClean];
+
+            if (definicionLocal) {
+                modalDefDOM.innerHTML = `<div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100"><p class="text-emerald-900">${definicionLocal}</p></div>`;
+            } else {
+                if (currentLang === 'EN') {
+                    modalDefDOM.innerHTML = `
+                        <p class="mb-5 text-slate-500 text-center text-base">Palabra no incluida en el resumen local.</p>
+                        <a href="https://www.wordreference.com/es/translation.asp?tranword=${wordClean}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 bg-rose-600 text-white px-5 py-4 rounded-xl font-bold hover:bg-rose-700 transition-all shadow-md transform hover:scale-105">
+                            <i data-lucide="external-link" class="w-6 h-6"></i> WordReference (EN/ES)
+                        </a>`;
+                } else {
+                    modalDefDOM.innerHTML = `
+                        <p class="mb-5 text-slate-500 text-center text-base">Palabra no incluida en el resumen local.</p>
+                        <a href="https://dle.rae.es/${wordClean}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-3 bg-rose-600 text-white px-5 py-4 rounded-xl font-bold hover:bg-rose-700 transition-all shadow-md transform hover:scale-105">
+                            <i data-lucide="external-link" class="w-6 h-6"></i> Diccionario RAE
+                        </a>`;
+                }
+                lucide.createIcons();
+            }
+            document.getElementById('modal-diccionario').classList.remove('hidden');
+        }
+
+        function cerrarModalDiccionario() { document.getElementById('modal-diccionario').classList.add('hidden'); }
+
+        function actualizarBotonesCiclo() {
+            [1, 2, 3].forEach(nivel => {
+                document.getElementById(`btn-ciclo-${nivel}`).className = ciclo === nivel 
+                    ? 'px-4 py-2 rounded-md font-bold text-sm transition-all bg-white text-blue-700 shadow-sm border border-blue-200'
+                    : 'px-4 py-2 rounded-md font-bold text-sm transition-all text-slate-600 hover:text-slate-900 hover:bg-blue-100 border border-transparent';
+            });
+            document.getElementById('btn-ciclo-manual').className = ciclo === 'manual'
+                ? 'flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all bg-white text-indigo-700 shadow-sm border border-indigo-200'
+                : 'flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all text-indigo-600 hover:text-indigo-900 hover:bg-indigo-100 border border-transparent';
+        }
+    </script>
+
+    <!-- INTEGRACIÓN FIREBASE PARA LA TABLA DE CLASIFICACIÓN -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCd3sDp8MXIHJEFdh5qsLEJxwFEnyWRGFo",
+            authDomain: "dictados-2aa38.firebaseapp.com",
+            projectId: "dictados-2aa38",
+            storageBucket: "dictados-2aa38.firebasestorage.app",
+            messagingSenderId: "481662773520",
+            appId: "1:481662773520:web:7b9c862a49bd5137d09d95",
+            measurementId: "G-JYMB93D9PC"
+        };
+
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } catch(e) {}
+
+        // --- Guardar Puntuación ---
+        window.guardarMiPuntuacion = async () => {
+            const nombreInput = document.getElementById('nombre-jugador');
+            const nombre = nombreInput.value.trim().toUpperCase() || (currentLang === 'EN' ? "ANONYMOUS" : "ANÓNIMO");
+            const btn = document.getElementById('btn-guardar-score');
+
+            if(!db) {
+                alert(currentLang === 'EN' ? "Database not configured." : "Base de datos no configurada.");
+                window.cerrarJuegoPorCompleto();
+                return;
+            }
+
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> ${currentLang === 'EN' ? 'Saving...' : 'Guardando...'}`;
+            btn.disabled = true;
+            lucide.createIcons();
+
+            try {
+                await addDoc(collection(db, "topPuntuaciones"), { nombre: nombre, puntos: window.puntuacionJuego, fecha: new Date().toISOString() });
+                window.cerrarJuegoPorCompleto();
+                window.mostrarToast(currentLang === 'EN' ? "Score saved successfully!" : "¡Puntuación guardada!");
+                window.abrirRanking(); 
+                nombreInput.value = ""; 
+            } catch (error) {
+                alert(currentLang === 'EN' ? "Error saving score." : "Hubo un error al guardar.");
+            } finally {
+                btn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i> ${translations[currentLang].saveBtn}`;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        };
+
+        // --- Abrir Ranking Top 25 ---
+        window.abrirRanking = async () => {
+            document.getElementById('modal-ranking').classList.remove('hidden');
+            const listaContenedor = document.getElementById('ranking-lista');
+            const loading = document.getElementById('ranking-loading');
+            
+            listaContenedor.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            if(!db) {
+                loading.innerHTML = currentLang === 'EN' ? "<p class='text-red-400 font-bold'>Database not configured.</p>" : "<p class='text-red-400 font-bold'>Base de datos no configurada.</p>";
+                return;
+            }
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "topPuntuaciones"));
+                let puntuaciones = [];
+                querySnapshot.forEach((doc) => { puntuaciones.push(doc.data()); });
+
+                puntuaciones.sort((a, b) => b.puntos - a.puntos);
+                const top25 = puntuaciones.slice(0, 25);
+
+                listaContenedor.innerHTML = '';
+
+                if (top25.length === 0) {
+                    listaContenedor.innerHTML = currentLang === 'EN' 
+                        ? '<div class="p-6 text-center text-slate-400 font-bold">No scores yet. Be the first!</div>'
+                        : '<div class="p-6 text-center text-slate-400 font-bold">Sin puntuaciones. ¡Sé el primero!</div>';
+                } else {
+                    top25.forEach((score, index) => {
+                        let medalla = '';
+                        let colorTexto = 'text-slate-300';
+                        if(index === 0) { medalla = '🥇'; colorTexto = 'text-yellow-400 font-black text-lg'; }
+                        else if(index === 1) { medalla = '🥈'; colorTexto = 'text-slate-300 font-bold text-lg'; }
+                        else if(index === 2) { medalla = '🥉'; colorTexto = 'text-amber-600 font-bold text-lg'; }
+                        else { medalla = `<span class="text-slate-500 w-6 inline-block text-center text-sm">${index + 1}</span>`; }
+
+                        const fecha = new Date(score.fecha);
+                        const fechaCorta = isNaN(fecha) ? '' : `${fecha.getDate()}/${fecha.getMonth()+1}`;
+
+                        const fila = document.createElement('div');
+                        fila.className = `flex justify-between items-center p-4 hover:bg-slate-700/30 transition-colors ranking-row`;
+                        fila.style.animationDelay = `${index * 0.05}s`;
+                        
+                        fila.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <div class="text-2xl w-8 text-center">${medalla}</div>
+                                <div class="font-bold tracking-wider ${colorTexto}">${score.nombre}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-yellow-400 font-black text-xl">${score.puntos}</div>
+                                <div class="text-xs text-slate-500">${fechaCorta}</div>
+                            </div>
+                        `;
+                        listaContenedor.appendChild(fila);
+                    });
+                }
+
+                loading.classList.add('hidden');
+                listaContenedor.classList.remove('hidden');
+            } catch (error) {
+                loading.innerHTML = currentLang === 'EN' 
+                    ? "<p class='text-red-400 font-bold text-center p-4'>Error loading scores.</p>"
+                    : "<p class='text-red-400 font-bold text-center p-4'>Error al cargar las puntuaciones.</p>";
+            }
+        };
+
+        window.cerrarRanking = () => { document.getElementById('modal-ranking').classList.add('hidden'); };
+    </script>
+</body>
+</html>
