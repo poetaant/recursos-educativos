@@ -317,6 +317,27 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4">
+                    <div class="flex items-center gap-2 text-xs font-bold text-white bg-indigo-800 px-2 py-1.5 rounded-lg border border-indigo-600">
+                        <label for="juego-ciclo" class="hidden sm:inline" data-i18n="gameLvl">Level:</label>
+                        <i data-lucide="layers" class="w-4 h-4 sm:hidden"></i>
+                        <select id="juego-ciclo" class="bg-transparent font-bold text-amber-400 outline-none cursor-pointer" onchange="cambiarNivelJuego(this.value)">
+                            <option value="1" data-i18n="lvl1">Level 1</option>
+                            <option value="2" data-i18n="lvl2">Level 2</option>
+                            <option value="3" data-i18n="lvl3">Level 3</option>
+                            <option value="manual" data-i18n="manual">Manual</option>
+                            <option value="ia" data-i18n="gameIaOpt">Magic (AI)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs font-bold text-white bg-indigo-800 px-2 py-1.5 rounded-lg border border-indigo-600">
+                        <label for="juego-velocidad" class="hidden sm:inline" data-i18n="gameSpeed">Speed:</label>
+                        <i data-lucide="gauge" class="w-4 h-4 sm:hidden"></i>
+                        <select id="juego-velocidad" class="bg-transparent font-bold text-amber-400 outline-none cursor-pointer">
+                            <option value="0.15" data-i18n="spdSlow">Slow</option>
+                            <option value="0.3" selected data-i18n="spdNormal">Normal</option>
+                            <option value="0.6" data-i18n="spdFast">Fast</option>
+                        </select>
+                    </div>
                     <button onclick="pausarReanudarJuego()" id="btn-pausa-juego" class="bg-indigo-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded font-bold hover:bg-indigo-600 text-xs sm:text-sm shadow-md border border-indigo-50 transition-colors" data-i18n="gamePause">Pause</button>
                     <button onclick="salirJuego()" class="bg-rose-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded font-bold hover:bg-rose-500 text-xs sm:text-sm shadow-md border border-rose-500 transition-colors" data-i18n="gameExit">Exit</button>
                 </div>
@@ -638,6 +659,7 @@
                 iaFocus: "4. Spelling Focus", iaChars: "5. Characters", iaPlaces: "6. Places", cancelBtn2: "Cancel", modIaGenBtn: "Generate Text",
                 closeBtn: "Close", caveTitle: "Inside the Cave",
                 gameTitle: "Word Rain", gameDesc: "Drag the word and drop it in its cave!", gamePause: "Pause", gameExit: "Exit",
+                gameLvl: "Level:", gameIaOpt: "Magic (AI)", gameSpeed: "Speed:", spdSlow: "Slow", spdNormal: "Normal", spdFast: "Fast",
                 gameOver: "Game Over!", scoreText: "You scored", pointsText: "points", enterName: "Enter your name for the Top 25:",
                 exitNoSave: "Exit without saving", saveBtn: "Save", highScores: "High Scores", loadingChamps: "Loading champions..."
             },
@@ -654,6 +676,7 @@
                 iaFocus: "4. Foco Ortográfico", iaChars: "5. Protagonistas", iaPlaces: "6. Lugares", cancelBtn2: "Cancelar", modIaGenBtn: "Generar Texto",
                 closeBtn: "Cerrar", caveTitle: "Interior de la Guarida",
                 gameTitle: "Lluvia de Palabras", gameDesc: "¡Arrastra la palabra a su guarida!", gamePause: "Pausar", gameExit: "Terminar",
+                gameLvl: "Nivel:", gameIaOpt: "Mágico (IA)", gameSpeed: "Velocidad:", spdSlow: "Lento", spdNormal: "Medio", spdFast: "Rápido",
                 gameOver: "¡Partida Terminada!", scoreText: "Has conseguido", pointsText: "puntos", enterName: "Ingresa tu nombre para el Top 25:",
                 exitNoSave: "Salir sin guardar", saveBtn: "Guardar", highScores: "Mejores Puntuaciones", loadingChamps: "Cargando campeones..."
             }
@@ -1193,7 +1216,8 @@
             if (!isGamePaused) {
                 const canvas = document.getElementById('game-canvas');
                 const h = canvas.clientHeight;
-                const speedMultiplier = parseFloat(document.getElementById('juego-velocidad').value);
+                const speedSelect = document.getElementById('juego-velocidad');
+                const speedMultiplier = speedSelect ? parseFloat(speedSelect.value) : 0.3;
                 
                 palabrasSubiendo.forEach((w, index) => {
                     if (w.state === 'rising') {
